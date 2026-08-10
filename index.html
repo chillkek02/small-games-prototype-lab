@@ -8,118 +8,14 @@
 <title>Small Games Prototype Lab</title>
 <link rel="manifest" href="manifest.webmanifest">
 <style>
-:root{
-  --bg:#071017;--bg2:#0c1921;--panel:#10232d;--panel2:#142c37;
-  --ink:#eef8f5;--muted:#8fa9aa;--line:#274550;--gold:#ffd15a;
-  --good:#72dfa7;--danger:#ff7676;--safeTop:env(safe-area-inset-top,0px);
-  --safeBottom:env(safe-area-inset-bottom,0px);
-}
-*{box-sizing:border-box}
-html{background:var(--bg)}
-body{
-  margin:0;min-height:100dvh;color:var(--ink);
-  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
-  background:
-    radial-gradient(circle at 12% 0%,#193d49 0,transparent 30rem),
-    radial-gradient(circle at 92% 8%,#302444 0,transparent 28rem),
-    linear-gradient(180deg,var(--bg2),var(--bg));
-}
-button,input,textarea{font:inherit}
-button,a{touch-action:manipulation}
-.wrap{width:min(1180px,100%);margin:auto;padding:calc(22px + var(--safeTop)) 16px calc(38px + var(--safeBottom))}
-.hero{
-  position:relative;overflow:hidden;border:1px solid #31505d;border-radius:25px;
-  padding:clamp(22px,5vw,48px);background:
-  linear-gradient(135deg,rgba(30,76,89,.92),rgba(19,39,51,.94) 52%,rgba(47,33,64,.92));
-  box-shadow:0 24px 80px #0008;
-}
-.hero:after{
-  content:"";position:absolute;right:-90px;top:-120px;width:320px;height:320px;
-  border:34px solid #ffd15a18;border-radius:50%;box-shadow:0 0 0 38px #65d5dd0c,0 0 0 72px #aa75ff09;
-}
-.eyebrow{font-size:12px;letter-spacing:.18em;font-weight:1000;color:#8edee4}
-h1{position:relative;z-index:1;font-size:clamp(36px,8vw,72px);line-height:.92;margin:12px 0 13px;letter-spacing:-.05em}
-.hero p{position:relative;z-index:1;max-width:700px;color:#b7cbcb;font-size:clamp(14px,2.3vw,18px);line-height:1.55;margin:0}
-.hero-actions{position:relative;z-index:2;display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
-.btn{
-  border:1px solid #456673;border-radius:13px;padding:11px 14px;color:var(--ink);
-  background:#122b36;font-weight:900;text-decoration:none;cursor:pointer;
-  box-shadow:0 5px 0 #061017;
-}
-.btn:hover{filter:brightness(1.1)}.btn:active{transform:translateY(2px);box-shadow:0 3px 0 #061017}
-.btn.primary{background:linear-gradient(180deg,#ffe078,#e8b33e);border-color:#ffeaa8;color:#221803}
-.btn.secondary{background:#183845}
-.labbar{
-  display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;
-  margin:24px 2px 12px;
-}
-.labbar h2{margin:0;font-size:22px}.labbar p{margin:5px 0 0;color:var(--muted);font-size:13px}
-.tester{
-  display:flex;gap:7px;align-items:center;border:1px solid var(--line);
-  border-radius:13px;padding:7px;background:#0d1d25;
-}
-.tester label{font-size:10px;font-weight:900;color:var(--muted);letter-spacing:.08em}
-.tester input{
-  width:145px;max-width:38vw;border:0;outline:none;color:var(--ink);
-  background:transparent;font-weight:800;
-}
-.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}
-.card{
-  --accent:#65d5dd;position:relative;overflow:hidden;min-height:245px;
-  display:flex;flex-direction:column;border:1px solid #2c4955;border-radius:19px;
-  background:linear-gradient(155deg,#142c36,#0e1d25 62%);box-shadow:0 14px 42px #0005;
-}
-.card:before{
-  content:"";position:absolute;inset:0 auto auto 0;width:100%;height:4px;background:var(--accent)
-}
-.card-art{
-  min-height:92px;padding:18px;display:flex;align-items:center;justify-content:space-between;
-  background:radial-gradient(circle at 82% 25%,color-mix(in srgb,var(--accent) 24%,transparent),transparent 58%);
-}
-.number{font:900 13px/1 ui-monospace,monospace;color:#789296}
-.symbol{
-  width:64px;height:64px;display:grid;place-items:center;border-radius:18px;
-  color:var(--accent);font-size:34px;font-weight:1000;border:1px solid color-mix(in srgb,var(--accent) 50%,#29434e);
-  background:color-mix(in srgb,var(--accent) 12%,#0b1b23);box-shadow:0 12px 32px #0005;
-}
-.card-body{padding:0 17px 17px;display:flex;flex:1;flex-direction:column}
-.genre{font-size:10px;color:var(--accent);font-weight:1000;letter-spacing:.08em;text-transform:uppercase}
-.card h3{font-size:22px;line-height:1;margin:7px 0 8px}
-.hook{color:#9fb5b6;font-size:13px;line-height:1.43;margin:0 0 15px;flex:1}
-.card-actions{display:grid;grid-template-columns:1fr auto;gap:8px}
-.play{background:var(--accent);border-color:color-mix(in srgb,var(--accent) 72%,white);color:#071017;text-align:center}
-.rate{
-  min-width:54px;background:#122831;color:#dcebea;border:1px solid #36545e;
-  border-radius:12px;font-weight:900;cursor:pointer
-}
-.rated{position:absolute;top:12px;right:12px;border:1px solid #4d7968;color:#8de5b3;background:#0d2a21d9;border-radius:999px;padding:5px 8px;font-size:9px;font-weight:1000;display:none}
-.card.is-rated .rated{display:block}
-.footer{
-  margin-top:22px;border-top:1px solid #24404a;padding-top:18px;color:#799495;
-  display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11px
-}
-.modal{
-  position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;
-  padding:18px;background:#02090ddc;backdrop-filter:blur(8px)
-}
-.modal.show{display:flex}
-.sheet{width:min(520px,100%);max-height:min(88dvh,720px);overflow:auto;background:#10242e;border:1px solid #385965;border-radius:21px;padding:19px;box-shadow:0 30px 90px #000c}
-.sheet h2{margin:0 0 5px}.sheet .sub{color:var(--muted);font-size:12px;margin-bottom:14px}
-.score-row{display:grid;grid-template-columns:1fr repeat(5,38px);gap:5px;align-items:center;margin:10px 0}
-.score-row span{font-size:12px;font-weight:900}.score-row button{height:38px;border:1px solid #35525d;border-radius:10px;background:#132d37;color:#a7bdbe;font-weight:900}
-.score-row button.on{background:#ffd15a;color:#211700;border-color:#ffe69a}
-.field{display:grid;gap:6px;margin-top:10px}.field label{font-size:10px;color:#9eb5b6;font-weight:1000;letter-spacing:.06em}
-.field textarea{min-height:74px;resize:vertical;border:1px solid #35525e;border-radius:11px;background:#091820;color:var(--ink);padding:10px}
-.sheet-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.sheet-actions .btn{flex:1}
-.empty-report{padding:12px;border:1px dashed #385663;border-radius:12px;color:var(--muted)}
-@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
-@media(max-width:570px){
-  .wrap{padding-left:10px;padding-right:10px}.hero{border-radius:19px}
-  .labbar{grid-template-columns:1fr}.tester{width:100%;justify-content:space-between}
-  .tester input{flex:1;max-width:none}.grid{grid-template-columns:1fr}
-  .card{min-height:212px}.card-art{min-height:75px}.symbol{width:55px;height:55px}
-  .score-row{grid-template-columns:1fr repeat(5,35px)}.score-row button{height:35px}
-}
+:root{--bg:#071017;--bg2:#0c1921;--panel:#10232d;--ink:#eef8f5;--muted:#8fa9aa;--line:#274550;--gold:#ffd15a;--good:#72dfa7;--danger:#ff7676;--safeTop:env(safe-area-inset-top,0px);--safeBottom:env(safe-area-inset-bottom,0px)}
+*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;min-height:100dvh;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at 12% 0%,#193d49 0,transparent 30rem),radial-gradient(circle at 92% 8%,#302444 0,transparent 28rem),linear-gradient(180deg,var(--bg2),var(--bg))}button,input,textarea{font:inherit}button,a{touch-action:manipulation}.wrap{width:min(1180px,100%);margin:auto;padding:calc(22px + var(--safeTop)) 16px calc(38px + var(--safeBottom))}
+.hero{position:relative;overflow:hidden;border:1px solid #31505d;border-radius:25px;padding:clamp(22px,5vw,48px);background:linear-gradient(135deg,rgba(30,76,89,.92),rgba(19,39,51,.94) 52%,rgba(47,33,64,.92));box-shadow:0 24px 80px #0008}.hero:after{content:"";position:absolute;right:-90px;top:-120px;width:320px;height:320px;border:34px solid #ffd15a18;border-radius:50%;box-shadow:0 0 0 38px #65d5dd0c,0 0 0 72px #aa75ff09}.eyebrow{font-size:12px;letter-spacing:.18em;font-weight:1000;color:#8edee4}h1{position:relative;z-index:1;font-size:clamp(36px,8vw,72px);line-height:.92;margin:12px 0 13px;letter-spacing:-.05em}.hero p{position:relative;z-index:1;max-width:700px;color:#b7cbcb;font-size:clamp(14px,2.3vw,18px);line-height:1.55;margin:0}.hero-actions{position:relative;z-index:2;display:flex;gap:9px;flex-wrap:wrap;margin-top:22px}
+.btn{border:1px solid #456673;border-radius:13px;padding:11px 14px;color:var(--ink);background:#122b36;font-weight:900;text-decoration:none;cursor:pointer;box-shadow:0 5px 0 #061017}.btn:hover{filter:brightness(1.1)}.btn:active{transform:translateY(2px);box-shadow:0 3px 0 #061017}.btn.primary{background:linear-gradient(180deg,#ffe078,#e8b33e);border-color:#ffeaa8;color:#221803}.btn.secondary{background:#183845}.btn:disabled{cursor:not-allowed;opacity:.55;filter:none}
+.labbar{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:end;margin:24px 2px 12px}.labbar h2{margin:0;font-size:22px}.labbar p{margin:5px 0 0;color:var(--muted);font-size:13px}.tester{display:flex;gap:7px;align-items:center;border:1px solid var(--line);border-radius:13px;padding:7px;background:#0d1d25}.tester label{font-size:10px;font-weight:900;color:var(--muted);letter-spacing:.08em}.tester input{width:145px;max-width:38vw;border:0;outline:none;color:var(--ink);background:transparent;font-weight:800}
+.grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:13px}.card{--accent:#65d5dd;position:relative;overflow:hidden;min-height:255px;display:flex;flex-direction:column;border:1px solid #2c4955;border-radius:19px;background:linear-gradient(155deg,#142c36,#0e1d25 62%);box-shadow:0 14px 42px #0005}.card:before{content:"";position:absolute;inset:0 auto auto 0;width:100%;height:4px;background:var(--accent)}.card-art{min-height:92px;padding:18px;display:flex;align-items:center;justify-content:space-between;background:radial-gradient(circle at 82% 25%,color-mix(in srgb,var(--accent) 24%,transparent),transparent 58%)}.number{font:900 13px/1 ui-monospace,monospace;color:#789296}.symbol{width:64px;height:64px;display:grid;place-items:center;border-radius:18px;color:var(--accent);font-size:34px;font-weight:1000;border:1px solid color-mix(in srgb,var(--accent) 50%,#29434e);background:color-mix(in srgb,var(--accent) 12%,#0b1b23);box-shadow:0 12px 32px #0005}.card-body{padding:0 17px 17px;display:flex;flex:1;flex-direction:column}.genre{font-size:10px;color:var(--accent);font-weight:1000;letter-spacing:.08em;text-transform:uppercase}.card h3{font-size:22px;line-height:1;margin:7px 0 5px}.version{font:800 10px/1 ui-monospace,monospace;color:#91aeb0;letter-spacing:.06em}.hook{color:#9fb5b6;font-size:13px;line-height:1.43;margin:9px 0 15px;flex:1}.card-actions{display:grid;grid-template-columns:1fr auto;gap:8px}.play{background:var(--accent);border-color:color-mix(in srgb,var(--accent) 72%,white);color:#071017;text-align:center}.rate{min-width:62px;background:#122831;color:#dcebea;border:1px solid #36545e;border-radius:12px;font-size:10px;font-weight:1000;cursor:pointer}.rated{position:absolute;top:12px;right:12px;border:1px solid #4d7968;color:#8de5b3;background:#0d2a21d9;border-radius:999px;padding:5px 8px;font-size:9px;font-weight:1000;display:none}.card.is-rated .rated{display:block}.card.is-pending .rated{border-color:#846d42;color:#ffd978;background:#352b12e8}
+.footer{margin-top:22px;border-top:1px solid #24404a;padding-top:18px;color:#799495;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;font-size:11px}.modal{position:fixed;inset:0;z-index:50;display:none;align-items:center;justify-content:center;padding:18px;background:#02090ddc;backdrop-filter:blur(8px)}.modal.show{display:flex}.sheet{width:min(520px,100%);max-height:min(88dvh,720px);overflow:auto;background:#10242e;border:1px solid #385965;border-radius:21px;padding:19px;box-shadow:0 30px 90px #000c}.sheet h2{margin:0 0 5px}.sheet .sub{color:var(--muted);font-size:12px;margin-bottom:14px}.score-row{display:grid;grid-template-columns:1fr repeat(5,38px);gap:5px;align-items:center;margin:10px 0}.score-row span{font-size:12px;font-weight:900}.score-row button{height:38px;border:1px solid #35525d;border-radius:10px;background:#132d37;color:#a7bdbe;font-weight:900}.score-row button.on{background:#ffd15a;color:#211700;border-color:#ffe69a}.field{display:grid;gap:6px;margin-top:10px}.field label{font-size:10px;color:#9eb5b6;font-weight:1000;letter-spacing:.06em}.field textarea{min-height:74px;resize:vertical;border:1px solid #35525e;border-radius:11px;background:#091820;color:var(--ink);padding:10px}.sheet-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.sheet-actions .btn{flex:1}.notice{display:none;margin:12px 0 0;border:1px solid #385663;border-radius:11px;padding:10px;font-size:12px;line-height:1.35}.notice.show{display:block}.notice.good{border-color:#438066;background:#0d2a21;color:#a9efc8}.notice.warn{border-color:#806839;background:#332b13;color:#ffe092}.ratings-list{display:grid;gap:8px}.rating-item{border:1px solid #31515c;border-radius:12px;padding:11px;background:#0c1c24}.rating-item b{display:block}.rating-item small{display:block;color:var(--muted);margin-top:3px}.empty-report{padding:12px;border:1px dashed #385663;border-radius:12px;color:var(--muted)}
+@media(max-width:850px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}@media(max-width:570px){.wrap{padding-left:10px;padding-right:10px}.hero{border-radius:19px}.labbar{grid-template-columns:1fr}.tester{width:100%;justify-content:space-between}.tester input{flex:1;max-width:none}.grid{grid-template-columns:1fr}.card{min-height:220px}.card-art{min-height:75px}.symbol{width:55px;height:55px}.score-row{grid-template-columns:1fr repeat(5,35px)}.score-row button{height:35px}}
 </style>
 </head>
 <body>
@@ -127,189 +23,143 @@ h1{position:relative;z-index:1;font-size:clamp(36px,8vw,72px);line-height:.92;ma
   <section class="hero">
     <div class="eyebrow">PRIVATE PLAYTEST HUB · BUILD FAST · KEEP THE WINNERS</div>
     <h1>SMALL GAMES<br>PROTOTYPE LAB</h1>
-    <p>Nine fast experiments. Play anything that catches your eye, then rate how much fun it was and whether you actually wanted another run.</p>
+    <p>Nine fast experiments. Play anything that catches your eye, then submit a rating for the whole team to review.</p>
     <div class="hero-actions">
       <button class="btn primary" id="randomBtn">PLAY A RANDOM PROTOTYPE</button>
-      <button class="btn secondary" id="exportBtn">COPY FEEDBACK REPORT</button>
+      <button class="btn secondary" id="myRatingsBtn">MY RATINGS</button>
       <button class="btn secondary" id="clearFeedbackBtn">CLEAR MY RATINGS</button>
     </div>
   </section>
-
   <section class="labbar">
-    <div><h2>Choose a prototype</h2><p>Games open in a dedicated play screen. Return here to rate them.</p></div>
-    <div class="tester">
-      <label for="testerName">TESTER</label>
-      <input id="testerName" maxlength="40" placeholder="Your name or nickname">
-    </div>
+    <div><h2>Choose a prototype</h2><p>Games open in a dedicated play screen. Return here to submit your review.</p></div>
+    <div class="tester"><label for="testerName">TESTER</label><input id="testerName" maxlength="40" autocomplete="nickname" placeholder="Your nickname"></div>
   </section>
-
   <section class="grid" id="gameGrid"></section>
-
-  <footer class="footer">
-    <span>Prototype builds · Not final products</span>
-    <span id="ratingCount">0 of 9 rated on this device</span>
-  </footer>
+  <footer class="footer"><span>Prototype builds · Not final products</span><span id="ratingCount">0 of 9 rated on this device</span></footer>
 </main>
 
-<div class="modal" id="ratingModal" role="dialog" aria-modal="true">
+<div class="modal" id="ratingModal" role="dialog" aria-modal="true" aria-labelledby="ratingTitle">
   <div class="sheet">
     <h2 id="ratingTitle">Rate prototype</h2>
-    <div class="sub">Honest criticism is more valuable than being nice.</div>
+    <div class="sub" id="ratingSub">Your rating is sent to the Prototype Lab review dashboard.</div>
     <div id="scoreRows"></div>
-    <div class="field"><label>BEST PART</label><textarea id="bestPart" placeholder="What made you want to continue?"></textarea></div>
-    <div class="field"><label>WORST / MOST CONFUSING PART</label><textarea id="worstPart" placeholder="What was boring, frustrating, unclear, or broken?"></textarea></div>
-    <div class="field"><label>BUGS OR OTHER NOTES</label><textarea id="notes" placeholder="Anything else the developer should know?"></textarea></div>
-    <div class="sheet-actions">
-      <button class="btn primary" id="saveRatingBtn">SAVE RATING</button>
-      <button class="btn" id="closeRatingBtn">CANCEL</button>
-    </div>
+    <div class="field"><label for="bestPart">BEST PART</label><textarea id="bestPart" placeholder="What made you want to continue?"></textarea></div>
+    <div class="field"><label for="worstPart">WORST / MOST CONFUSING PART</label><textarea id="worstPart" placeholder="What was boring, frustrating, unclear, or broken?"></textarea></div>
+    <div class="field"><label for="notes">BUGS / OTHER NOTES</label><textarea id="notes" placeholder="Anything else the developer should know?"></textarea></div>
+    <div class="notice" id="submitNotice" role="status" aria-live="polite"></div>
+    <div class="sheet-actions"><button class="btn primary" id="saveRatingBtn">SUBMIT REVIEW</button><button class="btn" id="closeRatingBtn">CLOSE</button></div>
   </div>
 </div>
 
-<div class="modal" id="reportModal" role="dialog" aria-modal="true">
+<div class="modal" id="ratingsModal" role="dialog" aria-modal="true" aria-labelledby="ratingsTitle">
   <div class="sheet">
-    <h2>Feedback report</h2>
-    <div class="sub">Copy this and text or email it to the developer.</div>
-    <div id="reportBody" class="empty-report"></div>
-    <div class="sheet-actions">
-      <button class="btn primary" id="copyReportBtn">COPY REPORT</button>
-      <button class="btn" id="downloadReportBtn">DOWNLOAD .TXT</button>
-      <button class="btn" id="closeReportBtn">CLOSE</button>
-    </div>
+    <h2 id="ratingsTitle">My ratings</h2>
+    <div class="sub">Submitted reviews are saved on this device too. Pending reviews can be retried when you are online.</div>
+    <div id="ratingsBody" class="ratings-list"></div>
+    <div class="notice" id="retryNotice" role="status" aria-live="polite"></div>
+    <div class="sheet-actions"><button class="btn primary" id="retryPendingBtn">RETRY PENDING</button><button class="btn" id="closeRatingsBtn">CLOSE</button></div>
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-config.js"></script>
 <script src="games.js"></script>
 <script>
 (() => {
 'use strict';
-const STORE='smallGamesPrototypeLabFeedbackV1';
+const STORE='smallGamesPrototypeLabReviewsV2';
 const NAME='smallGamesPrototypeLabTesterV1';
 const games=window.SMALL_GAMES||[];
 const grid=document.getElementById('gameGrid');
 const nameInput=document.getElementById('testerName');
 const modal=document.getElementById('ratingModal');
-const reportModal=document.getElementById('reportModal');
+const ratingsModal=document.getElementById('ratingsModal');
+const submitNotice=document.getElementById('submitNotice');
 let activeGame=null, scores={fun:0,replay:0,clarity:0};
 let feedback=load();
+let supabaseClient=null;
+try{
+  const config=window.SMALL_GAMES_SUPABASE;
+  if(!config||!window.supabase)throw new Error('Review service unavailable.');
+  supabaseClient=window.supabase.createClient(config.url,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});
+}catch(error){console.warn('Supabase review client could not initialize.',error);}
 
 nameInput.value=localStorage.getItem(NAME)||'';
 nameInput.addEventListener('input',()=>localStorage.setItem(NAME,nameInput.value.trim()));
-
 function load(){try{return JSON.parse(localStorage.getItem(STORE))||{}}catch{return {}}}
 function persist(){localStorage.setItem(STORE,JSON.stringify(feedback))}
 function esc(s=''){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+function displayStatus(review){return review.status==='pending'?'SUBMISSION PENDING':'RATED ✓'}
 
 function render(){
   grid.innerHTML=games.map(g=>{
-    const rated=!!feedback[g.slug];
-    return `<article class="card ${rated?'is-rated':''}" style="--accent:${g.accent}">
-      <div class="rated">RATED ✓</div>
+    const review=feedback[g.slug];const rated=!!review;const pending=review&&review.status==='pending';
+    return `<article class="card ${rated?'is-rated':''} ${pending?'is-pending':''}" style="--accent:${g.accent}">
+      <div class="rated">${displayStatus(review||{})}</div>
       <div class="card-art"><div class="number">PROTOTYPE #${g.id}</div><div class="symbol">${g.symbol}</div></div>
-      <div class="card-body">
-        <div class="genre">${esc(g.genre)}</div>
-        <h3>${esc(g.title)}</h3>
-        <p class="hook">${esc(g.hook)}</p>
-        <div class="card-actions">
-          <a class="btn play" href="play.html?game=${encodeURIComponent(g.slug)}">PLAY</a>
-          <button class="rate" data-rate="${g.slug}" aria-label="Rate ${esc(g.title)}">★</button>
-        </div>
-      </div>
-    </article>`;
+      <div class="card-body"><div class="genre">${esc(g.genre)}</div><h3>${esc(g.title)}</h3><div class="version">BUILD ${esc(g.version||'—')}</div><p class="hook">${esc(g.hook)}</p>
+        <div class="card-actions"><a class="btn play" href="play.html?game=${encodeURIComponent(g.slug)}">PLAY</a><button class="rate" data-rate="${g.slug}" aria-label="Rate ${esc(g.title)}">${rated?'EDIT':'RATE'}</button></div>
+      </div></article>`;
   }).join('');
-  grid.querySelectorAll('[data-rate]').forEach(b=>b.onclick=()=>openRating(b.dataset.rate));
-  const count=Object.keys(feedback).filter(k=>games.some(g=>g.slug===k)).length;
+  grid.querySelectorAll('[data-rate]').forEach(button=>button.onclick=()=>openRating(button.dataset.rate));
+  const count=Object.keys(feedback).filter(key=>games.some(g=>g.slug===key)).length;
   document.getElementById('ratingCount').textContent=`${count} of ${games.length} rated on this device`;
 }
-
-const metrics=[
-  ['fun','FUN','How enjoyable was the actual play?'],
-  ['replay','PLAY AGAIN','How badly did you want another run?'],
-  ['clarity','EASY TO UNDERSTAND','Could you learn it without help?']
-];
-
+const metrics=[['fun','FUN','How enjoyable was the actual play?'],['replay','PLAY AGAIN','How badly did you want another run?'],['clarity','EASY TO UNDERSTAND','Could you learn it without help?']];
+function setNotice(element,text,tone=''){element.textContent=text;element.className=`notice show ${tone}`;}
+function clearNotice(element){element.textContent='';element.className='notice';}
 function openRating(slug){
-  activeGame=games.find(g=>g.slug===slug);if(!activeGame)return;
+  activeGame=games.find(game=>game.slug===slug);if(!activeGame)return;
   const existing=feedback[slug]||{};
-  scores={fun:existing.fun||0,replay:existing.replay||0,clarity:existing.clarity||0};
+  scores={fun:existing.fun_score||0,replay:existing.replay_score||0,clarity:existing.clarity_score||0};
   document.getElementById('ratingTitle').textContent=`Rate ${activeGame.title}`;
-  document.getElementById('bestPart').value=existing.best||'';
-  document.getElementById('worstPart').value=existing.worst||'';
+  document.getElementById('ratingSub').textContent=`Build ${activeGame.version||'—'} · your review is sent to the Prototype Lab dashboard.`;
+  document.getElementById('bestPart').value=existing.best_part||'';
+  document.getElementById('worstPart').value=existing.worst_part||'';
   document.getElementById('notes').value=existing.notes||'';
-  renderScoreRows();
-  modal.classList.add('show');
+  clearNotice(submitNotice);
+  if(existing.status==='submitted')setNotice(submitNotice,'SUBMITTED ✓ This rating is also saved on this device.','good');
+  if(existing.status==='pending')setNotice(submitNotice,'SAVED ON THIS DEVICE — SUBMISSION PENDING. Use MY RATINGS to retry.','warn');
+  renderScoreRows();modal.classList.add('show');
 }
-
 function renderScoreRows(){
-  document.getElementById('scoreRows').innerHTML=metrics.map(([key,label,hint])=>
-    `<div class="score-row"><span title="${esc(hint)}">${label}</span>${[1,2,3,4,5].map(n=>
-      `<button data-score="${key}" data-value="${n}" class="${scores[key]===n?'on':''}">${n}</button>`).join('')}</div>`
-  ).join('');
-  document.querySelectorAll('[data-score]').forEach(b=>b.onclick=()=>{
-    scores[b.dataset.score]=Number(b.dataset.value);renderScoreRows();
-  });
+  document.getElementById('scoreRows').innerHTML=metrics.map(([key,label,hint])=>`<div class="score-row"><span title="${esc(hint)}">${label}</span>${[1,2,3,4,5].map(number=>`<button type="button" data-score="${key}" data-value="${number}" class="${scores[key]===number?'on':''}">${number}</button>`).join('')}</div>`).join('');
+  document.querySelectorAll('[data-score]').forEach(button=>button.onclick=()=>{scores[button.dataset.score]=Number(button.dataset.value);renderScoreRows();});
 }
-
-document.getElementById('saveRatingBtn').onclick=()=>{
-  if(!activeGame)return;
-  if(!scores.fun||!scores.replay||!scores.clarity){alert('Please choose all three scores.');return}
-  feedback[activeGame.slug]={
-    title:activeGame.title,fun:scores.fun,replay:scores.replay,clarity:scores.clarity,
-    best:document.getElementById('bestPart').value.trim(),
-    worst:document.getElementById('worstPart').value.trim(),
-    notes:document.getElementById('notes').value.trim(),
-    tester:nameInput.value.trim()||'Anonymous',
-    savedAt:new Date().toISOString()
-  };
-  persist();modal.classList.remove('show');render();
-};
-document.getElementById('closeRatingBtn').onclick=()=>modal.classList.remove('show');
-modal.addEventListener('click',e=>{if(e.target===modal)modal.classList.remove('show')});
-
-function makeReport(){
-  const tester=nameInput.value.trim()||'Anonymous';
-  const lines=[`SMALL GAMES PROTOTYPE LAB — TESTER REPORT`,`Tester: ${tester}`,`Date: ${new Date().toLocaleString()}`,``];
-  let count=0;
-  games.forEach(g=>{
-    const f=feedback[g.slug];if(!f)return;count++;
-    lines.push(`#${g.id} ${g.title}`);
-    lines.push(`Fun: ${f.fun}/5 | Play Again: ${f.replay}/5 | Clarity: ${f.clarity}/5`);
-    lines.push(`Best: ${f.best||'—'}`);
-    lines.push(`Worst/Confusing: ${f.worst||'—'}`);
-    lines.push(`Bugs/Notes: ${f.notes||'—'}`);
-    lines.push('');
-  });
-  if(!count)lines.push('No prototypes rated yet.');
-  return lines.join('\n');
+function makeReview(){
+  const testerName=nameInput.value.trim();
+  if(!testerName){setNotice(submitNotice,'Enter a nickname before submitting your review.','warn');nameInput.focus();return null;}
+  if(!scores.fun||!scores.replay||!scores.clarity){setNotice(submitNotice,'Choose a score for FUN, PLAY AGAIN, and EASY TO UNDERSTAND.','warn');return null;}
+  return {prototype_number:activeGame.id,prototype_slug:activeGame.slug,prototype_title:activeGame.title,build_version:activeGame.version||'',tester_name:testerName,fun_score:scores.fun,replay_score:scores.replay,clarity_score:scores.clarity,best_part:document.getElementById('bestPart').value.trim(),worst_part:document.getElementById('worstPart').value.trim(),notes:document.getElementById('notes').value.trim()};
 }
-
-function openReport(){
-  const text=makeReport();
-  document.getElementById('reportBody').innerHTML=`<pre style="white-space:pre-wrap;margin:0;font:12px/1.5 ui-monospace,monospace">${esc(text)}</pre>`;
-  reportModal.classList.add('show');
+function saveLocal(review,status){feedback[review.prototype_slug]={...review,status,saved_at:new Date().toISOString()};persist();render();}
+async function submitReview(review){
+  if(!supabaseClient)throw new Error('Review service is unavailable.');
+  const {error}=await supabaseClient.from('prototype_reviews').insert(review);
+  if(error)throw error;
 }
-document.getElementById('exportBtn').onclick=openReport;
-document.getElementById('copyReportBtn').onclick=async()=>{
-  const text=makeReport();
-  try{await navigator.clipboard.writeText(text);alert('Feedback report copied.')}catch{
-    const ta=document.createElement('textarea');ta.value=text;document.body.appendChild(ta);ta.select();document.execCommand('copy');ta.remove();alert('Feedback report copied.');
-  }
+document.getElementById('saveRatingBtn').onclick=async()=>{
+  if(!activeGame)return;const review=makeReview();if(!review)return;
+  const button=document.getElementById('saveRatingBtn');button.disabled=true;button.textContent='SUBMITTING…';
+  try{await submitReview(review);saveLocal(review,'submitted');setNotice(submitNotice,'SUBMITTED ✓ Thanks for helping improve this prototype.','good');}
+  catch(error){console.warn('Review submission failed.',error);saveLocal(review,'pending');setNotice(submitNotice,'SAVED ON THIS DEVICE — SUBMISSION PENDING. You can retry from MY RATINGS.','warn');}
+  finally{button.disabled=false;button.textContent='SUBMIT REVIEW';}
 };
-document.getElementById('downloadReportBtn').onclick=()=>{
-  const blob=new Blob([makeReport()],{type:'text/plain'}),a=document.createElement('a');
-  a.href=URL.createObjectURL(blob);a.download='Small_Games_Playtest_Feedback.txt';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);
+document.getElementById('closeRatingBtn').onclick=()=>modal.classList.remove('show');modal.addEventListener('click',event=>{if(event.target===modal)modal.classList.remove('show')});
+function renderMyRatings(){
+  const entries=Object.values(feedback).sort((a,b)=>Number(a.prototype_number)-Number(b.prototype_number));
+  const body=document.getElementById('ratingsBody');
+  body.innerHTML=entries.length?entries.map(review=>`<div class="rating-item"><b>#${review.prototype_number} ${esc(review.prototype_title)}</b><small>Build ${esc(review.build_version||'—')} · ${review.fun_score}/5 fun · ${review.replay_score}/5 play again · ${review.clarity_score}/5 clarity</small><small>${review.status==='pending'?'SAVED ON THIS DEVICE — SUBMISSION PENDING':'SUBMITTED ✓'} </small></div>`).join(''):'<div class="empty-report">No ratings saved on this device yet.</div>';
+  const pending=entries.filter(review=>review.status==='pending').length;const button=document.getElementById('retryPendingBtn');button.disabled=!pending;button.textContent=pending?`RETRY ${pending} PENDING`:'NO PENDING SUBMISSIONS';clearNotice(document.getElementById('retryNotice'));
+}
+document.getElementById('myRatingsBtn').onclick=()=>{renderMyRatings();ratingsModal.classList.add('show');};document.getElementById('closeRatingsBtn').onclick=()=>ratingsModal.classList.remove('show');ratingsModal.addEventListener('click',event=>{if(event.target===ratingsModal)ratingsModal.classList.remove('show')});
+document.getElementById('retryPendingBtn').onclick=async()=>{
+  const pending=Object.values(feedback).filter(review=>review.status==='pending');const button=document.getElementById('retryPendingBtn');button.disabled=true;let succeeded=0;
+  for(const review of pending){try{await submitReview({prototype_number:review.prototype_number,prototype_slug:review.prototype_slug,prototype_title:review.prototype_title,build_version:review.build_version,tester_name:review.tester_name,fun_score:review.fun_score,replay_score:review.replay_score,clarity_score:review.clarity_score,best_part:review.best_part,worst_part:review.worst_part,notes:review.notes});feedback[review.prototype_slug]={...review,status:'submitted',saved_at:new Date().toISOString()};succeeded++;}catch(error){console.warn('Retry failed.',error);}}
+  persist();render();renderMyRatings();setNotice(document.getElementById('retryNotice'),succeeded===pending.length?`SUBMITTED ✓ ${succeeded} pending review${succeeded===1?'':'s'} sent.`:`${succeeded} submitted; ${pending.length-succeeded} still pending.`,succeeded===pending.length?'good':'warn');
 };
-document.getElementById('closeReportBtn').onclick=()=>reportModal.classList.remove('show');
-reportModal.addEventListener('click',e=>{if(e.target===reportModal)reportModal.classList.remove('show')});
-
-document.getElementById('randomBtn').onclick=()=>{
-  const g=games[Math.floor(Math.random()*games.length)];
-  location.href=`play.html?game=${encodeURIComponent(g.slug)}`;
-};
-document.getElementById('clearFeedbackBtn').onclick=()=>{
-  if(confirm('Delete all ratings stored on this device?')){feedback={};persist();render()}
-};
-
+document.getElementById('randomBtn').onclick=()=>{const game=games[Math.floor(Math.random()*games.length)];location.href=`play.html?game=${encodeURIComponent(game.slug)}`;};
+document.getElementById('clearFeedbackBtn').onclick=()=>{if(confirm('Delete all ratings stored on this device?')){feedback={};persist();render();}};
 render();
 })();
 </script>
