@@ -106,5 +106,24 @@ window.SMALL_GAMES = [
     "accent": "#ef7777",
     "symbol": "\u25a6",
     "status": "PROTOTYPE"
+  },
+  {
+    "id": 10,
+    "slug": "dead-orbit",
+    "folder": "10-dead-orbit",
+    "title": "Dead Orbit",
+    "version": "v8",
+    "genre": "Engine Builder \u00b7 Survival",
+    "hook": "Build a dying spaceship into an impossible machine before the crew runs out of air.",
+    "accent": "#70eaff",
+    "symbol": "\u25ce",
+    "status": "PROTOTYPE"
   }
 ];
+
+if (typeof document !== 'undefined') {
+  const heroCopy = document.querySelector('.hero p');
+  if (heroCopy && heroCopy.textContent.includes('Nine fast experiments')) {
+    heroCopy.textContent = 'Ten fast experiments. Play anything that catches your eye, then submit a rating for the whole team to review.';
+  }
+}
