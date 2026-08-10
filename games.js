@@ -1,0 +1,101 @@
+window.SMALL_GAMES = [
+  {
+    "id": 1,
+    "slug": "grave-swarm",
+    "folder": "01-grave-swarm",
+    "title": "Grave Swarm",
+    "genre": "Survivors-like \u00b7 Army Growth",
+    "hook": "Every enemy you kill rises and joins your undead army.",
+    "accent": "#9b78ff",
+    "symbol": "\u2620",
+    "status": "DEMO"
+  },
+  {
+    "id": 2,
+    "slug": "starbore",
+    "folder": "02-starbore",
+    "title": "Starbore",
+    "genre": "Space Mining \u00b7 Progression",
+    "hook": "Mine strange planets, chase jackpots, and upgrade your rig and ship.",
+    "accent": "#63d7f0",
+    "symbol": "\u2726",
+    "status": "DEMO"
+  },
+  {
+    "id": 3,
+    "slug": "patchwork",
+    "folder": "03-patchwork",
+    "title": "Project Patchwork",
+    "genre": "Auto-battler \u00b7 Buildcraft",
+    "hook": "Stitch bizarre body parts into a monster and watch the build fight.",
+    "accent": "#ff8fc6",
+    "symbol": "\u271a",
+    "status": "DEMO"
+  },
+  {
+    "id": 4,
+    "slug": "mimic",
+    "folder": "04-mimic",
+    "title": "Project Mimic",
+    "genre": "Push Your Luck \u00b7 Deduction",
+    "hook": "Open one more chest, manipulate the odds, or bank before it bites.",
+    "accent": "#ffca59",
+    "symbol": "\u25c8",
+    "status": "DEMO"
+  },
+  {
+    "id": 5,
+    "slug": "dungeon-drop",
+    "folder": "05-dungeon-drop",
+    "title": "Dungeon Drop",
+    "genre": "Physics Roguelike \u00b7 Combos",
+    "hook": "Build the dungeon, then bounce adventurers through your traps.",
+    "accent": "#f28d52",
+    "symbol": "\u25bc",
+    "status": "DEMO"
+  },
+  {
+    "id": 6,
+    "slug": "wildcards",
+    "folder": "06-wildcards",
+    "title": "Project Wildcards",
+    "genre": "Ecosystem \u00b7 Management",
+    "hook": "Build a living ecosystem and stop it from eating itself.",
+    "accent": "#77df91",
+    "symbol": "\u274b",
+    "status": "DEMO"
+  },
+  {
+    "id": 7,
+    "slug": "scrap-run",
+    "folder": "07-scrap-run",
+    "title": "Scrap Run",
+    "genre": "Arcade \u00b7 Extraction",
+    "hook": "Go deeper for better salvage, then survive the same route home.",
+    "accent": "#f1ba4e",
+    "symbol": "\u2b22",
+    "status": "DEMO"
+  },
+  {
+    "id": 8,
+    "slug": "last-line",
+    "folder": "08-last-line",
+    "title": "Last Line",
+    "genre": "Transit \u00b7 Evacuation",
+    "hook": "Keep the network moving while a disaster consumes the city.",
+    "accent": "#55d8ff",
+    "symbol": "\u2301",
+    "status": "DEMO"
+  },
+  {
+    "id": 9,
+    "slug": "grid-siege",
+    "folder": "09-grid-siege",
+    "title": "Grid Siege",
+    "genre": "Block Puzzle \u00b7 Defense",
+    "hook": "Rows fire east and west. Columns fire north and south.",
+    "accent": "#ef7777",
+    "symbol": "\u25a6",
+    "status": "PROTOTYPE"
+  }
+];
