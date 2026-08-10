@@ -1,27 +1,807 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="robots" content="noindex,nofollow">
-<title>Dungeon Drop — Build Needed</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#120f17">
+<title>Dungeon Drop v0.8</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#071017;color:#eef7f5;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
-body{display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 50% 20%,#f28d5222,transparent 45%),#071017}
-.card{width:min(430px,100%);padding:24px;border:1px solid #34525e;border-radius:21px;background:#10232ddd;box-shadow:0 24px 70px #0009;text-align:center}
-.symbol{width:76px;height:76px;margin:0 auto 14px;display:grid;place-items:center;border-radius:20px;font-size:38px;color:#f28d52;border:1px solid #f28d5288;background:#f28d5216}
-small{color:#f28d52;font-weight:900;letter-spacing:.08em}h1{margin:8px 0 9px}p{color:#9fb6b7;line-height:1.5}code{display:block;margin-top:14px;padding:10px;border-radius:10px;background:#07161d;color:#d4e3e2;word-break:break-word}
-a{display:inline-block;margin-top:15px;padding:11px 14px;border-radius:11px;background:#f28d52;color:#071017;text-decoration:none;font-weight:900}
+:root{
+  --bg:#100d14;--panel:#1b1721;--panel2:#28202e;--line:#4a3b52;
+  --text:#f5ead4;--muted:#b8a8ad;--gold:#f3c35b;--red:#ef6c64;
+  --green:#77d28b;--blue:#78b9ff;--purple:#c68cff;--cyan:#78ddd7;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;background:radial-gradient(circle at 50% -10%,#32233c 0,#17121d 42%,#0b0910 100%);color:var(--text);font-family:Inter,ui-rounded,"SF Pro Rounded",system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif}
+body{display:flex;justify-content:center;padding:env(safe-area-inset-top) 0 env(safe-area-inset-bottom)}
+button{font:inherit;color:inherit;touch-action:manipulation}
+button:disabled{opacity:.42;filter:grayscale(.6)}
+.hidden{display:none!important}
+#app{width:min(100vw,480px);min-height:100dvh;padding:8px 9px 16px;display:flex;flex-direction:column;gap:7px;overflow-x:hidden}
+.topbar{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.brand{font-weight:1000;text-transform:uppercase;letter-spacing:.075em;font-size:17px;white-space:nowrap}
+.brand span{font-size:10px;color:var(--muted);letter-spacing:.02em;margin-left:5px}
+.topButtons{display:flex;gap:5px}
+.utility{border:1px solid var(--line);background:linear-gradient(180deg,#292131,#19151f);border-radius:10px;padding:7px 8px;font-size:9px;font-weight:1000;letter-spacing:.05em;min-width:61px}
+.patronStrip{display:grid;grid-template-columns:minmax(0,1.25fr) minmax(0,.75fr);gap:6px}
+.patronCard,.dropCard{border:1px solid #45364c;background:linear-gradient(180deg,#241c2a,#17131c);border-radius:13px;padding:8px 9px;min-width:0}
+.kicker{font-size:8px;font-weight:1000;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+.patronName{font-size:14px;font-weight:1000;text-transform:uppercase;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin-top:2px}
+.stageLine{font-size:9px;color:#d6c5ca;font-weight:800;margin-top:2px}
+.dropCard{text-align:right}.dropCard b{display:block;font-size:19px;line-height:1}.dropCard span{font-size:8px;color:var(--muted);font-weight:1000;text-transform:uppercase;letter-spacing:.09em}
+.tributePanel{border:1px solid #5a472e;background:linear-gradient(180deg,#2c231b,#1b1615);border-radius:13px;padding:8px 9px}
+.tributeHead{display:flex;align-items:end;justify-content:space-between;gap:8px;margin-bottom:5px}
+.tributeHead strong{font-size:17px;color:#ffe3a0;font-variant-numeric:tabular-nums}
+.tributeHead span{font-size:9px;color:#c9b896;font-weight:900;text-transform:uppercase}
+.progress{height:11px;border:1px solid #735c37;background:#19130f;border-radius:999px;overflow:hidden;position:relative}
+.progress i{display:block;height:100%;width:0;background:linear-gradient(90deg,#d58c37,#f5cf69);transition:width .18s ease}
+.progress em{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-style:normal;font-size:7px;font-weight:1000;color:#251809;text-shadow:0 1px rgba(255,255,255,.25)}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:5px}
+.stat{border:1px solid #3f3247;background:#18141d;border-radius:10px;padding:6px 4px;text-align:center;min-width:0}
+.stat b{display:block;font-size:13px;line-height:1.05;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.stat span{display:block;font-size:7px;color:var(--muted);font-weight:1000;text-transform:uppercase;letter-spacing:.07em;margin-top:2px}
+.boardWrap{position:relative;border-radius:18px;overflow:hidden;border:2px solid #4b3b53;background:#151019;box-shadow:0 13px 32px rgba(0,0,0,.38)}
+canvas{display:block;width:100%;height:auto;aspect-ratio:360/570;touch-action:none}
+.phaseBadge{position:absolute;top:7px;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;background:rgba(13,10,16,.86);border:1px solid rgba(255,255,255,.14);border-radius:999px;padding:5px 9px;font-size:8px;font-weight:1000;letter-spacing:.12em;text-transform:uppercase;white-space:nowrap;backdrop-filter:blur(5px)}
+.boardHint{position:absolute;left:8px;right:8px;bottom:8px;z-index:6;pointer-events:none;text-align:center;font-size:9px;font-weight:950;color:#ffe9b4;text-shadow:0 2px 3px #000;background:linear-gradient(90deg,transparent,rgba(10,8,12,.67),transparent);padding:5px}
+.draftOverlay{position:absolute;inset:38px 7px 8px;z-index:10;display:flex;align-items:center;justify-content:center;pointer-events:none}
+.draftSheet{width:100%;max-height:100%;overflow:auto;pointer-events:auto;border:1px solid #624e69;background:linear-gradient(180deg,rgba(43,34,50,.98),rgba(21,17,25,.98));border-radius:16px;padding:10px;box-shadow:0 16px 40px rgba(0,0,0,.55)}
+.draftTitle{display:flex;align-items:end;justify-content:space-between;gap:8px;margin-bottom:8px}
+.draftTitle h2{font-size:14px;margin:0;text-transform:uppercase;letter-spacing:.04em}.draftTitle p{font-size:8px;color:var(--muted);margin:2px 0 0}
+.rerollBtn{border:1px solid #675272;background:#211a28;border-radius:9px;padding:7px 8px;font-size:8px;font-weight:1000;white-space:nowrap}
+.cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.triggerCard,.boonCard{border:1px solid #54425d;background:linear-gradient(180deg,#302638,#1d1823);border-radius:12px;padding:7px 7px 22px;text-align:left;min-width:0;min-height:128px;position:relative;overflow:hidden}
+.triggerCard:active,.boonCard:active{transform:scale(.985)}
+.triggerCard.common{border-color:#5d5552}.triggerCard.uncommon{border-color:#4f8058}.triggerCard.rare{border-color:#4f729c}.triggerCard.legendary{border-color:#9c64b8;box-shadow:inset 0 0 22px rgba(196,120,255,.11),0 0 14px rgba(196,120,255,.14)}
+.cardIcon{width:29px;height:29px;border-radius:9px;background:#141018;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:1000;letter-spacing:.03em;margin-bottom:6px}
+.rarity{font-size:7px;font-weight:1000;text-transform:uppercase;letter-spacing:.1em;color:var(--muted);margin-bottom:3px}
+.triggerCard h3,.boonCard h3{font-size:10px;line-height:1.05;margin:0 0 4px}.triggerCard p,.boonCard p{font-size:8px;line-height:1.25;color:#cbbcc2;margin:0}
+.cardTag{position:absolute;left:7px;right:7px;bottom:6px;font-size:7px;font-weight:1000;color:#8f808d;text-transform:uppercase;letter-spacing:.08em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.aimPanel{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:7px;align-items:stretch}
+.lanes{display:grid;grid-template-columns:repeat(5,1fr);gap:4px;border:1px solid #403247;background:#18141d;border-radius:12px;padding:5px}
+.lane{border:1px solid #4c3b53;background:#241c2b;border-radius:9px;padding:7px 1px;font-size:9px;font-weight:1000;color:#bfaec2}
+.lane.active{background:linear-gradient(180deg,#f0cb6d,#c88934);border-color:#ffda77;color:#23160b;box-shadow:0 0 12px rgba(242,195,91,.3)}
+.dropBtn{border:0;border-radius:12px;padding:0 14px;min-width:112px;background:linear-gradient(180deg,#f0c65f,#d69232);color:#25170a;font-size:11px;font-weight:1000;letter-spacing:.05em;box-shadow:0 4px 0 #8b5724}
+.dropBtn:active{transform:translateY(2px);box-shadow:0 2px 0 #8b5724}
+.status{border:1px solid #3f3247;background:#18141d;border-radius:12px;padding:7px 9px;min-height:43px}
+.status strong{display:block;font-size:11px}.status small{display:block;font-size:8px;color:var(--muted);margin-top:2px;line-height:1.25}
+.buildStrip{display:flex;gap:5px;overflow-x:auto;scrollbar-width:none;padding-bottom:1px}.buildStrip::-webkit-scrollbar{display:none}
+.badge{flex:0 0 auto;border:1px solid #45364d;background:#18131d;border-radius:9px;padding:5px 7px;font-size:7px;font-weight:1000;color:#b8a9b7;text-transform:uppercase;letter-spacing:.06em}.badge.on{border-color:#856d3d;color:#ffe1a0;background:#2b2217}.badge.bad{border-color:#824b4d;color:#ffaaa4;background:#291719}.badge.boon{border-color:#557b65;color:#b8f0c7;background:#17231b}
+.comboPop,.jackpotPop{position:absolute;left:50%;top:62px;transform:translateX(-50%) scale(.7);opacity:0;z-index:12;pointer-events:none;text-align:center;font-weight:1000;color:#fff0bf;text-shadow:0 3px 0 #743c2c,0 0 18px rgba(255,201,91,.8)}
+.comboPop{font-size:24px}.jackpotPop{top:105px;font-size:18px;color:#f2c7ff;text-shadow:0 3px 0 #58306e,0 0 18px rgba(194,116,255,.9)}
+.comboPop.show,.jackpotPop.show{animation:pop .7s ease-out}
+@keyframes pop{0%{opacity:0;transform:translateX(-50%) scale(.55)}18%{opacity:1;transform:translateX(-50%) scale(1.18)}70%{opacity:1;transform:translateX(-50%) scale(1)}100%{opacity:0;transform:translateX(-50%) translateY(-9px) scale(.94)}}
+.modal{position:fixed;inset:0;z-index:30;background:rgba(7,5,9,.86);display:flex;align-items:center;justify-content:center;padding:18px}
+.sheet{width:min(430px,100%);max-height:92dvh;overflow:auto;border:1px solid #66536d;background:linear-gradient(180deg,#2c2333,#17131c);border-radius:20px;padding:16px;box-shadow:0 25px 75px #000}
+.modalKicker{font-size:8px;color:#d4b767;text-transform:uppercase;font-weight:1000;letter-spacing:.13em}
+.sheet h2{font-size:23px;line-height:1;margin:4px 0 6px;text-transform:uppercase;letter-spacing:.04em}.sheet .copy{font-size:11px;line-height:1.4;color:#cbbcc2;margin:0 0 12px}
+.decree{border:1px solid #70484a;background:#2a171a;border-radius:12px;padding:10px;margin:10px 0}.decree strong{display:block;color:#ffaaa4;font-size:12px;text-transform:uppercase}.decree span{display:block;color:#d7b6b7;font-size:9px;line-height:1.35;margin-top:3px}
+.goalBox{display:grid;grid-template-columns:1fr 1fr;gap:7px;margin:11px 0}.goalCell{border:1px solid #493b50;background:#17131c;border-radius:11px;padding:9px}.goalCell b{display:block;font-size:18px}.goalCell span{font-size:7px;color:var(--muted);text-transform:uppercase;font-weight:1000;letter-spacing:.08em}
+.modalCards{display:grid;grid-template-columns:repeat(3,1fr);gap:7px}.boonCard{min-height:148px}.boonCard .cardIcon{background:#142019;border-color:#3d7350;color:#bceec8}
+.primaryBtn{width:100%;border:0;border-radius:12px;padding:12px;background:linear-gradient(180deg,#efc65f,#d59233);color:#25170a;font-weight:1000;box-shadow:0 4px 0 #895623;margin-top:7px}.primaryBtn:active{transform:translateY(2px);box-shadow:0 2px 0 #895623}
+.summaryGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:7px;margin:12px 0}.summaryCell{border:1px solid #403348;background:#17131c;border-radius:11px;padding:9px}.summaryCell b{display:block;font-size:18px}.summaryCell span{font-size:7px;color:var(--muted);text-transform:uppercase;font-weight:1000;letter-spacing:.07em}
+@media(max-width:350px){#app{padding-left:6px;padding-right:6px}.brand{font-size:14px}.utility{min-width:54px;padding:6px 5px}.triggerCard{padding:6px 6px 22px;min-height:142px}.triggerCard p{font-size:7.4px}.cardIcon{width:25px;height:25px}.dropBtn{min-width:96px;padding:0 9px}.modal{padding:10px}.sheet{padding:13px}.boonCard{padding:6px;min-height:145px}}
+@media(max-height:760px){#app{gap:5px;padding-top:5px}.patronCard,.dropCard,.tributePanel{padding-top:6px;padding-bottom:6px}.stats{display:none}.boardHint{font-size:8px}.status{min-height:38px;padding:5px 8px}}
 </style>
 </head>
 <body>
-<main class="card">
-  <div class="symbol">▼</div>
-  <small>PROTOTYPE #5</small>
-  <h1>Dungeon Drop</h1>
-  <p>The Prototype Lab is ready, but this game's latest HTML build has not been copied into its folder yet.</p>
-  <code>games/05-dungeon-drop/index.html</code>
-  <a href="../../index.html">BACK TO LAB</a>
+<main id="app">
+  <header class="topbar">
+    <div class="brand">Dungeon Drop <span>v0.8</span></div>
+    <div class="topButtons">
+      <button id="speedBtn" class="utility" type="button">SPEED 1X</button>
+      <button id="soundBtn" class="utility" type="button">SOUND ON</button>
+    </div>
+  </header>
+
+  <section class="patronStrip">
+    <div class="patronCard">
+      <div class="kicker" id="patronKicker">DUNGEON PATRON 1 OF 3</div>
+      <div class="patronName" id="patronName">THE RAT KING</div>
+      <div class="stageLine" id="stageLine">Demand I · Tribute 1 of 9</div>
+    </div>
+    <div class="dropCard"><b id="dropText">0 / 5</b><span>Adventurer drops</span></div>
+  </section>
+
+  <section class="tributePanel">
+    <div class="tributeHead"><span>Tribute collected</span><strong id="tributeText">$0 / $40</strong></div>
+    <div class="progress"><i id="tributeFill"></i><em id="progressLabel">0%</em></div>
+  </section>
+
+  <section class="stats">
+    <div class="stat"><b id="runGold">$0</b><span>Run gold</span></div>
+    <div class="stat"><b id="liveCount">0</b><span>In dungeon</span></div>
+    <div class="stat"><b id="comboText">0</b><span>Combo</span></div>
+    <div class="stat"><b id="triggerText">0 / 55</b><span>Triggers</span></div>
+  </section>
+
+  <section class="boardWrap" id="boardWrap">
+    <canvas id="board" width="360" height="570" aria-label="Dungeon pachinko board"></canvas>
+    <div class="phaseBadge" id="phaseBadge">PATRON ARRIVES</div>
+    <div class="boardHint hidden" id="boardHint">Choose a trigger.</div>
+    <div class="comboPop" id="comboPop">5 HIT COMBO</div>
+    <div class="jackpotPop" id="jackpotPop">EXTRA ADVENTURER</div>
+
+    <div class="draftOverlay hidden" id="draftOverlay">
+      <div class="draftSheet">
+        <div class="draftTitle">
+          <div><h2>Choose a dungeon trigger</h2><p>Choose one, then place it on any empty stone.</p></div>
+          <button id="rerollBtn" class="rerollBtn" type="button">REROLL 1</button>
+        </div>
+        <div class="cards" id="draftCards"></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="aimPanel hidden" id="aimPanel">
+    <div class="lanes" id="lanes">
+      <button class="lane" data-lane="0" type="button">1</button>
+      <button class="lane" data-lane="1" type="button">2</button>
+      <button class="lane active" data-lane="2" type="button">3</button>
+      <button class="lane" data-lane="3" type="button">4</button>
+      <button class="lane" data-lane="4" type="button">5</button>
+    </div>
+    <button id="dropBtn" class="dropBtn" type="button">DROP ADVENTURER</button>
+  </section>
+
+  <section class="status"><strong id="statusMain">The dungeon is waiting.</strong><small id="statusSub">Pay nine escalating tributes to complete the run.</small></section>
+  <section class="buildStrip" id="buildStrip"></section>
 </main>
+
+<div id="eventModal" class="modal hidden">
+  <div class="sheet">
+    <div class="modalKicker" id="eventKicker">A NEW PATRON DEMANDS TRIBUTE</div>
+    <h2 id="eventTitle">THE RAT KING</h2>
+    <p class="copy" id="eventCopy"></p>
+    <div id="eventDecree" class="decree hidden"><strong id="decreeName"></strong><span id="decreeDesc"></span></div>
+    <div class="goalBox" id="eventGoals">
+      <div class="goalCell"><b id="goalTarget">$40</b><span>Required tribute</span></div>
+      <div class="goalCell"><b>5</b><span>Drops available</span></div>
+    </div>
+    <button id="eventBtn" class="primaryBtn" type="button">BEGIN TRIBUTE</button>
+  </div>
+</div>
+
+<div id="boonModal" class="modal hidden">
+  <div class="sheet">
+    <div class="modalKicker">TRIBUTE ACCEPTED</div>
+    <h2>Choose a permanent boon</h2>
+    <p class="copy">The patron rewards your dungeon. This effect lasts for the rest of the run.</p>
+    <div class="modalCards" id="boonCards"></div>
+  </div>
+</div>
+
+<div id="summaryModal" class="modal hidden">
+  <div class="sheet">
+    <div class="modalKicker" id="summaryKicker">RUN COMPLETE</div>
+    <h2 id="summaryTitle">THE DUNGEON IS PAID</h2>
+    <p class="copy" id="summaryCopy"></p>
+    <div class="summaryGrid">
+      <div class="summaryCell"><b id="sumTributes">0 / 9</b><span>Tributes paid</span></div>
+      <div class="summaryCell"><b id="sumGold">$0</b><span>Total tribute</span></div>
+      <div class="summaryCell"><b id="sumKills">0</b><span>Adventurers slain</span></div>
+      <div class="summaryCell"><b id="sumEscapes">0</b><span>Escaped</span></div>
+      <div class="summaryCell"><b id="sumCombo">0</b><span>Highest combo</span></div>
+      <div class="summaryCell"><b id="sumPayout">$0</b><span>Largest payout</span></div>
+      <div class="summaryCell"><b id="sumSpawned">0</b><span>Extra adventurers</span></div>
+      <div class="summaryCell"><b id="sumBest">$0</b><span>Best completed run</span></div>
+    </div>
+    <button id="againBtn" class="primaryBtn" type="button">BUILD ANOTHER DUNGEON</button>
+  </div>
+</div>
+
+<script>
+(() => {
+'use strict';
+
+const canvas=document.getElementById('board');
+const ctx=canvas.getContext('2d');
+const W=360,H=570,TAU=Math.PI*2;
+const $=id=>document.getElementById(id);
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rand=(a,b)=>a+Math.random()*(b-a);
+const choose=a=>a[Math.floor(Math.random()*a.length)];
+
+const UI={
+  speed:$('speedBtn'),sound:$('soundBtn'),patronKicker:$('patronKicker'),patronName:$('patronName'),stageLine:$('stageLine'),
+  drop:$('dropText'),tribute:$('tributeText'),fill:$('tributeFill'),progressLabel:$('progressLabel'),runGold:$('runGold'),live:$('liveCount'),
+  comboText:$('comboText'),triggerText:$('triggerText'),phase:$('phaseBadge'),hint:$('boardHint'),draft:$('draftOverlay'),draftCards:$('draftCards'),
+  reroll:$('rerollBtn'),aim:$('aimPanel'),dropBtn:$('dropBtn'),statusMain:$('statusMain'),statusSub:$('statusSub'),build:$('buildStrip'),
+  comboPop:$('comboPop'),jackpot:$('jackpotPop'),event:$('eventModal'),eventKicker:$('eventKicker'),eventTitle:$('eventTitle'),eventCopy:$('eventCopy'),
+  eventDecree:$('eventDecree'),decreeName:$('decreeName'),decreeDesc:$('decreeDesc'),goalTarget:$('goalTarget'),eventBtn:$('eventBtn'),
+  boon:$('boonModal'),boonCards:$('boonCards'),summary:$('summaryModal')
+};
+
+const patrons=[
+  {name:'THE RAT KING',subtitle:'Patron of petty theft',color:'#87b564'},
+  {name:'THE LICH AUDITOR',subtitle:'Collector of immortal debts',color:'#aa83d7'},
+  {name:'THE RED DRAGON',subtitle:'Hoarder of impossible wealth',color:'#df785d'}
+];
+
+const stageData=[
+  {target:40,hp:14,bounty:12,armor:0},{target:105,hp:19,bounty:15,armor:0},{target:260,hp:25,bounty:19,armor:.03},
+  {target:620,hp:32,bounty:24,armor:.05},{target:1450,hp:40,bounty:30,armor:.08},{target:3300,hp:50,bounty:38,armor:.10},
+  {target:7600,hp:62,bounty:48,armor:.12},{target:17500,hp:76,bounty:62,armor:.15},{target:40000,hp:94,bounty:80,armor:.18}
+].map((s,i)=>({...s,patron:Math.floor(i/3),tier:i%3+1}));
+
+const tribulations={
+  iron:{name:'IRON-SOLED INVADERS',short:'IRON SOLES',desc:'All adventurers are 30% heavier and resist knockback.',mass:1.30},
+  haste:{name:'THE EXIT CALLS',short:'HASTE',desc:'Gravity is 23% stronger. Adventurers reach the escape gate faster.',gravity:1.23},
+  ward:{name:'HOLY TRAVEL PAPERS',short:'HOLY WARD',desc:'Every adventurer enters with one shield that blocks a damage event.',shield:1},
+  austerity:{name:'AUSTERITY DECREE',short:'AUSTERITY',desc:'All bounty gains are reduced by 18%.',greed:.82},
+  cleanse:{name:'PURIFYING RAIN',short:'CLEANSE',desc:'Burn, Oil, and Web effects expire much faster.',cleanse:.58},
+  widegate:{name:'THE WIDE ROAD',short:'WIDE EXIT',desc:'The escape gate is wider, making poor routes more dangerous.',wideGate:1},
+  armored:{name:'PLATED PROCESSION',short:'PLATED',desc:'Adventurers gain 8% armor in addition to normal stage armor.',armor:.08},
+  tax:{name:'PATRON SURCHARGE',short:'SURCHARGE',desc:'All tribute targets are increased by 12%.',target:1.12}
+};
+
+const boons={
+  serrated:{name:'Serrated Blueprint',code:'TRAP',desc:'Trap damage +30%.',tag:'Trap'},
+  payroll:{name:'Monster Payroll',code:'MON',desc:'Monster damage +40% and faster recovery.',tag:'Monster'},
+  compound:{name:'Compound Interest',code:'GOLD',desc:'All bounty gains +35%.',tag:'Greed'},
+  secondParty:{name:'Second Party',code:'+ADV',desc:'The first kill each drop summons a bonus Squire.',tag:'Spawn'},
+  loaded:{name:'Loaded Entrance',code:'+$',desc:'Every primary adventurer begins with +$12 bounty.',tag:'Greed'},
+  rebound:{name:'Return Policy',code:'BACK',desc:'The first escape each drop is returned to the top at 40% HP.',tag:'Control'},
+  echo:{name:'Arcane Echo',code:'ECHO',desc:'Every seventh Magic trigger activation repeats once.',tag:'Magic'},
+  crowd:{name:'Crowded House',code:'CROWD',desc:'Spawned adventurers are worth 60% more and the spawn cap rises.',tag:'Spawn'},
+  accounting:{name:'Bloody Accounting',code:'xCOM',desc:'Kill payouts gain up to +75% from the drop’s best combo.',tag:'Combo'},
+  pyre:{name:'Pyromania',code:'FIRE',desc:'Burn ticks faster. Oil explosions deal +60% damage.',tag:'Fire'},
+  scroll:{name:'Reroll Scroll',code:'ROLL',desc:'Gain one additional trigger reroll every tribute.',tag:'Draft'},
+  doubleChest:{name:'False Bottoms',code:'CHEST',desc:'The first Chest or Mimic hit on each adventurer triggers twice.',tag:'Greed'}
+};
+
+const triggers={
+  spikes:{name:'Rusty Spikes',code:'SP',rarity:'common',tag:'Trap',desc:'Deals 7 damage on contact.',weight:18},
+  goblin:{name:'Goblin',code:'GB',rarity:'common',tag:'Monster',desc:'Deals 4 damage and punches sideways. Stronger against Webbed victims.',weight:17},
+  mushroom:{name:'Bumper Mushroom',code:'BM',rarity:'common',tag:'Magic',desc:'Launches victims upward to extend a route.',weight:15},
+  chest:{name:'Treasure Chest',code:'TC',rarity:'common',tag:'Greed',desc:'Adds $14 to the victim’s bounty.',weight:16},
+  web:{name:'Spider Web',code:'WB',rarity:'common',tag:'Control',desc:'Slows and Webs victims for Monster follow-ups.',weight:13},
+  fire:{name:'Fire Rune',code:'FR',rarity:'uncommon',tag:'Magic',desc:'Deals 2 damage and applies Burn. Ignites Oil.',weight:11},
+  cannon:{name:'Dungeon Cannon',code:'CN',rarity:'uncommon',tag:'Trap',desc:'Deals 4 damage and fires the victim back upward.',weight:10},
+  skeleton:{name:'Skeleton Guard',code:'SK',rarity:'uncommon',tag:'Monster',desc:'Attacks nearby victims without requiring contact.',weight:10},
+  questBell:{name:'Quest Bell',code:'QB',rarity:'uncommon',tag:'Spawn',desc:'Once per drop, summons another Squire into the dungeon.',weight:9},
+  mimic:{name:'Mimic Chest',code:'MC',rarity:'uncommon',tag:'Monster',desc:'Adds $10 bounty, then bites for 8 damage.',weight:9},
+  oil:{name:'Oil Cauldron',code:'OL',rarity:'uncommon',tag:'Greed',desc:'Adds $4 bounty and Oils the victim. Fire causes an explosion.',weight:8},
+  bloodAltar:{name:'Blood Altar',code:'BA',rarity:'rare',tag:'Greed',desc:'Marks a victim. Later damage also increases its bounty.',weight:6},
+  barrel:{name:'Explosive Barrel',code:'EX',rarity:'rare',tag:'Trap',desc:'Once per drop, creates a large 13-damage explosion.',weight:6},
+  portal:{name:'Return Portal',code:'RP',rarity:'rare',tag:'Magic',desc:'Teleports the victim back near the top of the board.',weight:6},
+  executioner:{name:'Executioner Block',code:'AX',rarity:'rare',tag:'Trap',desc:'Executes victims under 35% HP and increases their payout.',weight:5},
+  mirror:{name:'Cursed Mirror',code:'MR',rarity:'rare',tag:'Magic',desc:'Once per drop, creates an Echo carrying part of the victim’s bounty.',weight:5},
+  blackhole:{name:'Black Hole',code:'BH',rarity:'legendary',tag:'Magic',desc:'Pulls nearby victims inward, damages them, then erupts.',weight:2},
+  dragonHoard:{name:'Dragon Hoard',code:'DH',rarity:'legendary',tag:'Greed',desc:'Once per victim, multiplies bounty ×2.2 but grants a shield.',weight:2}
+};
+
+const rarityColor={common:'#c9c0b3',uncommon:'#78d28a',rare:'#78b7ff',legendary:'#d497ff'};
+const tagColor={Trap:'#e49a70',Monster:'#8fc26d',Magic:'#b98af0',Greed:'#f1c45c',Control:'#8fd5d0',Spawn:'#f099b3'};
+
+const sockets=[];
+const rowCounts=[5,6,7,8,9,10,10];
+rowCounts.forEach((count,row)=>{
+  const y=90+row*58;
+  const gap=31;
+  const start=W/2-(count-1)*gap/2;
+  for(let i=0;i<count;i++) sockets.push({x:start+i*gap,y,row,index:sockets.length});
+});
+
+let state;
+let entities=[];
+let placed=[];
+let particles=[];
+let floaters=[];
+let spawnQueue=[];
+let comboLinks=[];
+let selectedTrigger=null;
+let draftChoices=[];
+let last=performance.now();
+let shake=0,flash=0;
+let speed=1,soundOn=true,audioCtx=null;
+let nextEntityId=1;
+let eventAction=null;
+
+function defaultState(){
+  return {
+    phase:'transition',stage:0,drop:0,stageEarned:0,totalGold:0,rerolls:1,lane:2,globalDrop:0,
+    tribulations:[],boons:[],introducedPatrons:[],tributesPaid:0,kills:0,escapes:0,spawned:0,
+    bestCombo:0,largestPayout:0,maxLive:0,lostLoot:0,triggerHits:0,
+    combo:0,comboTimer:0,bestComboDrop:0,dropEarnedStart:0,dropKillsStart:0,dropEscapesStart:0,dropSpawnStart:0,
+    firstKillSpawned:false,reboundUsed:false,magicCount:0,ending:false,endTimer:0
+  };
+}
+
+function hasBoon(key){return state.boons.includes(key)}
+function currentStage(){return stageData[state.stage]}
+function currentPatron(){return patrons[currentStage().patron]}
+function activeTribulationData(){return state.tribulations.map(k=>tribulations[k])}
+function tribValue(key,base){
+  let v=base;
+  activeTribulationData().forEach(t=>{if(t[key]!==undefined){if(typeof t[key]==='number')v*=t[key]}});
+  return v;
+}
+function stageTarget(){return Math.round(currentStage().target*tribValue('target',1))}
+function boonOptions(){
+  const pool=Object.keys(boons).filter(k=>!state.boons.includes(k));
+  const out=[];
+  while(out.length<3&&pool.length){const i=Math.floor(Math.random()*pool.length);out.push(pool.splice(i,1)[0])}
+  return out;
+}
+
+function safeGet(key){try{return Number(localStorage.getItem(key)||0)}catch(e){return 0}}
+function safeSet(key,val){try{localStorage.setItem(key,String(val))}catch(e){}}
+
+function resetRun(){
+  state=defaultState();entities=[];placed=[];particles=[];floaters=[];spawnQueue=[];comboLinks=[];selectedTrigger=null;draftChoices=[];nextEntityId=1;
+  UI.summary.classList.add('hidden');UI.boon.classList.add('hidden');UI.event.classList.add('hidden');UI.draft.classList.add('hidden');UI.aim.classList.add('hidden');
+  updateAll(true);beginStage();
+}
+
+function chooseNewTribulation(){
+  const available=Object.keys(tribulations).filter(k=>!state.tribulations.includes(k));
+  const key=choose(available);state.tribulations.push(key);return key;
+}
+
+function beginStage(){
+  entities=[];spawnQueue=[];state.stageEarned=0;state.drop=0;state.rerolls=1+(hasBoon('scroll')?1:0);state.phase='transition';state.ending=false;
+  const s=currentStage(),p=currentPatron();
+  let newDecree=null;
+  if(!state.introducedPatrons.includes(s.patron)){
+    state.introducedPatrons.push(s.patron);newDecree=chooseNewTribulation();
+  }
+  updateAll(true);
+  showStageEvent(newDecree);
+}
+
+function showStageEvent(decreeKey){
+  const s=currentStage(),p=currentPatron();
+  UI.eventKicker.textContent=decreeKey?'A NEW PATRON DEMANDS TRIBUTE':'THE DEMAND INCREASES';
+  UI.eventTitle.textContent=p.name;
+  UI.eventCopy.textContent=`${p.subtitle}. Pay Demand ${roman(s.tier)} by collecting enough bounty across exactly five adventurer drops. The board and every boon persist.`;
+  UI.goalTarget.textContent='$'+fmt(stageTarget());
+  if(decreeKey){
+    const d=tribulations[decreeKey];UI.eventDecree.classList.remove('hidden');UI.decreeName.textContent=d.name;UI.decreeDesc.textContent=d.desc;
+  }else UI.eventDecree.classList.add('hidden');
+  UI.eventBtn.textContent='BEGIN TRIBUTE';
+  eventAction=()=>{UI.event.classList.add('hidden');startDraft()};
+  UI.event.classList.remove('hidden');
+  UI.phase.textContent='TRIBUTE BRIEFING';
+  UI.statusMain.textContent=`${p.name} demands $${fmt(stageTarget())}.`;
+  UI.statusSub.textContent='You have five drops. Draft one permanent trigger before each drop.';
+  sfx(decreeKey?'patron':'stage');
+}
+
+function roman(n){return ['I','II','III'][n-1]||String(n)}
+function fmt(n){return Math.round(n).toLocaleString()}
+
+function weightedTrigger(exclude=[]){
+  const keys=Object.keys(triggers).filter(k=>!exclude.includes(k));
+  let total=keys.reduce((sum,k)=>sum+triggers[k].weight,0),r=Math.random()*total;
+  for(const k of keys){r-=triggers[k].weight;if(r<=0)return k}
+  return keys[0];
+}
+
+function rollDraft(){
+  if(state.stage===0&&state.drop===0&&placed.length===0){draftChoices=['spikes','chest','questBell'];return}
+  draftChoices=[];while(draftChoices.length<3)draftChoices.push(weightedTrigger(draftChoices));
+}
+
+function startDraft(){
+  state.phase='draft';selectedTrigger=null;rollDraft();renderDraft();UI.draft.classList.remove('hidden');UI.aim.classList.add('hidden');UI.hint.classList.add('hidden');
+  UI.phase.textContent='TRIGGER DRAFT';UI.statusMain.textContent='Choose one of three dungeon triggers.';UI.statusSub.textContent='After choosing, place it on any empty stone.';updateAll(true);sfx('draft');
+}
+
+function renderDraft(){
+  UI.draftCards.innerHTML='';
+  draftChoices.forEach(key=>{
+    const t=triggers[key],b=document.createElement('button');
+    b.type='button';b.className=`triggerCard ${t.rarity}`;
+    b.innerHTML=`<div class="cardIcon" style="color:${rarityColor[t.rarity]}">${t.code}</div><div class="rarity" style="color:${rarityColor[t.rarity]}">${t.rarity}</div><h3>${t.name}</h3><p>${t.desc}</p><div class="cardTag" style="color:${tagColor[t.tag]||'#aaa'}">${t.tag}</div>`;
+    b.addEventListener('click',()=>selectTrigger(key));UI.draftCards.appendChild(b);
+  });
+  UI.reroll.textContent=`REROLL ${state.rerolls}`;UI.reroll.disabled=state.rerolls<=0;
+}
+
+function selectTrigger(key){
+  if(state.phase!=='draft')return;selectedTrigger=key;state.phase='place';UI.draft.classList.add('hidden');UI.hint.classList.remove('hidden');
+  UI.hint.textContent=`Place ${triggers[key].name} on a glowing empty stone.`;UI.phase.textContent='PLACE TRIGGER';
+  UI.statusMain.textContent=triggers[key].name+' selected.';UI.statusSub.textContent='Tap any empty placement stone. The board persists for all nine tributes.';sfx(triggers[key].rarity==='legendary'?'legendary':'select');
+}
+
+function rerollDraft(){
+  if(state.phase!=='draft'||state.rerolls<=0)return;state.rerolls--;rollDraft();renderDraft();updateAll(true);sfx('reroll');
+}
+
+function placeTrigger(socketIndex){
+  if(state.phase!=='place'||!selectedTrigger)return;
+  if(placed.some(p=>p.socket===socketIndex))return;
+  const s=sockets[socketIndex],key=selectedTrigger;
+  placed.push({type:key,socket:socketIndex,x:s.x,y:s.y,cooldown:0,usedDrop:-1,pulse:1});
+  selectedTrigger=null;state.phase='aim';state.lane=2;UI.hint.textContent='Choose one of five entrances, then drop the adventurer.';UI.aim.classList.remove('hidden');setLane(2,true);
+  UI.phase.textContent='CHOOSE ENTRANCE';UI.statusMain.textContent=triggers[key].name+' added permanently.';UI.statusSub.textContent=`Drop ${state.drop+1} of 5. Aim for the engine you are building.`;
+  burst(s.x,s.y,17,rarityColor[triggers[key].rarity],2.7);sfx('place');updateAll(true);
+}
+
+function setLane(i,silent=false){
+  state.lane=Number(i);document.querySelectorAll('.lane').forEach(b=>b.classList.toggle('active',Number(b.dataset.lane)===state.lane));if(!silent)sfx('select');
+}
+
+function startDrop(){
+  if(state.phase!=='aim')return;unlockAudio();state.phase='running';state.globalDrop++;state.combo=0;state.comboTimer=0;state.bestComboDrop=0;state.firstKillSpawned=false;state.reboundUsed=false;state.magicCount=0;state.ending=false;state.endTimer=0;
+  state.dropEarnedStart=state.stageEarned;state.dropKillsStart=state.kills;state.dropEscapesStart=state.escapes;state.dropSpawnStart=state.spawned;
+  placed.forEach(t=>{t.cooldown=0;t.usedDrop=-1;t.pulse=0});spawnQueue=[];entities=[];
+  const laneX=[42,111,180,249,318][state.lane];
+  spawnAdventurer('primary',{x:laneX,bounty:currentStage().bounty+(hasBoon('loaded')?12:0),hp:currentStage().hp});
+  UI.aim.classList.add('hidden');UI.hint.classList.add('hidden');UI.phase.textContent='DUNGEON RUNNING';UI.statusMain.textContent=`Drop ${state.drop+1} of 5 is in motion.`;UI.statusSub.textContent='You can only watch now. Every spawned adventurer counts as part of this drop.';sfx('drop');updateAll(true);
+}
+
+function spawnAdventurer(kind,opt={}){
+  if(entities.filter(e=>!e.remove).length>=spawnCap())return null;
+  const s=currentStage(),isPrimary=kind==='primary',isEcho=kind==='echo';
+  const mass=(isPrimary?1:isEcho?.78:.72)*tribValue('mass',1);
+  const baseHp=opt.hp!==undefined?opt.hp:(isPrimary?s.hp:Math.max(6,s.hp*.48));
+  const baseBounty=opt.bounty!==undefined?opt.bounty:(isPrimary?s.bounty:Math.max(5,s.bounty*.45));
+  const e={
+    id:nextEntityId++,kind,x:opt.x!==undefined?opt.x:rand(55,305),y:28,vx:rand(-28,28),vy:12,r:isPrimary?12.5:isEcho?9.5:9,
+    mass,hp:baseHp,maxHp:baseHp,bounty:Math.max(1,Math.round(baseBounty*(kind!=='primary'&&hasBoon('crowd')?1.6:1))),
+    armor:clamp(s.armor+activeTribulationData().reduce((v,t)=>v+(t.armor||0),0),0,.55),shield:activeTribulationData().reduce((v,t)=>v+(t.shield||0),0),
+    gravity:tribValue('gravity',1),alive:true,dead:false,escaped:false,remove:false,deathTimer:0,age:0,lowSpeed:0,squash:0,
+    burn:0,burnTick:0,web:0,oiled:0,bloodMarked:false,executionBonus:1,portalLock:0,trail:[],locks:{},used:{},rebounded:false
+  };
+  entities.push(e);state.maxLive=Math.max(state.maxLive,entities.filter(x=>!x.remove).length);
+  if(kind!=='primary'){state.spawned++;showJackpot(kind==='echo'?'CURSED ECHO':'EXTRA SQUIRE');sfx('spawn')}
+  return e;
+}
+
+function spawnCap(){return hasBoon('crowd')?34:24}
+function queueSpawn(kind,delay,opt={}){if(entities.length+spawnQueue.length>=spawnCap())return;spawnQueue.push({kind,delay,opt})}
+
+function updateGame(dt){
+  if(state.phase!=='running')return;
+  state.comboTimer=Math.max(0,state.comboTimer-dt);if(state.comboTimer<=0)state.combo=0;
+  placed.forEach(t=>{t.cooldown=Math.max(0,t.cooldown-dt);t.pulse=Math.max(0,t.pulse-dt*4)});
+  comboLinks.forEach(l=>l.life-=dt);comboLinks=comboLinks.filter(l=>l.life>0);
+  spawnQueue.forEach(q=>q.delay-=dt);
+  const ready=spawnQueue.filter(q=>q.delay<=0);spawnQueue=spawnQueue.filter(q=>q.delay>0);ready.forEach(q=>spawnAdventurer(q.kind,q.opt));
+
+  for(const e of entities){
+    if(e.remove)continue;
+    Object.keys(e.locks).forEach(k=>{e.locks[k]-=dt;if(e.locks[k]<=0)delete e.locks[k]});
+    e.portalLock=Math.max(0,e.portalLock-dt);
+    if(e.dead){e.deathTimer-=dt;if(e.deathTimer<=0)e.remove=true;continue}
+    updateStatuses(e,dt);
+    if(!e.alive)continue;
+    applyContinuousTriggers(e,dt);
+    const sub=3,sdt=dt/sub;
+    for(let n=0;n<sub;n++){
+      e.vy+=420*e.gravity*sdt;
+      const max=570,sp=Math.hypot(e.vx,e.vy);if(sp>max){e.vx*=max/sp;e.vy*=max/sp}
+      e.x+=e.vx*sdt;e.y+=e.vy*sdt;
+      if(e.x-e.r<10){e.x=10+e.r;e.vx=Math.abs(e.vx)*.84;stoneSound(e)}
+      if(e.x+e.r>W-10){e.x=W-10-e.r;e.vx=-Math.abs(e.vx)*.84;stoneSound(e)}
+      collideFunnel(e);
+      for(const s of sockets){
+        const t=placed.find(p=>p.socket===s.index);
+        if(t)collideCircle(e,s.x,s.y,triggerRadius(t.type),.87,()=>activateTrigger(t,e));
+        else collideCircle(e,s.x,s.y,5.2,.84,()=>stoneBonk(e,s.index));
+        if(!e.alive)break;
+      }
+      if(!e.alive)break;
+    }
+    if(!e.alive)continue;
+    e.squash=Math.max(0,e.squash-dt*5);e.age+=dt;
+    e.trail.push({x:e.x,y:e.y,a:.32});if(e.trail.length>6)e.trail.shift();e.trail.forEach(t=>t.a-=dt*.75);
+    const sp=Math.hypot(e.vx,e.vy);if(sp<23&&e.y<H-45)e.lowSpeed+=dt;else e.lowSpeed=0;
+    if(e.lowSpeed>1.1){e.vx+=rand(-125,125);e.vy+=110;e.lowSpeed=0;floatText(e.x,e.y-18,'NUDGE','#c8b7c7',8)}
+    if(e.age>16)e.vy+=180*dt;
+    if(e.y-e.r>H-8)escapeEntity(e);
+  }
+  entities=entities.filter(e=>!e.remove);
+  state.maxLive=Math.max(state.maxLive,entities.length);
+  if(!entities.length&&!spawnQueue.length&&!state.ending){state.ending=true;state.endTimer=.52}
+  if(state.ending){state.endTimer-=dt;if(state.endTimer<=0)finishDrop()}
+}
+
+function updateStatuses(e,dt){
+  const cleanse=activeTribulationData().reduce((v,t)=>v*(t.cleanse||1),1);
+  e.web=Math.max(0,e.web-dt/cleanse);e.oiled=Math.max(0,e.oiled-dt/cleanse);
+  if(e.web>0){e.vx*=Math.pow(.91,dt*60);e.vy*=Math.pow(.965,dt*60)}
+  e.burnTick+=dt;
+  const tickEvery=hasBoon('pyre')?.62:.86;
+  if(e.burn>0&&e.burnTick>=tickEvery){e.burnTick=0;e.burn--;damageEntity(e,hasBoon('pyre')?4:3,'Fire',null);fireBurst(e.x,e.y)}
+}
+
+function applyContinuousTriggers(e,dt){
+  for(const t of placed){
+    const d=Math.hypot(e.x-t.x,e.y-t.y);
+    if(t.type==='blackhole'&&d<92&&d>2){const f=(1-d/92)*760/e.mass;e.vx+=(t.x-e.x)/d*f*dt;e.vy+=(t.y-e.y)/d*f*dt}
+    if(t.type==='skeleton'&&d<43&&t.cooldown<=0){activateTrigger(t,e,true)}
+  }
+}
+
+function stoneBonk(e,index){
+  const key='s'+index;if(e.locks[key])return;e.locks[key]=.16;
+  addBounty(e,1,false);damageEntity(e,.55,'Stone',null,true);state.triggerHits++;tinyBurst(e.x,e.y,'#8b7587');stoneSound(e);
+}
+
+function stoneSound(e){if(Math.hypot(e.vx,e.vy)>95)sfx('bounce')}
+
+function activateTrigger(t,e,proximity=false,echoed=false){
+  if(!e.alive||t.cooldown>0)return;
+  const lock='t'+t.socket;if(e.locks[lock]&&!proximity)return;e.locks[lock]=.20;t.pulse=1;
+  const def=triggers[t.type];registerTriggerHit(t,e);state.triggerHits++;
+  const trapMult=hasBoon('serrated')&&def.tag==='Trap'?1.3:1;
+  const monsterMult=hasBoon('payroll')&&def.tag==='Monster'?1.4:1;
+  const dmgMult=trapMult*monsterMult;
+  switch(t.type){
+    case 'spikes':damageEntity(e,7*dmgMult,'Trap',t);t.cooldown=.20;sfx('spike');break;
+    case 'goblin':{
+      const webMult=e.web>0?1.65:1;damageEntity(e,4*dmgMult*webMult,'Monster',t);e.vx+=(e.x<t.x?-1:1)*175/e.mass;e.vy-=55/e.mass;t.cooldown=hasBoon('payroll')?.30:.43;sfx('goblin');break}
+    case 'mushroom':{
+      const dx=e.x-t.x,dy=e.y-t.y,d=Math.hypot(dx,dy)||1;e.vx+=dx/d*235/e.mass;e.vy+=dy/d*190/e.mass-170/e.mass;t.cooldown=.24;sfx('boing');break}
+    case 'chest':{
+      const first=!e.used.chest;e.used.chest=true;addBounty(e,14,true);coinBurst(t.x,t.y);t.cooldown=.36;sfx('coin');
+      if(first&&hasBoon('doubleChest')){addBounty(e,14,true);floatText(t.x,t.y-27,'FALSE BOTTOM','#ffe08b',8)}break}
+    case 'web':e.web=Math.max(e.web,3.2);addBounty(e,2,true);t.cooldown=.48;floatText(t.x,t.y-20,'WEBBED','#b9e3df',8);sfx('web');break;
+    case 'fire':{
+      damageEntity(e,2,'Magic',t);if(e.oiled>0){e.oiled=0;const boom=hasBoon('pyre')?13:8;damageEntity(e,boom,'Fire',t);for(const other of entities){if(other!==e&&other.alive&&Math.hypot(other.x-e.x,other.y-e.y)<70)damageEntity(other,boom*.55,'Fire',t)}burst(e.x,e.y,24,'#ff8b4f',3.6);floatText(e.x,e.y-28,'OIL IGNITED','#ffb15f',10);shake=Math.max(shake,5);sfx('boom')}else e.burn=Math.min(12,e.burn+4);t.cooldown=.40;sfx('fire');break}
+    case 'cannon':damageEntity(e,4*dmgMult,'Trap',t);e.vx+=(W/2-e.x)*1.05;e.vy=-330/e.mass;t.cooldown=.48;burst(t.x,t.y,12,'#ffc067',2.7);shake=Math.max(shake,2.5);sfx('cannon');break;
+    case 'skeleton':{
+      const webMult=e.web>0?1.65:1;damageEntity(e,5*dmgMult*webMult,'Monster',t);e.vx+=(e.x<t.x?-1:1)*80/e.mass;t.cooldown=hasBoon('payroll')?.34:.55;sfx('skeleton');break}
+    case 'questBell':addBounty(e,4,true);if(t.usedDrop!==state.globalDrop){t.usedDrop=state.globalDrop;queueSpawn('squire',.22,{x:clamp(t.x+rand(-30,30),35,325)});floatText(t.x,t.y-24,'PARTY ARRIVES','#f4a7bc',9)}t.cooldown=.50;sfx('bell');break;
+    case 'mimic':{
+      const first=!e.used.mimic;e.used.mimic=true;addBounty(e,10,true);damageEntity(e,8*dmgMult*(e.web>0?1.4:1),'Monster',t);e.vy-=140/e.mass;e.vx+=(e.x<t.x?-1:1)*90/e.mass;t.cooldown=.46;sfx('mimic');if(first&&hasBoon('doubleChest')){addBounty(e,10,true);damageEntity(e,5*dmgMult,'Monster',t);floatText(t.x,t.y-30,'DOUBLE BITE','#ffd080',8)}break}
+    case 'oil':addBounty(e,4,true);e.oiled=Math.max(e.oiled,4.5);e.vx*=.78;e.vy*=.88;t.cooldown=.50;floatText(t.x,t.y-22,'OILED','#d6a768',8);sfx('oil');break;
+    case 'bloodAltar':e.bloodMarked=true;damageEntity(e,2,'Greed',t);addBounty(e,3,true);t.cooldown=.42;floatText(t.x,t.y-23,'BLOOD DEBT','#ef8580',8);sfx('blood');break;
+    case 'barrel':if(t.usedDrop!==state.globalDrop){t.usedDrop=state.globalDrop;for(const other of entities){if(other.alive&&Math.hypot(other.x-t.x,other.y-t.y)<92){damageEntity(other,13*dmgMult,'Trap',t);const a=Math.atan2(other.y-t.y,other.x-t.x);other.vx+=Math.cos(a)*260/other.mass;other.vy+=Math.sin(a)*260/other.mass-90}}burst(t.x,t.y,34,'#ff9454',4);shake=7;sfx('boom')}t.cooldown=.5;break;
+    case 'portal':if(e.portalLock<=0){e.portalLock=.7;e.x=clamp(W-e.x+rand(-18,18),28,W-28);e.y=54;e.vy=45;e.vx+=rand(-75,75);burst(t.x,t.y,15,'#b98af0',2.8);floatText(t.x,t.y-22,'RETURNED','#d8b2ff',9);sfx('portal')}t.cooldown=.28;break;
+    case 'executioner':if(e.hp/e.maxHp<=.35){e.executionBonus=Math.max(e.executionBonus,1.3);floatText(t.x,t.y-24,'EXECUTED x1.3','#ff9b7d',10);damageEntity(e,999,'Trap',t)}else damageEntity(e,2*dmgMult,'Trap',t);t.cooldown=.36;sfx('axe');break;
+    case 'mirror':if(t.usedDrop!==state.globalDrop){t.usedDrop=state.globalDrop;queueSpawn('echo',.18,{x:clamp(t.x+rand(-25,25),35,325),hp:Math.max(5,e.maxHp*.55),bounty:Math.max(4,e.bounty*.55)});floatText(t.x,t.y-23,'ECHO CREATED','#d5a4ff',9);burst(t.x,t.y,18,'#bb80ec',2.6);sfx('mirror')}t.cooldown=.45;break;
+    case 'blackhole':damageEntity(e,6,'Magic',t);{const a=rand(0,TAU);e.vx=Math.cos(a)*330/e.mass;e.vy=Math.sin(a)*300/e.mass-80;burst(t.x,t.y,23,'#b27ce9',3.3);shake=5}sfx('blackhole');t.cooldown=.62;break;
+    case 'dragonHoard':if(!e.used['hoard'+t.socket]){e.used['hoard'+t.socket]=true;e.bounty=Math.round(e.bounty*2.2);e.shield++;floatText(t.x,t.y-25,'BOUNTY x2.2 + SHIELD','#ffe17d',10);coinBurst(t.x,t.y,22);showJackpot('DRAGON HOARD');sfx('legendary')}t.cooldown=.35;break;
+  }
+  if(def.tag==='Magic'&&hasBoon('echo')&&!echoed){state.magicCount++;if(state.magicCount%7===0&&e.alive){floatText(t.x,t.y+25,'ARCANE ECHO','#d6afff',8);setTimeout(()=>{if(state.phase==='running'&&e.alive){t.cooldown=0;activateTrigger(t,e,proximity,true)}},70)}}
+}
+
+function registerTriggerHit(t,e){
+  const continued=state.comboTimer>0;state.combo=continued?state.combo+1:1;state.comboTimer=1.18;state.bestComboDrop=Math.max(state.bestComboDrop,state.combo);state.bestCombo=Math.max(state.bestCombo,state.combo);
+  if(continued&&state.lastComboPos)comboLinks.push({x1:state.lastComboPos.x,y1:state.lastComboPos.y,x2:t.x,y2:t.y,life:.24,max:.24,color:tagColor[triggers[t.type].tag]||'#fff'});
+  state.lastComboPos={x:t.x,y:t.y};
+  if([3,5,10,15,20,30,40].includes(state.combo))showCombo(state.combo);
+}
+
+function addBounty(e,amount,chain){
+  if(!e||!e.alive)return 0;
+  let mult=tribValue('greed',1)*(hasBoon('compound')?1.35:1);
+  if(chain)mult*=1+Math.min(1.8,state.combo*.055);
+  const gain=Math.max(1,Math.round(amount*mult));e.bounty+=gain;floatText(e.x,e.y-e.r-7,'+$'+gain,'#ffd56a',8.5);return gain;
+}
+
+function damageEntity(e,amount,source,t,quiet=false){
+  if(!e||!e.alive||amount<=0)return 0;
+  if(e.shield>0&&amount>=1){e.shield--;if(!quiet){floatText(e.x,e.y-18,'SHIELD','#a9d9ff',8);burst(e.x,e.y,8,'#91c9ff',1.8);sfx('shield')}return 0}
+  let mult=1+Math.min(.48,state.combo*.018);let dealt=Math.max(.1,amount*mult*(1-e.armor));
+  e.hp-=dealt;if(e.bloodMarked&&source!=='Stone')addBounty(e,dealt*.62,true);
+  if(!quiet&&dealt>=1){floatText(e.x,e.y-9,'-'+Math.round(dealt),'#ff8579',9);burst(e.x,e.y,4,'#ee6d66',1.5)}
+  if(e.hp<=0)killEntity(e,t);return dealt;
+}
+
+function killEntity(e,t){
+  if(!e.alive)return;e.alive=false;e.dead=true;e.deathTimer=.32;
+  let comboBonus=hasBoon('accounting')?1+Math.min(.75,state.bestComboDrop*.025):1;
+  const payout=Math.max(1,Math.round(e.bounty*e.executionBonus*comboBonus));state.stageEarned+=payout;state.totalGold+=payout;state.kills++;state.largestPayout=Math.max(state.largestPayout,payout);
+  floatText(e.x,e.y-24,'COLLECT $'+fmt(payout),'#ffe18a',12);deathBurst(e.x,e.y);shake=Math.max(shake,payout>500?6:3);sfx('death');
+  if(hasBoon('secondParty')&&!state.firstKillSpawned){state.firstKillSpawned=true;queueSpawn('squire',.25,{x:clamp(e.x+rand(-45,45),35,325)});showJackpot('SECOND PARTY')}
+  updateAll(true);
+}
+
+function escapeEntity(e){
+  if(!e.alive)return;
+  if(hasBoon('rebound')&&!state.reboundUsed){state.reboundUsed=true;e.x=clamp(W-e.x,35,325);e.y=28;e.vy=30;e.vx=rand(-40,40);e.hp=Math.max(1,e.maxHp*.4);e.shield=0;e.age=0;e.rebounded=true;floatText(e.x,55,'RETURN POLICY','#a7e4c0',10);burst(e.x,35,15,'#76d494',2.2);sfx('rebound');return}
+  e.alive=false;e.escaped=true;e.remove=true;state.escapes++;state.lostLoot+=Math.round(e.bounty);floatText(clamp(e.x,45,315),H-35,'ESCAPED $'+fmt(e.bounty),'#ff8f86',10);escapeBurst(e.x,H-30);sfx('escape');updateAll(true);
+}
+
+function finishDrop(){
+  if(state.phase!=='running')return;state.phase='result';state.drop++;state.ending=false;state.combo=0;state.comboTimer=0;
+  const earned=state.stageEarned-state.dropEarnedStart,kills=state.kills-state.dropKillsStart,esc=state.escapes-state.dropEscapesStart,spawned=state.spawned-state.dropSpawnStart;
+  UI.phase.textContent='DROP COMPLETE';UI.statusMain.textContent=`Drop ${state.drop}: +$${fmt(earned)} tribute · ${kills} slain · ${esc} escaped.`;
+  UI.statusSub.textContent=`Best combo ${state.bestComboDrop}${spawned?` · ${spawned} extra adventurer${spawned===1?'':'s'}`:''}.`;
+  updateAll(true);
+  if(state.drop<5)setTimeout(startDraft,650);else setTimeout(resolveTribute,760);
+}
+
+function resolveTribute(){
+  const success=state.stageEarned>=stageTarget();
+  if(success){
+    state.tributesPaid++;sfx('tribute');
+    if(state.stage>=stageData.length-1){finishRun(true);return}
+    showBoonDraft();
+  }else finishRun(false);
+}
+
+function showBoonDraft(){
+  state.phase='boon';UI.phase.textContent='TRIBUTE ACCEPTED';UI.boonCards.innerHTML='';
+  boonOptions().forEach(key=>{
+    const bdef=boons[key],b=document.createElement('button');b.type='button';b.className='boonCard';
+    b.innerHTML=`<div class="cardIcon">${bdef.code}</div><div class="rarity" style="color:#8ed6a1">PERMANENT BOON</div><h3>${bdef.name}</h3><p>${bdef.desc}</p><div class="cardTag" style="color:#8ed6a1">${bdef.tag}</div>`;
+    b.addEventListener('click',()=>selectBoon(key));UI.boonCards.appendChild(b);
+  });
+  UI.boon.classList.remove('hidden');UI.statusMain.textContent=`$${fmt(state.stageEarned)} paid to ${currentPatron().name}.`;UI.statusSub.textContent='Choose one permanent boon, then face the next demand.';sfx('boonDraft');
+}
+
+function selectBoon(key){
+  if(state.phase!=='boon')return;state.boons.push(key);UI.boon.classList.add('hidden');showJackpot(boons[key].name.toUpperCase());sfx('boon');state.stage++;updateAll(true);setTimeout(beginStage,420);
+}
+
+function finishRun(won){
+  state.phase='ended';const best=won?Math.max(safeGet('dungeonDropBestV08'),state.totalGold):safeGet('dungeonDropBestV08');if(won)safeSet('dungeonDropBestV08',best);
+  $('summaryKicker').textContent=won?'ALL NINE TRIBUTES PAID':'TRIBUTE FAILED';$('summaryTitle').textContent=won?'THE DUNGEON IS PAID':'THE PATRON IS DISPLEASED';
+  $('summaryCopy').textContent=won?'Your board survived all three patrons and became a ridiculous adventurer-processing engine.':'The five drops are gone, but the demand remains unpaid. A different trigger engine may scale faster.';
+  $('sumTributes').textContent=state.tributesPaid+' / 9';$('sumGold').textContent='$'+fmt(state.totalGold);$('sumKills').textContent=fmt(state.kills);$('sumEscapes').textContent=fmt(state.escapes);
+  $('sumCombo').textContent=fmt(state.bestCombo);$('sumPayout').textContent='$'+fmt(state.largestPayout);$('sumSpawned').textContent=fmt(state.spawned);$('sumBest').textContent='$'+fmt(best);
+  UI.summary.classList.remove('hidden');UI.phase.textContent=won?'RUN COMPLETE':'RUN FAILED';sfx(won?'victory':'loss');
+}
+
+function updateAll(force=false){
+  if(!state)return;const s=currentStage(),p=currentPatron(),target=stageTarget(),pct=target?state.stageEarned/target:0;
+  UI.patronKicker.textContent=`DUNGEON PATRON ${s.patron+1} OF 3`;UI.patronName.textContent=p.name;UI.stageLine.textContent=`Demand ${roman(s.tier)} · Tribute ${state.stage+1} of 9`;
+  UI.drop.textContent=`${state.drop} / 5`;UI.tribute.textContent=`$${fmt(state.stageEarned)} / $${fmt(target)}`;UI.fill.style.width=Math.min(100,pct*100)+'%';UI.progressLabel.textContent=pct>=1?`PAID ${Math.round(pct*100)}%`:Math.round(pct*100)+'%';
+  UI.runGold.textContent='$'+fmt(state.totalGold);UI.live.textContent=entities.filter(e=>!e.remove).length;UI.comboText.textContent=state.combo;UI.triggerText.textContent=`${placed.length} / ${sockets.length}`;
+  UI.reroll.textContent=`REROLL ${state.rerolls}`;renderBuildStrip();
+}
+
+function renderBuildStrip(){
+  const tags={};placed.forEach(p=>{const tag=triggers[p.type].tag;tags[tag]=(tags[tag]||0)+1});
+  const decreeHtml=state.tribulations.map(k=>`<div class="badge bad">CURSE: ${tribulations[k].short}</div>`).join('');
+  const boonHtml=state.boons.map(k=>`<div class="badge boon">BOON: ${boons[k].code}</div>`).join('');
+  const tagHtml=Object.entries(tags).sort((a,b)=>b[1]-a[1]).map(([k,v])=>`<div class="badge ${v>=4?'on':''}">${k} x${v}</div>`).join('');
+  UI.build.innerHTML=decreeHtml+boonHtml+tagHtml;
+}
+
+function boardPoint(evt){const r=canvas.getBoundingClientRect();return{x:(evt.clientX-r.left)/r.width*W,y:(evt.clientY-r.top)/r.height*H}}
+function boardTap(evt){
+  if(state.phase!=='place')return;const p=boardPoint(evt);let best=-1,dist=999;
+  for(const s of sockets){if(placed.some(t=>t.socket===s.index))continue;const d=Math.hypot(p.x-s.x,p.y-s.y);if(d<dist){dist=d;best=s.index}}
+  if(best>=0&&dist<22)placeTrigger(best);else sfx('nope');
+}
+
+function collideCircle(e,cx,cy,cr,restitution,onHit){
+  const dx=e.x-cx,dy=e.y-cy,min=e.r+cr,d2=dx*dx+dy*dy;if(d2>=min*min||d2===0)return false;
+  const d=Math.sqrt(d2)||.001,nx=dx/d,ny=dy/d;e.x=cx+nx*(min+.2);e.y=cy+ny*(min+.2);const dot=e.vx*nx+e.vy*ny;
+  if(dot<0){e.vx-=(1+restitution)*dot*nx;e.vy-=(1+restitution)*dot*ny;e.squash=.32}onHit();return true;
+}
+
+function collideFunnel(e){
+  const exitL=activeTribulationData().some(t=>t.wideGate)?103:124,exitR=activeTribulationData().some(t=>t.wideGate)?257:236;
+  const segs=[{x1:10,y1:516,x2:exitL-13,y2:516},{x1:exitL-13,y1:516,x2:exitL,y2:548},{x1:W-10,y1:516,x2:exitR+13,y2:516},{x1:exitR+13,y1:516,x2:exitR,y2:548}];
+  for(const s of segs)circleSegment(e,s.x1,s.y1,s.x2,s.y2,4,.82);
+  if(e.y>548&&e.x<exitL){e.y=548-e.r;e.vy=-Math.abs(e.vy)*.75;e.vx+=55}
+  if(e.y>548&&e.x>exitR){e.y=548-e.r;e.vy=-Math.abs(e.vy)*.75;e.vx-=55}
+}
+
+function circleSegment(e,x1,y1,x2,y2,r,rest){
+  const vx=x2-x1,vy=y2-y1,len2=vx*vx+vy*vy,t=clamp(((e.x-x1)*vx+(e.y-y1)*vy)/len2,0,1),cx=x1+vx*t,cy=y1+vy*t;
+  const dx=e.x-cx,dy=e.y-cy,min=e.r+r,d2=dx*dx+dy*dy;if(d2>=min*min||d2===0)return;
+  const d=Math.sqrt(d2),nx=dx/d,ny=dy/d;e.x=cx+nx*(min+.2);e.y=cy+ny*(min+.2);const dot=e.vx*nx+e.vy*ny;if(dot<0){e.vx-=(1+rest)*dot*nx;e.vy-=(1+rest)*dot*ny}
+}
+
+function triggerRadius(type){return type==='blackhole'?16:type==='dragonHoard'?15:13}
+
+function updateEffects(dt){
+  particles.forEach(p=>{p.life-=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vy+=p.g*dt;p.vx*=.99;p.rot+=p.spin*dt});particles=particles.filter(p=>p.life>0);
+  floaters.forEach(f=>{f.life-=dt;f.y-=24*dt});floaters=floaters.filter(f=>f.life>0);shake=Math.max(0,shake-dt*18);flash=Math.max(0,flash-dt*3.2);
+}
+
+function draw(){
+  ctx.save();ctx.translate(rand(-shake,shake)*.5,rand(-shake,shake)*.5);
+  const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,'#251b29');bg.addColorStop(1,'#120e16');ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);
+  drawBricks();drawWalls();drawEntry();drawLinks();drawSocketsAndTriggers();
+  particles.forEach(drawParticle);entities.forEach(drawEntity);floaters.forEach(drawFloater);
+  if(flash>0){ctx.globalAlpha=flash*.22;ctx.fillStyle='#fff2bf';ctx.fillRect(0,0,W,H);ctx.globalAlpha=1}
+  ctx.restore();
+}
+
+function drawBricks(){ctx.save();ctx.globalAlpha=.13;ctx.strokeStyle='#806779';ctx.lineWidth=1;for(let y=30;y<H;y+=30){for(let x=-25+((y/30)%2)*22;x<W;x+=44)ctx.strokeRect(x,y,42,28)}ctx.restore()}
+function drawWalls(){ctx.fillStyle='#332739';ctx.fillRect(0,0,11,H);ctx.fillRect(W-11,0,11,H);ctx.fillStyle='#604a61';ctx.fillRect(8,0,3,H);ctx.fillRect(W-11,0,3,H);ctx.fillStyle='#09070b';ctx.fillRect(103,548,154,22);ctx.strokeStyle='#91643c';ctx.lineWidth=3;ctx.strokeRect(103,548,154,23);ctx.fillStyle='#f1c568';ctx.font='1000 11px system-ui';ctx.textAlign='center';ctx.fillText('ESCAPE',W/2,564)}
+function drawEntry(){
+  const xs=[42,111,180,249,318];ctx.fillStyle='#09080b';xs.forEach((x,i)=>{ctx.beginPath();ctx.arc(x,18,18,Math.PI,0);ctx.lineTo(x+18,28);ctx.lineTo(x-18,28);ctx.closePath();ctx.fill();ctx.strokeStyle=state.phase==='aim'&&state.lane===i?'#f3cc68':'#65516a';ctx.lineWidth=state.phase==='aim'&&state.lane===i?3:1.5;ctx.stroke()});
+}
+function drawLinks(){comboLinks.forEach(l=>{ctx.globalAlpha=l.life/l.max;ctx.strokeStyle=l.color;ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(l.x1,l.y1);ctx.lineTo(l.x2,l.y2);ctx.stroke()});ctx.globalAlpha=1}
+function drawSocketsAndTriggers(){
+  for(const s of sockets){const t=placed.find(p=>p.socket===s.index);if(t)drawTrigger(t);else{ctx.beginPath();ctx.arc(s.x,s.y,5.3,0,TAU);ctx.fillStyle='#756170';ctx.fill();ctx.beginPath();ctx.arc(s.x-1.5,s.y-1.7,1.4,0,TAU);ctx.fillStyle='rgba(255,255,255,.25)';ctx.fill();if(state.phase==='place'){ctx.beginPath();ctx.arc(s.x,s.y,11+Math.sin(performance.now()/180+s.index)*1.2,0,TAU);ctx.strokeStyle='rgba(244,199,96,.72)';ctx.lineWidth=1.7;ctx.stroke()}}}
+}
+
+function drawTrigger(t){
+  const d=triggers[t.type],pulse=1+t.pulse*.14;ctx.save();ctx.translate(t.x,t.y);ctx.scale(pulse,pulse);ctx.lineWidth=1.8;ctx.strokeStyle='#241c25';
+  switch(t.type){
+    case 'spikes':ctx.fillStyle='#a3a2a0';for(let i=-1;i<=1;i++){ctx.beginPath();ctx.moveTo(i*8-5,10);ctx.lineTo(i*8,-12-Math.abs(i)*2);ctx.lineTo(i*8+5,10);ctx.closePath();ctx.fill();ctx.stroke()}ctx.fillStyle='#8c4e48';ctx.fillRect(-15,9,30,5);break;
+    case 'goblin':circle(0,0,12,'#709b51');tri(-8,-8,-18,-13,-12,1,'#709b51');tri(8,-8,18,-13,12,1,'#709b51');circle(-4,-2,1.7,'#f4dd73',0);circle(4,-2,1.7,'#f4dd73',0);ctx.strokeStyle='#e7d3b2';ctx.beginPath();ctx.moveTo(-4,5);ctx.lineTo(5,5);ctx.stroke();break;
+    case 'mushroom':ctx.fillStyle='#d7c1dc';ctx.fillRect(-4,1,8,13);ctx.fillStyle='#9561b0';ctx.beginPath();ctx.arc(0,0,14,Math.PI,0);ctx.quadraticCurveTo(0,10,-14,0);ctx.fill();ctx.stroke();circle(-5,-5,2,'#f2d9ef',0);circle(5,-3,2,'#f2d9ef',0);break;
+    case 'chest':ctx.fillStyle='#9a6338';ctx.fillRect(-13,-5,26,17);ctx.strokeRect(-13,-5,26,17);ctx.beginPath();ctx.arc(0,-5,13,Math.PI,0);ctx.fill();ctx.stroke();ctx.fillStyle='#f2c55a';ctx.fillRect(-2,-6,4,17);break;
+    case 'web':ctx.strokeStyle='#d1d0d4';ctx.lineWidth=1.2;for(let r=5;r<=13;r+=4){ctx.beginPath();ctx.arc(0,0,r,0,TAU);ctx.stroke()}for(let a=0;a<TAU;a+=Math.PI/4){ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(Math.cos(a)*14,Math.sin(a)*14);ctx.stroke()}break;
+    case 'fire':ctx.strokeStyle='#d65f40';ctx.lineWidth=2.5;ctx.beginPath();ctx.arc(0,0,13,0,TAU);ctx.stroke();ctx.fillStyle='#f4774d';ctx.beginPath();ctx.moveTo(0,-10);ctx.quadraticCurveTo(10,1,0,11);ctx.quadraticCurveTo(-8,3,0,-10);ctx.fill();break;
+    case 'cannon':ctx.save();ctx.rotate(-Math.PI/2);ctx.fillStyle='#66717b';ctx.fillRect(-7,-8,22,16);ctx.strokeRect(-7,-8,22,16);circle(-8,0,8,'#48515a');ctx.restore();break;
+    case 'skeleton':circle(0,-3,9,'#ddd1b5');ctx.fillStyle='#ddd1b5';ctx.fillRect(-6,6,12,8);circle(-3,-4,1.5,'#302831',0);circle(3,-4,1.5,'#302831',0);break;
+    case 'questBell':ctx.fillStyle='#d7a84e';ctx.beginPath();ctx.arc(0,3,11,Math.PI,0);ctx.lineTo(11,7);ctx.lineTo(-11,7);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillRect(-13,7,26,4);circle(0,12,2.5,'#f3c961');break;
+    case 'mimic':ctx.fillStyle='#9b5838';ctx.fillRect(-13,-3,26,15);ctx.strokeRect(-13,-3,26,15);ctx.beginPath();ctx.arc(0,-4,13,Math.PI,0);ctx.fill();ctx.stroke();ctx.fillStyle='#fff0c7';for(let i=-9;i<=9;i+=6)tri(i,-1,i+3,4,i+6,-1,'#fff0c7');circle(-5,-7,1.5,'#ffd75e',0);circle(5,-7,1.5,'#ffd75e',0);break;
+    case 'oil':ctx.fillStyle='#52525a';ctx.beginPath();ctx.arc(0,4,12,0,Math.PI);ctx.lineTo(-9,-7);ctx.lineTo(9,-7);ctx.closePath();ctx.fill();ctx.stroke();ctx.fillStyle='#17151b';ctx.beginPath();ctx.ellipse(0,-7,9,4,0,0,TAU);ctx.fill();break;
+    case 'bloodAltar':ctx.fillStyle='#6a454c';ctx.fillRect(-11,5,22,7);ctx.fillRect(-7,-2,14,8);ctx.fillStyle='#e46b67';ctx.beginPath();ctx.moveTo(0,-13);ctx.quadraticCurveTo(8,-3,0,3);ctx.quadraticCurveTo(-8,-3,0,-13);ctx.fill();break;
+    case 'barrel':ctx.fillStyle=t.usedDrop===state.globalDrop&&state.phase==='running'?'#4d3f3d':'#a1533f';ctx.fillRect(-10,-14,20,28);ctx.strokeRect(-10,-14,20,28);ctx.fillStyle='#453638';ctx.fillRect(-12,-9,24,4);ctx.fillRect(-12,7,24,4);ctx.fillStyle='#f2c45f';ctx.font='1000 13px system-ui';ctx.textAlign='center';ctx.fillText('!',0,5);break;
+    case 'portal':ctx.strokeStyle='#c49aef';ctx.lineWidth=2.5;ctx.beginPath();ctx.ellipse(0,0,13,7,performance.now()/700,0,TAU);ctx.stroke();ctx.beginPath();ctx.ellipse(0,0,8,13,-performance.now()/900,0,TAU);ctx.stroke();circle(0,0,3,'#241331',0);break;
+    case 'executioner':ctx.strokeStyle='#d8d4d0';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(-8,12);ctx.lineTo(7,-12);ctx.stroke();ctx.fillStyle='#aeb2b5';ctx.beginPath();ctx.moveTo(2,-13);ctx.lineTo(13,-7);ctx.lineTo(6,2);ctx.closePath();ctx.fill();ctx.stroke();break;
+    case 'mirror':ctx.strokeStyle='#d19af1';ctx.lineWidth=3;ctx.strokeRect(-10,-14,20,28);ctx.fillStyle='#6d4d83';ctx.fillRect(-7,-11,14,22);ctx.strokeStyle='rgba(255,255,255,.55)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-5,-8);ctx.lineTo(4,8);ctx.moveTo(2,-9);ctx.lineTo(6,-3);ctx.stroke();break;
+    case 'blackhole':{const g=ctx.createRadialGradient(0,0,1,0,0,17);g.addColorStop(0,'#08050b');g.addColorStop(.52,'#25143a');g.addColorStop(.78,'#8b53b5');g.addColorStop(1,'rgba(175,110,240,0)');ctx.fillStyle=g;ctx.beginPath();ctx.arc(0,0,18,0,TAU);ctx.fill();ctx.strokeStyle='#d4a9f6';ctx.beginPath();ctx.ellipse(0,0,16,6,performance.now()/700,0,TAU);ctx.stroke();break}
+    case 'dragonHoard':ctx.fillStyle='#f0bd4f';for(let i=0;i<7;i++)circle(randSeed(i)*16-8,7-Math.floor(i/3)*5,4,'#f0bd4f');ctx.fillStyle='#cf6b4d';ctx.beginPath();ctx.moveTo(-13,6);ctx.quadraticCurveTo(0,-13,13,6);ctx.lineTo(7,10);ctx.lineTo(-7,10);ctx.closePath();ctx.fill();ctx.stroke();break;
+  }
+  ctx.restore();
+}
+
+function randSeed(i){return ((Math.sin(i*999+3)*43758.5453)%1+1)%1}
+function circle(x,y,r,fill,stroke=ctx.strokeStyle){ctx.beginPath();ctx.arc(x,y,r,0,TAU);ctx.fillStyle=fill;ctx.fill();if(stroke&&stroke!==0){ctx.strokeStyle=stroke;ctx.stroke()}}
+function tri(x1,y1,x2,y2,x3,y3,fill){ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.lineTo(x3,y3);ctx.closePath();ctx.fillStyle=fill;ctx.fill();ctx.stroke()}
+
+function drawEntity(e){
+  e.trail.forEach(t=>{if(t.a<=0)return;ctx.globalAlpha=t.a*.25;circle(t.x,t.y,e.r*.72,e.kind==='echo'?'#cba9e7':'#efe5d0',0)});ctx.globalAlpha=1;
+  ctx.save();ctx.translate(e.x,e.y);ctx.scale(1+e.squash,1-e.squash*.7);ctx.globalAlpha=e.kind==='echo'?.72:1;
+  circle(0,0,e.r,e.kind==='echo'?'#bba5d1':'#d9cfb7','#29242a');ctx.fillStyle=e.kind==='primary'?'#78828d':e.kind==='echo'?'#725c8a':'#89939c';ctx.beginPath();ctx.arc(0,-3,e.r*.8,Math.PI,0);ctx.lineTo(e.r*.8,-1);ctx.lineTo(-e.r*.8,-1);ctx.closePath();ctx.fill();ctx.stroke();
+  ctx.fillStyle='#2b2529';circle(-3.5,2,1.3,'#2b2529',0);circle(3.5,2,1.3,'#2b2529',0);
+  if(e.kind==='primary'){ctx.fillStyle='#a25f50';ctx.beginPath();ctx.moveTo(e.r*.55,2);ctx.lineTo(e.r*1.15,4);ctx.lineTo(e.r*.95,12);ctx.lineTo(e.r*.55,14);ctx.closePath();ctx.fill();ctx.stroke()}
+  if(e.shield>0){ctx.strokeStyle='#8ed1ff';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,0,e.r+4,0,TAU);ctx.stroke()}
+  if(e.burn>0){ctx.fillStyle='#ff7548';ctx.beginPath();ctx.moveTo(-e.r*.55,-e.r*.8);ctx.quadraticCurveTo(-e.r*.1,-e.r*1.5,e.r*.1,-e.r*.65);ctx.quadraticCurveTo(-e.r*.25,-e.r*.25,-e.r*.55,-e.r*.8);ctx.fill()}
+  if(e.web>0){ctx.strokeStyle='rgba(210,225,225,.8)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(-e.r,e.r*.2);ctx.lineTo(e.r,-e.r*.3);ctx.moveTo(-e.r,-e.r*.4);ctx.lineTo(e.r,e.r*.4);ctx.stroke()}
+  if(e.oiled>0){ctx.fillStyle='rgba(42,35,39,.75)';circle(e.r*.35,e.r*.55,3,'rgba(42,35,39,.75)',0)}
+  ctx.globalAlpha=1;ctx.restore();
+  if(e.alive){
+    const w=28,h=3,x=e.x-w/2,y=e.y-e.r-8;ctx.fillStyle='#2a151c';ctx.fillRect(x,y,w,h);ctx.fillStyle=e.hp/e.maxHp>.45?'#71d184':'#ee6c64';ctx.fillRect(x,y,w*clamp(e.hp/e.maxHp,0,1),h);
+    ctx.font='1000 7px system-ui';ctx.textAlign='center';ctx.fillStyle='#ffe099';ctx.fillText('$'+fmt(e.bounty),e.x,e.y+e.r+9);
+  }
+}
+
+function drawParticle(p){ctx.globalAlpha=clamp(p.life/p.max,0,1);ctx.fillStyle=p.color;if(p.kind==='coin'){ctx.save();ctx.translate(p.x,p.y);ctx.rotate(p.rot);ctx.beginPath();ctx.ellipse(0,0,3.2,2,0,0,TAU);ctx.fill();ctx.restore()}else{ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,TAU);ctx.fill()}ctx.globalAlpha=1}
+function drawFloater(f){ctx.globalAlpha=clamp(f.life*2,0,1);ctx.font=`1000 ${f.size}px system-ui`;ctx.textAlign='center';ctx.lineWidth=2.5;ctx.strokeStyle='rgba(15,10,16,.92)';ctx.strokeText(f.text,f.x,f.y);ctx.fillStyle=f.color;ctx.fillText(f.text,f.x,f.y);ctx.globalAlpha=1}
+
+function burst(x,y,n,color,scale=2){for(let i=0;i<n;i++){const a=rand(0,TAU),m=rand(20,70)*scale/2;particles.push({x,y,vx:Math.cos(a)*m,vy:Math.sin(a)*m-25,g:150,life:rand(.32,.72),max:.72,color,size:rand(1,2.7),kind:'dot',rot:0,spin:0})}}
+function tinyBurst(x,y,color){burst(x,y,2,color,1)}
+function coinBurst(x,y,n=14){for(let i=0;i<n;i++){const a=rand(0,TAU),m=rand(45,120);particles.push({x,y,vx:Math.cos(a)*m,vy:Math.sin(a)*m-70,g:220,life:rand(.65,1.05),max:1.05,color:'#f3c35b',size:3,kind:'coin',rot:rand(0,TAU),spin:rand(-8,8)})}}
+function fireBurst(x,y){burst(x,y,8,'#ff784a',2.2);burst(x,y,4,'#ffc05b',1.6)}
+function deathBurst(x,y){burst(x,y,22,'#e96964',3.5);burst(x,y,12,'#ead7b2',2.4);coinBurst(x,y,9)}
+function escapeBurst(x,y){burst(x,y,13,'#91cbe0',2.2)}
+function floatText(x,y,text,color,size=9){floaters.push({x,y,text,color,size,life:.9})}
+function showCombo(n){UI.comboPop.textContent=`${n} HIT COMBO`;UI.comboPop.classList.remove('show');void UI.comboPop.offsetWidth;UI.comboPop.classList.add('show');burst(W/2,105,12,'#f3c35b',2.4);if(n>=10){shake=Math.max(shake,4);flash=.6}sfx('combo')}
+function showJackpot(text){UI.jackpot.textContent=text;UI.jackpot.classList.remove('show');void UI.jackpot.offsetWidth;UI.jackpot.classList.add('show')}
+
+function unlockAudio(){if(!soundOn)return;if(!audioCtx)audioCtx=new (window.AudioContext||window.webkitAudioContext)();if(audioCtx.state==='suspended')audioCtx.resume()}
+function tone(freq,dur=.06,type='square',vol=.03,slide=0,delay=0){if(!soundOn)return;unlockAudio();if(!audioCtx)return;const now=audioCtx.currentTime+delay,o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type=type;o.frequency.setValueAtTime(freq,now);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(40,freq+slide),now+dur);g.gain.setValueAtTime(vol,now);g.gain.exponentialRampToValueAtTime(.0001,now+dur);o.connect(g);g.connect(audioCtx.destination);o.start(now);o.stop(now+dur)}
+function sfx(name){if(!soundOn)return;switch(name){
+  case 'select':tone(360,.04,'square',.018,70);break;case 'nope':tone(120,.05,'square',.018,-20);break;case 'draft':tone(260,.06,'triangle',.025,100);tone(410,.07,'triangle',.022,100,.07);break;
+  case 'reroll':tone(190,.07,'triangle',.025,230);break;case 'place':tone(170,.05,'square',.03,100);tone(300,.05,'square',.025,100,.04);break;case 'legendary':tone(330,.1,'sine',.035,180);tone(520,.12,'sine',.035,250,.1);tone(800,.15,'sine',.03,270,.22);break;
+  case 'drop':tone(210,.07,'triangle',.03,140);break;case 'bounce':tone(115,.025,'square',.006,25);break;case 'spike':tone(100,.045,'sawtooth',.028,-20);break;case 'goblin':tone(150,.06,'square',.025,-60);break;
+  case 'boing':tone(155,.08,'sine',.035,260);break;case 'coin':tone(630,.045,'square',.025,220);tone(850,.045,'square',.02,140,.045);break;case 'web':tone(90,.07,'triangle',.018,25);break;case 'fire':tone(135,.07,'sawtooth',.019,80);break;
+  case 'cannon':tone(85,.09,'square',.04,80);break;case 'skeleton':tone(215,.04,'square',.025,-70);break;case 'bell':tone(520,.12,'sine',.03,170);break;case 'spawn':tone(390,.06,'square',.025,180);tone(620,.08,'square',.02,150,.06);break;
+  case 'mimic':tone(135,.07,'sawtooth',.03,-55);break;case 'oil':tone(80,.08,'triangle',.018,20);break;case 'blood':tone(125,.07,'sawtooth',.025,-30);break;case 'boom':tone(65,.16,'sawtooth',.065,-18);break;
+  case 'portal':tone(250,.14,'sine',.035,480);break;case 'axe':tone(105,.07,'sawtooth',.04,-45);break;case 'mirror':tone(310,.13,'sine',.03,400);break;case 'blackhole':tone(190,.17,'sine',.04,-100);break;
+  case 'shield':tone(700,.06,'sine',.02,130);break;case 'rebound':tone(230,.11,'triangle',.03,350);break;case 'death':tone(130,.13,'sawtooth',.045,-65);tone(75,.09,'square',.03,-20,.07);break;case 'escape':tone(270,.15,'triangle',.025,-140);break;
+  case 'combo':tone(430,.06,'square',.03,250);break;case 'patron':tone(90,.2,'sawtooth',.055,-15);tone(72,.2,'sawtooth',.045,-10,.2);break;case 'stage':tone(220,.08,'triangle',.025,130);break;
+  case 'tribute':tone(360,.1,'sine',.035,220);tone(590,.12,'sine',.035,250,.1);break;case 'boonDraft':tone(300,.08,'triangle',.025,150);tone(490,.1,'triangle',.025,180,.08);break;case 'boon':tone(390,.1,'sine',.035,250);tone(690,.14,'sine',.035,300,.1);break;
+  case 'victory':tone(330,.14,'sine',.04,220);tone(550,.16,'sine',.04,260,.14);tone(820,.22,'sine',.04,320,.3);break;case 'loss':tone(220,.18,'sawtooth',.035,-100);tone(120,.22,'triangle',.03,-45,.16);break;
+}}
+
+function loop(now){const raw=Math.min(.034,(now-last)/1000||.016);last=now;const dt=raw*speed;updateGame(dt);updateEffects(dt);updateAll();draw();requestAnimationFrame(loop)}
+
+canvas.addEventListener('pointerdown',boardTap);
+UI.reroll.addEventListener('click',rerollDraft);
+UI.dropBtn.addEventListener('click',startDrop);
+document.querySelectorAll('.lane').forEach(b=>b.addEventListener('click',()=>setLane(b.dataset.lane)));
+UI.eventBtn.addEventListener('click',()=>{unlockAudio();if(eventAction)eventAction()});
+$('againBtn').addEventListener('click',resetRun);
+UI.sound.addEventListener('click',()=>{soundOn=!soundOn;UI.sound.textContent=soundOn?'SOUND ON':'SOUND OFF';if(soundOn){unlockAudio();sfx('select')}});
+UI.speed.addEventListener('click',()=>{speed=speed===1?2:speed===2?3:1;UI.speed.textContent=`SPEED ${speed}X`;sfx('select')});
+
+window.runDungeonDropSelfTest=()=>({
+  stages:stageData.length===9,patrons:patrons.length===3,dropsPerTribute:5,sockets:sockets.length===55,triggers:Object.keys(triggers).length,boons:Object.keys(boons).length,
+  uniqueSocketIndexes:new Set(sockets.map(s=>s.index)).size===sockets.length,allTargetsIncrease:stageData.every((s,i)=>i===0||s.target>stageData[i-1].target)
+});
+window.getDungeonDropDebug=()=>({phase:state.phase,stage:state.stage,drop:state.drop,stageEarned:state.stageEarned,target:stageTarget(),placed:placed.length,entities:entities.length,spawnQueue:spawnQueue.length,kills:state.kills,escapes:state.escapes,combo:state.combo,boons:[...state.boons],tribulations:[...state.tribulations]});
+
+resetRun();requestAnimationFrame(loop);
+})();
+</script>
 </body>
 </html>

@@ -1,27 +1,3406 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="robots" content="noindex,nofollow">
-<title>Scrap Run — Build Needed</title>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#07141d" />
+<title>Scrap Run — v3</title>
 <style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;background:#071017;color:#eef7f5;font-family:Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
-body{display:grid;place-items:center;padding:20px;background:radial-gradient(circle at 50% 20%,#f1ba4e22,transparent 45%),#071017}
-.card{width:min(430px,100%);padding:24px;border:1px solid #34525e;border-radius:21px;background:#10232ddd;box-shadow:0 24px 70px #0009;text-align:center}
-.symbol{width:76px;height:76px;margin:0 auto 14px;display:grid;place-items:center;border-radius:20px;font-size:38px;color:#f1ba4e;border:1px solid #f1ba4e88;background:#f1ba4e16}
-small{color:#f1ba4e;font-weight:900;letter-spacing:.08em}h1{margin:8px 0 9px}p{color:#9fb6b7;line-height:1.5}code{display:block;margin-top:14px;padding:10px;border-radius:10px;background:#07161d;color:#d4e3e2;word-break:break-word}
-a{display:inline-block;margin-top:15px;padding:11px 14px;border-radius:11px;background:#f1ba4e;color:#071017;text-decoration:none;font-weight:900}
+  :root {
+    --ink: #eef7f4;
+    --muted: #9db2b2;
+    --panel: #102733;
+    --panel-2: #163440;
+    --line: #31525c;
+    --accent: #f0bd4b;
+    --cyan: #65d5dd;
+    --danger: #ef6a58;
+    --good: #78d596;
+    --shadow: #020a0f;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background:
+      radial-gradient(circle at 50% 10%, #18343e 0%, #0a1820 42%, #040b10 100%);
+    color: var(--ink);
+    font-family: Inter, ui-rounded, "Arial Rounded MT Bold", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    touch-action: none;
+    overscroll-behavior: none;
+    user-select: none;
+  }
+
+  button { font: inherit; }
+
+  #shell {
+    position: relative;
+    width: min(100vw, 560px);
+    height: min(100dvh, 980px);
+    margin: 0 auto;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    overflow: hidden;
+    background: #07141d;
+    box-shadow: 0 0 70px rgba(0, 0, 0, .58);
+    border-inline: 1px solid rgba(116, 190, 194, .14);
+  }
+
+  #hud {
+    position: relative;
+    z-index: 5;
+    padding: calc(8px + env(safe-area-inset-top)) 10px 8px;
+    background: linear-gradient(180deg, #102935 0%, #0c202a 100%);
+    border-bottom: 2px solid #326778;
+    box-shadow: 0 5px 18px rgba(0,0,0,.3);
+  }
+
+  .hud-top {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    align-items: start;
+    gap: 10px;
+  }
+
+  .brand {
+    font-weight: 1000;
+    letter-spacing: .6px;
+    line-height: .9;
+    font-size: clamp(20px, 5.7vw, 30px);
+    text-shadow: 0 2px 0 #071016;
+  }
+
+  .bank {
+    margin-top: 6px;
+    font-size: clamp(12px, 3.4vw, 16px);
+    font-weight: 900;
+    color: var(--accent);
+    letter-spacing: .2px;
+  }
+
+  .depth-block {
+    text-align: right;
+    font-weight: 900;
+    line-height: 1.05;
+    font-size: clamp(11px, 3.2vw, 15px);
+    color: #d5e5e5;
+  }
+
+  .cargo-card {
+    margin-top: 8px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+    min-height: 50px;
+    padding: 6px 10px;
+    border: 2px solid #4f7380;
+    border-radius: 8px;
+    background:
+      linear-gradient(180deg, rgba(40, 79, 90, .45), rgba(14, 40, 51, .66));
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.035);
+    transition: border-color .18s ease, box-shadow .18s ease, background .18s ease;
+  }
+
+  .cargo-card.valuable {
+    border-color: #55bd9a;
+    background: linear-gradient(180deg, rgba(31, 91, 76, .55), rgba(13, 48, 45, .72));
+    box-shadow: inset 0 0 18px rgba(105, 224, 177, .07);
+  }
+
+  .cargo-card.high-risk {
+    border-color: #ef8b57;
+    background: linear-gradient(180deg, rgba(112, 61, 35, .58), rgba(54, 29, 27, .78));
+    box-shadow: 0 0 18px rgba(239, 106, 88, .12), inset 0 0 19px rgba(255, 176, 80, .06);
+  }
+
+  .cargo-card.jackpot {
+    border-color: #ffd15f;
+    background: linear-gradient(180deg, rgba(122, 82, 24, .62), rgba(53, 29, 19, .84));
+    box-shadow: 0 0 24px rgba(255, 196, 72, .22), inset 0 0 24px rgba(255, 225, 134, .08);
+    animation: cargoPulse 1.15s ease-in-out infinite alternate;
+  }
+
+  .cargo-card.returning {
+    border-color: #f0bd4b;
+  }
+
+  @keyframes cargoPulse {
+    from { box-shadow: 0 0 12px rgba(255, 196, 72, .14), inset 0 0 18px rgba(255, 225, 134, .05); }
+    to { box-shadow: 0 0 30px rgba(255, 196, 72, .31), inset 0 0 28px rgba(255, 225, 134, .11); }
+  }
+
+  .cargo-copy { min-width: 0; }
+
+  .cargo-label {
+    color: #a9bec1;
+    font-size: clamp(10px, 2.8vw, 13px);
+    font-weight: 900;
+    letter-spacing: .35px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cargo-value {
+    color: #fff;
+    font-size: clamp(22px, 6.2vw, 33px);
+    font-weight: 1000;
+    line-height: .95;
+    text-shadow: 0 2px 0 rgba(0,0,0,.45);
+  }
+
+  .risk-word {
+    color: var(--danger);
+    font-size: .56em;
+    margin-left: 4px;
+    letter-spacing: .6px;
+  }
+
+  .cargo-count {
+    color: #bfd2d3;
+    font-size: clamp(10px, 2.8vw, 13px);
+    font-weight: 850;
+    text-align: right;
+  }
+
+  .hud-status {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    min-height: 21px;
+    font-size: clamp(10px, 2.7vw, 13px);
+    font-weight: 900;
+    letter-spacing: .35px;
+  }
+
+  #statusText.outbound { color: var(--cyan); }
+  #statusText.returning { color: var(--accent); }
+  #armorText { color: #d8e8e5; text-align: right; }
+
+  #contractBar {
+    margin-top: 5px;
+    min-height: 25px;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 7px;
+    padding: 4px 7px;
+    border: 1px solid #31545e;
+    border-radius: 7px;
+    background: rgba(4, 16, 22, .45);
+    color: #a9bfc0;
+    font-size: clamp(9px, 2.35vw, 11px);
+    font-weight: 900;
+    letter-spacing: .25px;
+    transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+  }
+
+  #contractBar.complete {
+    border-color: #68ce8d;
+    background: rgba(29, 86, 59, .46);
+    box-shadow: inset 0 0 14px rgba(120, 213, 150, .07);
+  }
+
+  .contract-tag {
+    color: #0b1a1e;
+    background: #f0bd4b;
+    border-radius: 4px;
+    padding: 2px 5px;
+    font-size: 9px;
+    font-weight: 1000;
+    letter-spacing: .7px;
+  }
+
+  #contractText {
+    min-width: 0;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  #contractProgress {
+    color: #f4d477;
+    white-space: nowrap;
+    text-align: right;
+  }
+
+  #contractBar.complete #contractProgress { color: #8ee3a8; }
+
+  #gameWrap {
+    position: relative;
+    min-height: 0;
+    overflow: hidden;
+    background: #09141b;
+  }
+
+  #game {
+    display: block;
+    width: 100%;
+    height: 100%;
+    touch-action: none;
+    background: #0a151b;
+  }
+
+  #signalBanner {
+    position: absolute;
+    z-index: 4;
+    top: 10px;
+    left: 50%;
+    width: min(92%, 430px);
+    transform: translate(-50%, -140%);
+    opacity: 0;
+    pointer-events: none;
+    padding: 9px 12px 8px;
+    text-align: center;
+    border-radius: 8px;
+    border: 2px solid currentColor;
+    background: rgba(8, 21, 28, .92);
+    font-size: clamp(12px, 3.2vw, 15px);
+    font-weight: 1000;
+    letter-spacing: .8px;
+    box-shadow: 0 8px 25px rgba(0,0,0,.42), inset 0 0 18px rgba(255,255,255,.04);
+    transition: transform .24s cubic-bezier(.2,.8,.2,1), opacity .2s ease;
+  }
+
+  #signalBanner.show {
+    transform: translate(-50%, 0);
+    opacity: 1;
+  }
+
+  #modal {
+    position: absolute;
+    z-index: 10;
+    inset: 9px;
+    display: grid;
+    place-items: center;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity .16s ease;
+  }
+
+  #modal.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .modal-card {
+    width: min(100%, 455px);
+    max-height: 96%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 15px;
+    border-radius: 14px;
+    border: 2px solid #3e6974;
+    background:
+      linear-gradient(180deg, rgba(19, 48, 60, .985), rgba(8, 25, 34, .985));
+    box-shadow: 0 18px 60px rgba(0,0,0,.65), inset 0 1px 0 rgba(255,255,255,.07);
+    text-align: center;
+  }
+
+  .modal-kicker {
+    color: var(--accent);
+    font-size: 11px;
+    font-weight: 1000;
+    letter-spacing: 1.2px;
+  }
+
+  .modal-title {
+    margin: 3px 0 6px;
+    font-size: clamp(25px, 7vw, 37px);
+    line-height: .95;
+    font-weight: 1000;
+    letter-spacing: .35px;
+    text-shadow: 0 3px 0 rgba(0,0,0,.35);
+  }
+
+  .modal-title.good { color: var(--good); }
+  .modal-title.bad { color: var(--danger); }
+
+  .modal-summary {
+    color: #bfd0d0;
+    font-size: clamp(12px, 3.1vw, 14px);
+    line-height: 1.35;
+    margin-bottom: 11px;
+  }
+
+  .haul-number {
+    display: block;
+    margin: 4px 0;
+    color: var(--accent);
+    font-size: clamp(25px, 6.8vw, 34px);
+    font-weight: 1000;
+  }
+
+  .haul-breakdown {
+    display: block;
+    margin-top: 7px;
+    color: #95b1b1;
+    font-size: 10px;
+    font-weight: 850;
+    letter-spacing: .3px;
+  }
+
+  .order-result {
+    display: block;
+    margin: 8px auto 2px;
+    width: fit-content;
+    max-width: 100%;
+    padding: 5px 9px;
+    border: 1px solid #4f6870;
+    border-radius: 7px;
+    background: rgba(4, 15, 20, .42);
+    color: #aebfc1;
+    font-size: 10px;
+    font-weight: 1000;
+    letter-spacing: .35px;
+  }
+
+  .order-result.good { border-color: #5fbd7d; color: #8ee3a8; }
+  .order-result.bad { border-color: #7d554b; color: #d49a8d; }
+
+  .primary-btn,
+  .upgrade-btn,
+  .side-btn {
+    border: 0;
+    border-radius: 9px;
+    color: #071319;
+    font-weight: 1000;
+    letter-spacing: .35px;
+    cursor: pointer;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .primary-btn {
+    width: 100%;
+    min-height: 48px;
+    padding: 10px 14px;
+    background: linear-gradient(180deg, #ffd66c, #dfa735);
+    box-shadow: 0 4px 0 #79571f, 0 8px 17px rgba(0,0,0,.28);
+    font-size: clamp(15px, 4vw, 18px);
+  }
+
+  .primary-btn:active { transform: translateY(3px); box-shadow: 0 1px 0 #79571f; }
+
+  .instructions {
+    margin: 10px 0 12px;
+    padding: 9px 10px;
+    border-radius: 9px;
+    background: rgba(4, 14, 20, .48);
+    color: #c4d8d8;
+    font-size: clamp(11px, 2.9vw, 13px);
+    line-height: 1.35;
+  }
+
+  .upgrade-title {
+    margin: 13px 0 7px;
+    color: #d8e7e5;
+    font-size: 12px;
+    font-weight: 1000;
+    letter-spacing: .8px;
+  }
+
+  .upgrade-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+
+  .upgrade-card {
+    min-width: 0;
+    padding: 8px 6px 7px;
+    border-radius: 9px;
+    border: 1px solid #375965;
+    background: rgba(21, 50, 61, .73);
+  }
+
+  .upgrade-name {
+    font-size: clamp(10px, 2.7vw, 12px);
+    font-weight: 1000;
+    color: #eef8f5;
+  }
+
+  .upgrade-level {
+    margin-top: 2px;
+    color: var(--cyan);
+    font-size: 10px;
+    font-weight: 900;
+  }
+
+  .upgrade-effect {
+    min-height: 31px;
+    margin: 4px 0 6px;
+    color: #a9c0c0;
+    font-size: clamp(8px, 2.1vw, 10px);
+    line-height: 1.2;
+  }
+
+  .upgrade-btn {
+    width: 100%;
+    min-height: 31px;
+    padding: 5px 3px;
+    background: linear-gradient(180deg, #75dce1, #48aeb8);
+    box-shadow: 0 3px 0 #225f67;
+    font-size: clamp(9px, 2.3vw, 11px);
+  }
+
+  .upgrade-btn:disabled {
+    color: #7f9697;
+    background: #243b43;
+    box-shadow: 0 3px 0 #14242a;
+    cursor: default;
+  }
+
+  .stats-row {
+    margin-top: 9px;
+    padding-top: 8px;
+    border-top: 1px solid #2b4c57;
+    color: #8fa8aa;
+    font-size: 10px;
+    line-height: 1.4;
+  }
+
+  #controls {
+    position: relative;
+    z-index: 5;
+    min-height: 120px;
+    padding: 8px 10px calc(8px + env(safe-area-inset-bottom));
+    display: grid;
+    grid-template-columns: minmax(72px, 1fr) 132px minmax(72px, 1fr);
+    align-items: center;
+    gap: 9px;
+    background: linear-gradient(180deg, #0d222c, #09171f);
+    border-top: 2px solid #244754;
+  }
+
+  .control-side {
+    display: grid;
+    gap: 7px;
+    justify-items: stretch;
+  }
+
+  .control-hint {
+    color: #718d91;
+    font-size: 9px;
+    font-weight: 900;
+    line-height: 1.25;
+    text-align: center;
+    letter-spacing: .3px;
+  }
+
+  .side-btn {
+    min-height: 52px;
+    padding: 7px 5px;
+    color: #dcebea;
+    background: linear-gradient(180deg, #1d4653, #14333e);
+    border: 1px solid #3b6874;
+    box-shadow: 0 3px 0 #061016;
+    font-size: clamp(10px, 2.7vw, 13px);
+  }
+
+  .side-btn.action {
+    color: #181105;
+    background: linear-gradient(180deg, #ffd56a, #dda438);
+    border-color: #ffe49a;
+    box-shadow: 0 3px 0 #76551e;
+  }
+
+  .side-btn.action.returning {
+    color: #eaf8f6;
+    background: linear-gradient(180deg, #3c707b, #244d58);
+    border-color: #5f929d;
+    box-shadow: 0 3px 0 #102930;
+  }
+
+  .side-btn:disabled {
+    opacity: .42;
+    filter: grayscale(.4);
+  }
+
+  .dpad {
+    width: 132px;
+    height: 104px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(2, 1fr);
+    gap: 5px;
+  }
+
+  .dir-btn {
+    position: relative;
+    border: 1px solid #456c76;
+    border-radius: 10px;
+    background: linear-gradient(180deg, #204653, #15323d);
+    box-shadow: 0 4px 0 #061219, inset 0 1px 0 rgba(255,255,255,.07);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: none;
+  }
+
+  .dir-btn:active,
+  .dir-btn.pressed {
+    transform: translateY(3px);
+    box-shadow: 0 1px 0 #061219, inset 0 1px 0 rgba(255,255,255,.04);
+  }
+
+  .dir-btn.up { grid-column: 2; grid-row: 1; }
+  .dir-btn.left { grid-column: 1; grid-row: 2; }
+  .dir-btn.down { grid-column: 2; grid-row: 2; }
+  .dir-btn.right { grid-column: 3; grid-row: 2; }
+
+  .chev {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: 15px;
+    height: 15px;
+    border-top: 4px solid #d8e9e8;
+    border-left: 4px solid #d8e9e8;
+    filter: drop-shadow(0 2px 0 rgba(0,0,0,.35));
+  }
+
+  .up .chev { transform: translate(-50%, -35%) rotate(45deg); }
+  .left .chev { transform: translate(-35%, -50%) rotate(-45deg); }
+  .down .chev { transform: translate(-50%, -65%) rotate(-135deg); }
+  .right .chev { transform: translate(-65%, -50%) rotate(135deg); }
+
+  @media (max-height: 690px) {
+    #hud { padding-top: calc(5px + env(safe-area-inset-top)); padding-bottom: 5px; }
+    .cargo-card { min-height: 43px; margin-top: 5px; }
+    #contractBar { min-height: 21px; margin-top: 3px; padding: 2px 5px; }
+    #controls { min-height: 105px; padding-top: 5px; }
+    .dpad { height: 90px; }
+    .side-btn { min-height: 43px; }
+  }
+
+  @media (min-width: 760px) {
+    #shell { border-radius: 14px; margin-top: max(0px, calc((100dvh - min(100dvh, 980px)) / 2)); }
+  }
 </style>
 </head>
 <body>
-<main class="card">
-  <div class="symbol">⬢</div>
-  <small>PROTOTYPE #7</small>
-  <h1>Scrap Run</h1>
-  <p>The Prototype Lab is ready, but this game's latest HTML build has not been copied into its folder yet.</p>
-  <code>games/07-scrap-run/index.html</code>
-  <a href="../../index.html">BACK TO LAB</a>
+<main id="shell" aria-label="Scrap Run game">
+  <header id="hud">
+    <div class="hud-top">
+      <div>
+        <div class="brand">SCRAP RUN</div>
+        <div class="bank">BANKED <span id="bankedValue">0</span></div>
+      </div>
+      <div class="depth-block">
+        <div>DEPTH <span id="depthValue">0</span></div>
+        <div>BEST <span id="bestValue">0</span></div>
+      </div>
+    </div>
+
+    <div class="cargo-card" id="cargoCard">
+      <div class="cargo-copy">
+        <div class="cargo-label" id="cargoLabel">UNBANKED CARGO — RETURN HOME TO KEEP IT</div>
+        <div class="cargo-value"><span id="cargoValue">0</span><span class="risk-word">AT RISK</span></div>
+      </div>
+      <div class="cargo-count"><span id="cargoCount">0</span> ITEMS</div>
+    </div>
+
+    <div class="hud-status">
+      <span id="statusText" class="outbound">OUTBOUND — PUSH DEEPER OR TURN BACK</span>
+      <span id="armorText">ARMOR: NONE</span>
+    </div>
+
+    <div id="contractBar" aria-live="polite">
+      <span class="contract-tag">ORDER</span>
+      <span id="contractText">NEW ORDER WHEN EXPEDITION STARTS</span>
+      <span id="contractProgress">—</span>
+    </div>
+  </header>
+
+  <section id="gameWrap">
+    <canvas id="game" aria-label="Scrap Run playfield"></canvas>
+    <div id="signalBanner" aria-live="polite"></div>
+    <div id="modal" class="open" aria-modal="true" role="dialog">
+      <div class="modal-card" id="modalCard"></div>
+    </div>
+  </section>
+
+  <footer id="controls">
+    <div class="control-side">
+      <button id="soundBtn" class="side-btn" type="button">SOUND ON</button>
+      <div class="control-hint">SWIPE THE PLAYFIELD<br>OR USE WASD / ARROWS</div>
+    </div>
+
+    <div class="dpad" aria-label="Directional controls">
+      <button class="dir-btn up" data-dir="up" aria-label="Move forward"><span class="chev"></span></button>
+      <button class="dir-btn left" data-dir="left" aria-label="Move left"><span class="chev"></span></button>
+      <button class="dir-btn down" data-dir="down" aria-label="Move backward"><span class="chev"></span></button>
+      <button class="dir-btn right" data-dir="right" aria-label="Move right"><span class="chev"></span></button>
+    </div>
+
+    <div class="control-side">
+      <button id="returnBtn" class="side-btn action" type="button" disabled>TURN BACK</button>
+      <div class="control-hint">PRESS R TO RETURN<br>RETRACE THE SAME LANES</div>
+    </div>
+  </footer>
 </main>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------------------------------------------------------------------------
+  // Constants and DOM
+  // ---------------------------------------------------------------------------
+
+  const STORAGE_KEY = 'scrapRunSave';
+  const LEGACY_STORAGE_KEYS = ['scrapRunChatGPTV1'];
+  const COLS = 9;
+  const VIEW_W = 480;
+  const GRID_MARGIN = 6;
+  const CELL = (VIEW_W - GRID_MARGIN * 2) / COLS;
+  const LANE_H = 56;
+  const MAX_UPGRADE_LEVEL = 3;
+
+  const RARITIES = [
+    { id: 'common', name: 'SCRAP', label: 'COMMON SCRAP', color: '#c4d0ca', glow: '#8eaaa0', min: 18, max: 34 },
+    { id: 'uncommon', name: 'COMPONENT', label: 'UNCOMMON COMPONENT', color: '#73d69a', glow: '#55bd7c', min: 45, max: 78 },
+    { id: 'rare', name: 'POWER CELL', label: 'RARE CACHE', color: '#62d8f0', glow: '#46bce9', min: 110, max: 185 },
+    { id: 'epic', name: 'PROTOTYPE TECH', label: 'EPIC TECH', color: '#c683ff', glow: '#9d52ef', min: 270, max: 470 },
+    { id: 'legendary', name: 'LEGENDARY SALVAGE', label: 'LEGENDARY SALVAGE', color: '#ffd15f', glow: '#ff9d35', min: 760, max: 1300 }
+  ];
+
+  const UPGRADE_COSTS = {
+    armor: [240, 650, 1500],
+    magnet: [200, 550, 1300],
+    boots: [220, 600, 1400]
+  };
+
+  const canvas = document.getElementById('game');
+  const ctx = canvas.getContext('2d', { alpha: false });
+  const gameWrap = document.getElementById('gameWrap');
+  const modal = document.getElementById('modal');
+  const modalCard = document.getElementById('modalCard');
+  const signalBanner = document.getElementById('signalBanner');
+  const bankedValue = document.getElementById('bankedValue');
+  const depthValue = document.getElementById('depthValue');
+  const bestValue = document.getElementById('bestValue');
+  const cargoCard = document.getElementById('cargoCard');
+  const cargoLabel = document.getElementById('cargoLabel');
+  const cargoValue = document.getElementById('cargoValue');
+  const cargoCount = document.getElementById('cargoCount');
+  const statusText = document.getElementById('statusText');
+  const armorText = document.getElementById('armorText');
+  const returnBtn = document.getElementById('returnBtn');
+  const soundBtn = document.getElementById('soundBtn');
+  const contractBar = document.getElementById('contractBar');
+  const contractText = document.getElementById('contractText');
+  const contractProgress = document.getElementById('contractProgress');
+
+  // ---------------------------------------------------------------------------
+  // Persistent data
+  // ---------------------------------------------------------------------------
+
+  const defaultSave = () => ({
+    banked: 0,
+    upgrades: { armor: 0, magnet: 0, boots: 0 },
+    bestDepth: 0,
+    largestHaul: 0,
+    highestLoot: 0,
+    totalExtractions: 0,
+    totalDeaths: 0,
+    largestCargoLost: 0,
+    ordersCompleted: 0,
+    totalCargoBanked: 0,
+    muted: false
+  });
+
+  function loadSave() {
+    try {
+      let raw = localStorage.getItem(STORAGE_KEY);
+      let migrated = false;
+      if (!raw) {
+        for (const key of LEGACY_STORAGE_KEYS) {
+          raw = localStorage.getItem(key);
+          if (raw) { migrated = true; break; }
+        }
+      }
+      if (!raw) return defaultSave();
+      const parsed = JSON.parse(raw);
+      const base = defaultSave();
+      const merged = {
+        ...base,
+        ...parsed,
+        upgrades: { ...base.upgrades, ...(parsed.upgrades || {}) }
+      };
+      if (migrated) localStorage.setItem(STORAGE_KEY, JSON.stringify(merged));
+      return merged;
+    } catch (err) {
+      console.warn('Save data could not be read; starting fresh.', err);
+      return defaultSave();
+    }
+  }
+
+  function persist() {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(save));
+    } catch (err) {
+      console.warn('Save data could not be written.', err);
+    }
+  }
+
+  let save = loadSave();
+  let displayBank = save.banked;
+  let bankTween = null;
+
+  // ---------------------------------------------------------------------------
+  // Audio
+  // ---------------------------------------------------------------------------
+
+  let audioCtx = null;
+
+  function ensureAudio() {
+    if (save.muted) return null;
+    if (!audioCtx) {
+      const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+      if (AudioContextClass) audioCtx = new AudioContextClass();
+    }
+    if (audioCtx && audioCtx.state === 'suspended') audioCtx.resume().catch(() => {});
+    return audioCtx;
+  }
+
+  function buzz(pattern) {
+    try {
+      if ('vibrate' in navigator) navigator.vibrate(pattern);
+    } catch (_) {}
+  }
+
+  function tone({ freq = 440, endFreq = null, duration = 0.08, type = 'square', volume = 0.05, delay = 0 }) {
+    const ac = ensureAudio();
+    if (!ac) return;
+    const t0 = ac.currentTime + delay;
+    const osc = ac.createOscillator();
+    const gain = ac.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq, t0);
+    if (endFreq != null) osc.frequency.exponentialRampToValueAtTime(Math.max(20, endFreq), t0 + duration);
+    gain.gain.setValueAtTime(0.0001, t0);
+    gain.gain.exponentialRampToValueAtTime(Math.max(0.0002, volume), t0 + 0.008);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t0 + duration);
+    osc.connect(gain).connect(ac.destination);
+    osc.start(t0);
+    osc.stop(t0 + duration + 0.02);
+  }
+
+  const sfx = {
+    hop() { tone({ freq: 170, endFreq: 240, duration: .055, type: 'triangle', volume: .025 }); },
+    land() { tone({ freq: 105, endFreq: 70, duration: .055, type: 'sine', volume: .035 }); },
+    blocked() { tone({ freq: 90, endFreq: 75, duration: .05, type: 'square', volume: .022 }); },
+    near() { tone({ freq: 660, endFreq: 880, duration: .07, type: 'triangle', volume: .032 }); },
+    warning() {
+      tone({ freq: 250, endFreq: 220, duration: .10, type: 'square', volume: .032 });
+      tone({ freq: 360, endFreq: 330, duration: .10, type: 'square', volume: .026, delay: .12 });
+    },
+    crusher() {
+      tone({ freq: 88, endFreq: 42, duration: .17, type: 'sawtooth', volume: .055 });
+      tone({ freq: 46, endFreq: 33, duration: .20, type: 'square', volume: .035, delay: .015 });
+    },
+    armor() {
+      tone({ freq: 130, endFreq: 65, duration: .18, type: 'sawtooth', volume: .05 });
+      tone({ freq: 520, endFreq: 260, duration: .16, type: 'square', volume: .025, delay: .02 });
+    },
+    death() {
+      tone({ freq: 180, endFreq: 42, duration: .36, type: 'sawtooth', volume: .065 });
+      tone({ freq: 90, endFreq: 35, duration: .42, type: 'square', volume: .035, delay: .04 });
+    },
+    turn() {
+      tone({ freq: 330, endFreq: 520, duration: .11, type: 'triangle', volume: .04 });
+      tone({ freq: 520, endFreq: 420, duration: .11, type: 'triangle', volume: .03, delay: .08 });
+    },
+    pickup(rarityIndex) {
+      const base = [350, 430, 550, 650, 760][rarityIndex];
+      tone({ freq: base, endFreq: base * 1.32, duration: .09, type: 'triangle', volume: .04 });
+      if (rarityIndex >= 2) tone({ freq: base * 1.5, endFreq: base * 1.9, duration: .14, type: 'sine', volume: .026, delay: .07 });
+      if (rarityIndex >= 4) tone({ freq: 440, endFreq: 880, duration: .28, type: 'sine', volume: .035, delay: .12 });
+    },
+    extract() {
+      [0, .09, .18, .28].forEach((delay, i) => tone({ freq: [330, 440, 550, 720][i], endFreq: [420, 560, 700, 980][i], duration: .18, type: 'triangle', volume: .045, delay }));
+    },
+    buy() {
+      tone({ freq: 420, endFreq: 650, duration: .09, type: 'square', volume: .035 });
+      tone({ freq: 620, endFreq: 840, duration: .1, type: 'triangle', volume: .03, delay: .07 });
+    },
+    order() {
+      tone({ freq: 390, endFreq: 520, duration: .09, type: 'triangle', volume: .032 });
+      tone({ freq: 520, endFreq: 760, duration: .15, type: 'sine', volume: .028, delay: .08 });
+    },
+    railWarn() {
+      tone({ freq: 720, endFreq: 680, duration: .075, type: 'square', volume: .026 });
+      tone({ freq: 720, endFreq: 680, duration: .075, type: 'square', volume: .026, delay: .16 });
+    },
+    train() {
+      tone({ freq: 62, endFreq: 42, duration: .25, type: 'sawtooth', volume: .046 });
+      tone({ freq: 94, endFreq: 58, duration: .22, type: 'square', volume: .021, delay: .03 });
+    },
+    record() {
+      tone({ freq: 520, endFreq: 760, duration: .12, type: 'triangle', volume: .03 });
+      tone({ freq: 780, endFreq: 1040, duration: .16, type: 'sine', volume: .024, delay: .09 });
+    }
+  };
+
+  // ---------------------------------------------------------------------------
+  // Helpers
+  // ---------------------------------------------------------------------------
+
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
+  function lerp(a, b, t) { return a + (b - a) * t; }
+  function smoothstep(t) { return t * t * (3 - 2 * t); }
+  function mod(n, m) { return ((n % m) + m) % m; }
+  function randRange(rng, min, max) { return min + (max - min) * rng(); }
+  function randInt(rng, min, max) { return Math.floor(randRange(rng, min, max + 1)); }
+  function choice(rng, arr) { return arr[Math.floor(rng() * arr.length)]; }
+  function formatNumber(n) { return Math.max(0, Math.round(n)).toLocaleString('en-US'); }
+
+  function mulberry32(seed) {
+    let a = seed >>> 0;
+    return function rng() {
+      a |= 0;
+      a = (a + 0x6D2B79F5) | 0;
+      let t = Math.imul(a ^ (a >>> 15), 1 | a);
+      t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t;
+      return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function roundRectPath(context, x, y, w, h, r) {
+    const rr = Math.min(r, Math.abs(w) / 2, Math.abs(h) / 2);
+    context.beginPath();
+    context.moveTo(x + rr, y);
+    context.arcTo(x + w, y, x + w, y + h, rr);
+    context.arcTo(x + w, y + h, x, y + h, rr);
+    context.arcTo(x, y + h, x, y, rr);
+    context.arcTo(x, y, x + w, y, rr);
+    context.closePath();
+  }
+
+  function laneCenterY(depth) {
+    return playerAnchorY() - (depth - run.cameraDepth) * LANE_H;
+  }
+
+  function colCenterX(col) {
+    return GRID_MARGIN + (col + .5) * CELL;
+  }
+
+  function playerAnchorY() {
+    return viewH * .67;
+  }
+
+  function weightedPick(rng, entries) {
+    const total = entries.reduce((sum, item) => sum + Math.max(0, item.weight), 0);
+    let roll = rng() * total;
+    for (const item of entries) {
+      roll -= Math.max(0, item.weight);
+      if (roll <= 0) return item.value;
+    }
+    return entries[entries.length - 1].value;
+  }
+
+  const ZONES = [
+    { id: 'outer', name: 'OUTER YARD', start: 0, accent: '#65d5dd', ground: '#24433c' },
+    { id: 'freight', name: 'FREIGHT BELT', start: 12, accent: '#f0bd4b', ground: '#394038' },
+    { id: 'deep', name: 'DEEP WORKS', start: 25, accent: '#c683ff', ground: '#343846' },
+    { id: 'forgotten', name: 'FORGOTTEN LINE', start: 40, accent: '#ef8b57', ground: '#40342f' }
+  ];
+
+  function zoneForDepth(depth) {
+    let zone = ZONES[0];
+    for (const candidate of ZONES) if (depth >= candidate.start) zone = candidate;
+    return zone;
+  }
+
+  function zoneGateAtDepth(depth) {
+    return ZONES.find(zone => zone.start === depth && zone.start > 0) || null;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Game state
+  // ---------------------------------------------------------------------------
+
+  const run = {
+    state: 'home',
+    seed: 0,
+    rng: mulberry32(1),
+    lanes: new Map(),
+    lastGenerated: -1,
+    consecutiveHazards: 0,
+    cameraDepth: 0,
+    elapsed: 0,
+    returning: false,
+    cargoValue: 0,
+    cargoItems: 0,
+    runMaxDepth: 0,
+    armorCharges: 0,
+    nextTemptationDepth: 9,
+    signalCooldown: 0,
+    cargoByRarity: [0, 0, 0, 0, 0],
+    bestItemThisRun: 0,
+    cargoPromptIndex: 0,
+    nearMisses: 0,
+    returnStartDepth: 0,
+    returnHalfShown: false,
+    returnCloseShown: false,
+    order: null,
+    orderComplete: false,
+    orderNotified: false,
+    armorHits: 0,
+    lastZoneId: 'outer',
+    previousBestDepth: 0,
+    newBestAnnounced: false,
+    overlayDelay: 0,
+    pendingOverlay: null,
+    qaInvulnerable: false
+  };
+
+  const player = {
+    col: 4,
+    depth: 0,
+    renderCol: 4,
+    renderDepth: 0,
+    hop: null,
+    queue: [],
+    blockedDelay: 0,
+    invuln: 0,
+    flash: 0,
+    lastFacing: 'up',
+    landingSquash: 0,
+    nearCooldown: 0
+  };
+
+  let viewH = 620;
+  let lastFrame = performance.now();
+  let particles = [];
+  let floaters = [];
+  let shake = 0;
+  let flashOverlay = 0;
+  let swipeStart = null;
+  let signalTimer = 0;
+  let signalTargetDepth = null;
+  let modalMode = 'start';
+  let modalPayload = null;
+
+  // ---------------------------------------------------------------------------
+  // Canvas sizing
+  // ---------------------------------------------------------------------------
+
+  function resizeCanvas() {
+    const rect = gameWrap.getBoundingClientRect();
+    const dpr = clamp(window.devicePixelRatio || 1, 1, 2.5);
+    viewH = clamp(VIEW_W * (rect.height / Math.max(1, rect.width)), 410, 790);
+    canvas.width = Math.round(VIEW_W * dpr);
+    canvas.height = Math.round(viewH * dpr);
+    canvas.style.width = rect.width + 'px';
+    canvas.style.height = rect.height + 'px';
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.imageSmoothingEnabled = true;
+  }
+
+  const resizeObserver = new ResizeObserver(resizeCanvas);
+  resizeObserver.observe(gameWrap);
+  window.addEventListener('resize', resizeCanvas, { passive: true });
+  resizeCanvas();
+
+  // ---------------------------------------------------------------------------
+  // Lane and loot generation
+  // ---------------------------------------------------------------------------
+
+  function makeDecorations(rng, type) {
+    const amount = type === 'safe' ? randInt(rng, 4, 8) : randInt(rng, 1, 3);
+    const items = [];
+    for (let i = 0; i < amount; i++) {
+      items.push({
+        x: randRange(rng, 12, VIEW_W - 12),
+        y: randRange(rng, -LANE_H * .38, LANE_H * .38),
+        size: randRange(rng, 2, 6),
+        kind: randInt(rng, 0, 3),
+        rot: randRange(rng, 0, Math.PI * 2)
+      });
+    }
+    return items;
+  }
+
+  function makeTraffic(depth, type, rng) {
+    const isFast = type === 'fast';
+    const isIndustrial = type === 'industrial';
+    const direction = rng() < .5 ? -1 : 1;
+    const depthFactor = 1 + Math.min(depth, 65) * .008;
+    const speedBase = isFast ? randRange(rng, 125, 158) : isIndustrial ? randRange(rng, 58, 82) : randRange(rng, 77, 107);
+    let count;
+    if (depth < 8) count = 2;
+    else if (depth < 20) count = rng() < .55 ? 2 : 3;
+    else count = rng() < .25 ? 2 : rng() < .82 ? 3 : 4;
+    if (isIndustrial) count = Math.min(count, 3);
+
+    const margin = 150;
+    const cycle = VIEW_W + margin * 2;
+    const spacing = cycle / count;
+    const vehicles = [];
+    const palette = ['#dd6d49', '#51aabd', '#e7b44f', '#d8e3dc', '#8c76c9', '#65bd83'];
+    const pattern = !isIndustrial && count >= 3 && rng() < .42 ? 'convoy' : 'even';
+    const convoyBases = count === 3
+      ? [0, spacing * .70, spacing * 2]
+      : [0, spacing * .72, spacing * 2, spacing * 2.72];
+
+    for (let i = 0; i < count; i++) {
+      const kindRoll = rng();
+      let kind = 'car';
+      let width = randRange(rng, 57, 76);
+      if (isIndustrial) {
+        kind = 'forklift';
+        width = randRange(rng, 82, 101);
+      } else if (kindRoll > .68) {
+        kind = 'truck';
+        width = randRange(rng, 94, 124);
+      } else if (kindRoll > .48) {
+        kind = 'van';
+        width = randRange(rng, 75, 91);
+      }
+      width = Math.min(width, spacing - 68);
+      const base = pattern === 'convoy' ? convoyBases[i] : i * spacing;
+      vehicles.push({
+        base: base + randRange(rng, -spacing * .045, spacing * .045),
+        width,
+        height: isIndustrial ? 34 : kind === 'truck' ? 33 : 29,
+        kind,
+        color: choice(rng, palette),
+        lastNearAt: -99,
+        accent: choice(rng, ['#d8f2ef', '#f9d98c', '#92dce5'])
+      });
+    }
+
+    return {
+      direction,
+      speed: speedBase * depthFactor,
+      cycle,
+      margin,
+      phase: randRange(rng, 0, cycle),
+      pattern,
+      vehicles
+    };
+  }
+
+  function makeRail(depth, rng) {
+    const direction = rng() < .5 ? -1 : 1;
+    const length = randRange(rng, 235, 305);
+    const depthFactor = 1 + Math.min(depth, 70) * .0032;
+    const speed = randRange(rng, 205, 248) * depthFactor;
+    const gap = randRange(rng, 350, 470);
+    const cycle = VIEW_W + length + gap;
+    return {
+      direction,
+      length,
+      speed,
+      gap,
+      cycle,
+      phase: randRange(rng, 0, cycle),
+      color: choice(rng, ['#b85f3f', '#d19338', '#517b86']),
+      lastWarnCycle: -1,
+      lastPassCycle: -1
+    };
+  }
+
+  function railTiming(lane) {
+    const rail = lane.rail;
+    const distance = rail.phase + rail.speed * run.elapsed;
+    const cycle = Math.floor(distance / rail.cycle);
+    const progress = mod(distance, rail.cycle);
+    const x = rail.direction > 0
+      ? progress - rail.length / 2
+      : VIEW_W + rail.length / 2 - progress;
+    const left = x - rail.length / 2;
+    const right = x + rail.length / 2;
+    const visible = right > -8 && left < VIEW_W + 8;
+    const timeUntilEntry = (rail.cycle - progress) / rail.speed;
+    return {
+      x,
+      left,
+      right,
+      visible,
+      warning: !visible && timeUntilEntry <= .88,
+      timeUntilEntry,
+      cycle
+    };
+  }
+
+  function makeCrusher(depth, rng) {
+    const evenFirst = rng() < .5;
+    const even = [0, 2, 4, 6, 8];
+    const odd = [1, 3, 5, 7];
+    const period = clamp(randRange(rng, 3.05, 3.65) - Math.min(depth, 55) * .006, 2.62, 3.65);
+    return {
+      period,
+      offset: randRange(rng, 0, period),
+      activeDuration: .34,
+      warningDuration: .68,
+      patterns: evenFirst ? [even, odd] : [odd, even],
+      lastSlamCycle: -1
+    };
+  }
+
+  function crusherTiming(lane) {
+    const crusher = lane.crusher;
+    const total = run.elapsed + crusher.offset;
+    const cycle = Math.floor(total / crusher.period);
+    const phase = mod(total, crusher.period);
+    const activeColumns = crusher.patterns[mod(cycle, 2)];
+    const nextColumns = crusher.patterns[mod(cycle + 1, 2)];
+    if (phase < crusher.activeDuration) {
+      return { state: 'slam', columns: activeColumns, cycle, amount: 1 - phase / crusher.activeDuration };
+    }
+    if (phase > crusher.period - crusher.warningDuration) {
+      return {
+        state: 'warning',
+        columns: nextColumns,
+        cycle: cycle + 1,
+        amount: (phase - (crusher.period - crusher.warningDuration)) / crusher.warningDuration
+      };
+    }
+    return { state: 'idle', columns: activeColumns, cycle, amount: 0 };
+  }
+
+  function rollRarity(depth, forcedTier = null) {
+    if (forcedTier != null) return clamp(forcedTier, 0, RARITIES.length - 1);
+    const d = clamp(depth / 55, 0, 1);
+    const entries = [
+      { value: 0, weight: .70 - .39 * d },
+      { value: 1, weight: .235 + .05 * d },
+      { value: 2, weight: .055 + .18 * d },
+      { value: 3, weight: .009 + .125 * d },
+      { value: 4, weight: .001 + .035 * d }
+    ];
+    return weightedPick(run.rng, entries);
+  }
+
+  function makeLoot(depth, laneType, forcedTier = null) {
+    const rarityIndex = rollRarity(depth, forcedTier);
+    const rarity = RARITIES[rarityIndex];
+    const depthMultiplier = 1 + depth * .035;
+    let value = Math.round(randRange(run.rng, rarity.min, rarity.max) * depthMultiplier / 5) * 5;
+    const jackpotChance = depth >= 14 ? Math.min(.012 + depth * .0008, .065) : 0;
+    const jackpot = rarityIndex >= 2 && run.rng() < jackpotChance;
+    if (jackpot) value = Math.round(value * randRange(run.rng, 1.7, 2.35) / 5) * 5;
+
+    let col;
+    if (rarityIndex >= 2 && run.rng() < .72) col = run.rng() < .5 ? randInt(run.rng, 0, 2) : randInt(run.rng, 6, 8);
+    else col = randInt(run.rng, 0, COLS - 1);
+
+    return {
+      depth,
+      col,
+      rarityIndex,
+      value,
+      jackpot,
+      collected: false,
+      announced: false,
+      bob: randRange(run.rng, 0, Math.PI * 2),
+      spin: randRange(run.rng, 0, Math.PI * 2),
+      pulse: randRange(run.rng, 0, Math.PI * 2),
+      signal: false
+    };
+  }
+
+  function chooseLaneType(depth) {
+    // A gentle opening teaches the timing before the route introduces machinery.
+    if (depth <= 2) return 'safe';
+    if (depth === 3) return 'traffic';
+    if (depth === 4) return 'safe';
+    if (depth === 5) return 'traffic';
+    if (depth === 6) return run.rng() < .7 ? 'traffic' : 'industrial';
+    if (depth === 7) return 'safe';
+    if (depth === 8) return run.rng() < .65 ? 'traffic' : 'fast';
+    if (depth === 9) return 'crusher';
+    if (depth === 10) return 'safe';
+
+    // Each district begins with a rest/cache lane, then introduces the rail hazard.
+    if (zoneGateAtDepth(depth)) return 'safe';
+    if (depth === 13 || depth === 26 || depth === 41) return 'rail';
+
+    if (run.consecutiveHazards >= 3) return 'safe';
+
+    const deep = clamp((depth - 7) / 55, 0, 1);
+    const safeWeight = .22 - .055 * deep;
+    const trafficWeight = .39 - .065 * deep;
+    const fastWeight = .13 + .085 * deep;
+    const industrialWeight = .11 + .035 * deep;
+    const crusherWeight = .08 + .045 * deep;
+    const railWeight = depth < 13 ? 0 : .07 + .055 * deep;
+
+    return weightedPick(run.rng, [
+      { value: 'safe', weight: safeWeight },
+      { value: 'traffic', weight: trafficWeight },
+      { value: 'fast', weight: fastWeight },
+      { value: 'industrial', weight: industrialWeight },
+      { value: 'crusher', weight: crusherWeight },
+      { value: 'rail', weight: railWeight }
+    ]);
+  }
+
+  function generateLane(depth) {
+    const type = chooseLaneType(depth);
+    if (type === 'safe') run.consecutiveHazards = 0;
+    else run.consecutiveHazards += 1;
+
+    const gateZone = zoneGateAtDepth(depth);
+    const lane = {
+      depth,
+      type,
+      zone: zoneForDepth(depth),
+      gateZone,
+      decorations: makeDecorations(run.rng, type),
+      traffic: (type === 'safe' || type === 'crusher' || type === 'rail') ? null : makeTraffic(depth, type, run.rng),
+      crusher: type === 'crusher' ? makeCrusher(depth, run.rng) : null,
+      rail: type === 'rail' ? makeRail(depth, run.rng) : null,
+      loot: null
+    };
+
+    const isTemptation = depth === run.nextTemptationDepth;
+    const isGateCache = !!gateZone;
+    let lootChance = type === 'safe' ? .55 : type === 'fast' ? .49 : type === 'rail' ? .45 : .39;
+    lootChance += Math.min(depth * .002, .10);
+
+    if (depth > 0 && (isTemptation || isGateCache || run.rng() < lootChance)) {
+      let forced = null;
+      if (isGateCache) {
+        forced = gateZone.start >= 40 ? 4 : gateZone.start >= 25 ? 3 : 2;
+      } else if (isTemptation) {
+        if (depth >= 32 && run.rng() < .28) forced = 4;
+        else if (depth >= 17 && run.rng() < .52) forced = 3;
+        else forced = 2;
+      }
+      lane.loot = makeLoot(depth, type, forced);
+      lane.loot.signal = isTemptation || isGateCache;
+      lane.loot.zoneCache = isGateCache;
+    }
+
+    if (isTemptation) run.nextTemptationDepth += randInt(run.rng, 9, 14);
+    run.lanes.set(depth, lane);
+    run.lastGenerated = Math.max(run.lastGenerated, depth);
+    return lane;
+  }
+
+  function generateThrough(depth) {
+    const target = Math.max(0, Math.floor(depth));
+    while (run.lastGenerated < target) {
+      generateLane(run.lastGenerated + 1);
+    }
+  }
+
+  function resetWorld() {
+    run.seed = (Date.now() ^ Math.floor(Math.random() * 0xffffffff)) >>> 0;
+    run.rng = mulberry32(run.seed);
+    run.lanes = new Map();
+    run.lastGenerated = -1;
+    run.consecutiveHazards = 0;
+    run.nextTemptationDepth = randInt(run.rng, 8, 11);
+    generateThrough(14);
+  }
+
+  function makeOrder() {
+    const attempts = save.totalExtractions + save.totalDeaths;
+    const band = clamp(Math.floor(attempts / 4), 0, 4);
+    let type;
+    if (attempts < 2) {
+      type = run.rng() < .5 ? 'depth' : 'haul';
+    } else {
+      type = weightedPick(run.rng, [
+        { value: 'depth', weight: .27 },
+        { value: 'haul', weight: .25 },
+        { value: 'items', weight: .18 },
+        { value: 'rare', weight: .18 },
+        { value: 'clean', weight: .12 }
+      ]);
+    }
+
+    if (type === 'depth') {
+      const baseline = save.bestDepth > 0 ? Math.floor(save.bestDepth * .72) : 9;
+      const target = clamp(baseline + randInt(run.rng, 1, 4), 10, 42);
+      return { type, title: 'DEEP SWEEP', target, reward: Math.round((110 + target * 14) / 10) * 10, description: `Reach depth ${target} and extract` };
+    }
+
+    if (type === 'haul') {
+      const baseline = save.largestHaul > 0 ? save.largestHaul * .62 : 210;
+      const target = clamp(Math.round((baseline + randRange(run.rng, 60, 180)) / 50) * 50, 300, 1900);
+      return { type, title: 'HEAVY HAUL', target, reward: Math.round((105 + target * .28) / 10) * 10, description: `Extract ${formatNumber(target)} cargo` };
+    }
+
+    if (type === 'items') {
+      const target = clamp(3 + band + randInt(run.rng, 0, 2), 3, 8);
+      return { type, title: 'PARTS ORDER', target, reward: 110 + target * 55, description: `Extract ${target} salvage items` };
+    }
+
+    if (type === 'rare') {
+      const tier = save.bestDepth >= 25 && save.highestLoot >= 250 && run.rng() < .26 ? 3 : 2;
+      const rarity = RARITIES[tier];
+      return { type, title: tier === 3 ? 'PROTOTYPE REQUEST' : 'POWER REQUEST', target: 1, tier, reward: tier === 3 ? 680 : 360, description: `Extract 1 ${rarity.name}` };
+    }
+
+    const target = clamp(10 + band * 2 + randInt(run.rng, 0, 3), 10, 24);
+    return { type: 'clean', title: 'CLEAN RETURN', target, reward: Math.round((230 + target * 18) / 10) * 10, description: `Reach depth ${target} and extract without a hit` };
+  }
+
+  function orderProgress(order = run.order, cargo = run.cargoValue, items = run.cargoItems, counts = run.cargoByRarity, depth = run.runMaxDepth) {
+    if (!order) return { value: 0, target: 0, text: '—', complete: false };
+    let value = 0;
+    let text = '';
+    if (order.type === 'depth') {
+      value = depth;
+      text = `${Math.min(value, order.target)}/${order.target}`;
+    } else if (order.type === 'haul') {
+      value = cargo;
+      text = `${formatNumber(Math.min(value, order.target))}/${formatNumber(order.target)}`;
+    } else if (order.type === 'items') {
+      value = items;
+      text = `${Math.min(value, order.target)}/${order.target}`;
+    } else if (order.type === 'rare') {
+      value = counts.slice(order.tier).reduce((sum, count) => sum + count, 0);
+      text = `${Math.min(value, 1)}/1`;
+    } else if (order.type === 'clean') {
+      value = depth;
+      text = run.armorHits > 0 ? 'FAILED' : `${Math.min(value, order.target)}/${order.target}`;
+    }
+    const complete = order.type === 'clean'
+      ? run.armorHits === 0 && depth >= order.target
+      : value >= order.target;
+    return { value, target: order.target, text, complete };
+  }
+
+  function checkOrderProgress(notify = true) {
+    const progress = orderProgress();
+    run.orderComplete = progress.complete;
+    if (progress.complete && !run.orderNotified) {
+      run.orderNotified = true;
+      if (notify) {
+        sfx.order();
+        buzz(25);
+        showSignal(`ORDER READY · RETURN HOME FOR +${formatNumber(run.order.reward)}`, '#78d596');
+        addFloater(VIEW_W / 2, Math.max(60, playerAnchorY() - 112), 'ORDER COMPLETE', '#8ee3a8', 1.05, 15);
+      }
+    }
+    updateHUD();
+    return progress.complete;
+  }
+
+  function orderResultText(order, complete) {
+    if (!order) return '';
+    return `${order.title}: ${complete ? `COMPLETE · +${formatNumber(order.reward)}` : 'NOT COMPLETED'}`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Run flow and upgrades
+  // ---------------------------------------------------------------------------
+
+  function resetPlayer() {
+    player.col = 4;
+    player.depth = 0;
+    player.renderCol = 4;
+    player.renderDepth = 0;
+    player.hop = null;
+    player.queue.length = 0;
+    player.blockedDelay = 0;
+    player.invuln = 0;
+    player.flash = 0;
+    player.lastFacing = 'up';
+    player.landingSquash = 0;
+    player.nearCooldown = 0;
+  }
+
+  function startRun() {
+    ensureAudio();
+    modal.classList.remove('open');
+    run.state = 'playing';
+    run.elapsed = 0;
+    run.returning = false;
+    run.cargoValue = 0;
+    run.cargoItems = 0;
+    run.runMaxDepth = 0;
+    run.cameraDepth = 0;
+    run.armorCharges = save.upgrades.armor;
+    run.cargoByRarity = [0, 0, 0, 0, 0];
+    run.bestItemThisRun = 0;
+    run.cargoPromptIndex = 0;
+    run.nearMisses = 0;
+    run.returnStartDepth = 0;
+    run.returnHalfShown = false;
+    run.returnCloseShown = false;
+    run.order = null;
+    run.orderComplete = false;
+    run.orderNotified = false;
+    run.armorHits = 0;
+    run.lastZoneId = 'outer';
+    run.previousBestDepth = save.bestDepth;
+    run.newBestAnnounced = false;
+    run.overlayDelay = 0;
+    run.pendingOverlay = null;
+    particles.length = 0;
+    floaters.length = 0;
+    shake = 0;
+    flashOverlay = 0;
+    resetPlayer();
+    resetWorld();
+    run.order = makeOrder();
+    updateHUD();
+    sfx.order();
+    showSignal(`${run.order.title} · ${run.order.description.toUpperCase()} · +${formatNumber(run.order.reward)}`, '#f0bd4b');
+  }
+
+  function beginReturn() {
+    if (run.state !== 'playing' || run.returning || player.depth <= 0) return;
+    ensureAudio();
+    run.returning = true;
+    run.returnStartDepth = player.depth;
+    run.returnHalfShown = false;
+    run.returnCloseShown = false;
+    player.queue.length = 0;
+    sfx.turn();
+    addFloater(VIEW_W / 2, Math.max(58, playerAnchorY() - 108), `RETURNING WITH ${formatNumber(run.cargoValue)} AT RISK`, '#ffd15f', 1.45, 17);
+    showSignal(`RETRACE ${player.depth} LANES — THE SCRAPYARD IS DOWN`, '#ffd15f');
+    updateHUD();
+  }
+
+  function checkReturnMilestones() {
+    if (!run.returning || player.depth <= 0) return;
+    if (!run.returnHalfShown && player.depth <= Math.max(4, Math.floor(run.returnStartDepth / 2))) {
+      run.returnHalfShown = true;
+      sfx.warning();
+      showSignal(`HALFWAY HOME · ${formatNumber(run.cargoValue)} STILL AT RISK`, '#efb24f');
+    }
+    if (!run.returnCloseShown && player.depth <= 3) {
+      run.returnCloseShown = true;
+      sfx.turn();
+      showSignal(`SCRAPYARD IN SIGHT · ${player.depth} LANES LEFT`, '#78d596');
+    }
+  }
+
+  function finishExtraction() {
+    if (run.state !== 'playing') return;
+    run.state = 'extracted';
+    player.queue.length = 0;
+    player.hop = null;
+    const haul = run.cargoValue;
+    const items = run.cargoItems;
+    const breakdown = [...run.cargoByRarity];
+    const bestItem = run.bestItemThisRun;
+    const nearMisses = run.nearMisses;
+    const order = run.order ? { ...run.order } : null;
+    const orderComplete = order ? orderProgress(order, haul, items, breakdown, run.runMaxDepth).complete : false;
+    const orderBonus = orderComplete ? order.reward : 0;
+    const totalBanked = haul + orderBonus;
+    const oldBank = save.banked;
+
+    save.banked += totalBanked;
+    save.totalCargoBanked += haul;
+    if (orderComplete) save.ordersCompleted += 1;
+    run.orderComplete = orderComplete;
+    run.cargoValue = 0;
+    run.cargoItems = 0;
+    save.largestHaul = Math.max(save.largestHaul, haul);
+    save.totalExtractions += 1;
+    persist();
+
+    bankTween = { from: oldBank, to: save.banked, elapsed: 0, duration: 1.1 };
+    sfx.extract();
+    if (orderComplete) setTimeout(() => sfx.order(), 250);
+    buzz([28, 35, 28, 35, 70]);
+    extractionBurst();
+    flashOverlay = .35;
+    run.overlayDelay = .55;
+    run.pendingOverlay = {
+      type: 'extracted',
+      haul,
+      totalBanked,
+      depth: run.runMaxDepth,
+      breakdown,
+      bestItem,
+      nearMisses,
+      order,
+      orderComplete,
+      orderBonus
+    };
+    updateHUD();
+  }
+
+  function die(cause = 'TRAFFIC') {
+    if (run.state !== 'playing') return;
+    run.state = 'dead';
+    player.queue.length = 0;
+    player.hop = null;
+    const lost = run.cargoValue;
+    const breakdown = [...run.cargoByRarity];
+    const bestItem = run.bestItemThisRun;
+    const order = run.order ? { ...run.order } : null;
+    run.cargoValue = 0;
+    run.cargoItems = 0;
+    save.totalDeaths += 1;
+    save.largestCargoLost = Math.max(save.largestCargoLost, lost);
+    persist();
+    sfx.death();
+    buzz([90, 45, 120]);
+    shake = Math.max(shake, 16);
+    flashOverlay = .58;
+    deathBurst();
+    run.overlayDelay = .52;
+    run.pendingOverlay = { type: 'dead', lost, depth: run.runMaxDepth, cause, breakdown, bestItem, order, orderComplete: false };
+    updateHUD();
+  }
+
+  function armorEffect(level) {
+    return level === 0 ? 'No collision protection' : `Blocks ${level} collision${level > 1 ? 's' : ''} each run`;
+  }
+
+  function magnetEffect(level) {
+    return level === 0 ? 'Pickup requires contact' : `Pull radius ${[0, 1.35, 2.05, 2.75][level].toFixed(2)} tiles`;
+  }
+
+  function bootsEffect(level) {
+    return level === 0 ? 'Standard hop speed' : `${[0, 17, 30, 40][level]}% faster hopping`;
+  }
+
+  function nextUpgradeCost(key) {
+    const level = save.upgrades[key];
+    return level >= MAX_UPGRADE_LEVEL ? null : UPGRADE_COSTS[key][level];
+  }
+
+  function buyUpgrade(key) {
+    if (!Object.prototype.hasOwnProperty.call(save.upgrades, key)) return;
+    const cost = nextUpgradeCost(key);
+    if (cost == null || save.banked < cost) return;
+    ensureAudio();
+    save.banked -= cost;
+    save.upgrades[key] += 1;
+    displayBank = save.banked;
+    persist();
+    sfx.buy();
+    renderModal(modalMode, modalPayload);
+    updateHUD();
+  }
+
+  function upgradeCard(key, name, effectFn) {
+    const level = save.upgrades[key];
+    const cost = nextUpgradeCost(key);
+    const maxed = cost == null;
+    const disabled = maxed || save.banked < cost;
+    return `
+      <div class="upgrade-card">
+        <div class="upgrade-name">${name}</div>
+        <div class="upgrade-level">LV ${level}/${MAX_UPGRADE_LEVEL}</div>
+        <div class="upgrade-effect">${effectFn(level)}</div>
+        <button class="upgrade-btn" data-upgrade="${key}" ${disabled ? 'disabled' : ''}>
+          ${maxed ? 'MAXED' : `BUY ${formatNumber(cost)}`}
+        </button>
+      </div>`;
+  }
+
+  function rarityBreakdownText(counts) {
+    if (!Array.isArray(counts)) return '';
+    return counts.map((count, index) => count > 0 ? `${RARITIES[index].name} ×${count}` : '').filter(Boolean).join(' · ');
+  }
+
+  function renderModal(mode, data = null) {
+    modalMode = mode;
+    if (mode === 'start') modalPayload = null;
+    else if (data) modalPayload = data;
+    data = data || modalPayload || {};
+    let kicker = 'PROTOTYPE COMPLETE · V3';
+    let title = 'SCRAP RUN';
+    let titleClass = '';
+    let summary = 'Cross dangerous lanes, recover valuable salvage, and physically survive the same route home before traffic takes everything.';
+    let action = 'START EXPEDITION';
+
+    if (mode === 'dead') {
+      kicker = 'EXPEDITION FAILED';
+      title = 'CARGO LOST';
+      titleClass = 'bad';
+      const causeText = data.cause === 'CRUSHER'
+        ? 'A crusher flattened the expedition'
+        : data.cause === 'RAIL'
+          ? 'The scrap train erased the expedition'
+          : 'Traffic ended the expedition';
+      const breakdown = rarityBreakdownText(data.breakdown);
+      const orderLine = data.order ? `<span class="order-result bad">${orderResultText(data.order, false)}</span>` : '';
+      summary = `${causeText} at depth ${data.depth}.<span class="haul-number">${formatNumber(data.lost)} LOST</span>Banked currency and upgrades are safe.${orderLine}${breakdown ? `<span class="haul-breakdown">LOST: ${breakdown}</span>` : ''}`;
+      action = 'RUN AGAIN';
+    } else if (mode === 'extracted') {
+      kicker = 'SAFE INSIDE THE SCRAPYARD';
+      title = 'EXTRACTION SUCCESSFUL';
+      titleClass = 'good';
+      const breakdown = rarityBreakdownText(data.breakdown);
+      const orderLine = data.order
+        ? `<span class="order-result ${data.orderComplete ? 'good' : 'bad'}">${orderResultText(data.order, data.orderComplete)}</span>`
+        : '';
+      summary = `You survived the trip home from depth ${data.depth}.<span class="haul-number">+${formatNumber(data.totalBanked ?? data.haul)} BANKED</span>${data.orderBonus ? `${formatNumber(data.haul)} cargo + ${formatNumber(data.orderBonus)} order bonus.` : 'Spend it now or push for a bigger haul.'}${orderLine}${breakdown ? `<span class="haul-breakdown">RECOVERED: ${breakdown}${data.nearMisses ? ` · ${data.nearMisses} NEAR MISS${data.nearMisses === 1 ? '' : 'ES'}` : ''}</span>` : ''}`;
+      action = 'NEXT EXPEDITION';
+    }
+
+    modalCard.innerHTML = `
+      <div class="modal-kicker">${kicker}</div>
+      <div class="modal-title ${titleClass}">${title}</div>
+      <div class="modal-summary">${summary}</div>
+      ${mode === 'start' ? `<div class="instructions"><strong>MOVE:</strong> swipe, WASD, arrows, or the directional pad.<br><strong>EXTRACT:</strong> press TURN BACK, then travel down to depth 0.<br><strong>ORDERS:</strong> each expedition has one optional bonus objective.<br><strong>DANGER:</strong> caches tempt you deeper; rail lights flash before a scrap train arrives.</div>` : ''}
+      <button id="modalStartBtn" class="primary-btn" type="button">${action}</button>
+      <div class="upgrade-title">SCRAPYARD UPGRADES — BANKED ${formatNumber(save.banked)}</div>
+      <div class="upgrade-grid">
+        ${upgradeCard('armor', 'ARMOR', armorEffect)}
+        ${upgradeCard('magnet', 'MAGNET', magnetEffect)}
+        ${upgradeCard('boots', 'BOOTS', bootsEffect)}
+      </div>
+      <div class="stats-row">
+        BEST DEPTH ${formatNumber(save.bestDepth)} · BIGGEST HAUL ${formatNumber(save.largestHaul)} · BIGGEST LOSS ${formatNumber(save.largestCargoLost)}<br>
+        EXTRACTIONS ${formatNumber(save.totalExtractions)} · DEATHS ${formatNumber(save.totalDeaths)} · ORDERS ${formatNumber(save.ordersCompleted)}<br>
+        TOTAL CARGO BANKED ${formatNumber(save.totalCargoBanked)} · BEST ITEM ${formatNumber(save.highestLoot)}
+      </div>`;
+
+    modal.classList.add('open');
+    document.getElementById('modalStartBtn').addEventListener('click', startRun);
+    modalCard.querySelectorAll('[data-upgrade]').forEach(btn => {
+      btn.addEventListener('click', () => buyUpgrade(btn.dataset.upgrade));
+    });
+  }
+
+  // ---------------------------------------------------------------------------
+  // Input and movement
+  // ---------------------------------------------------------------------------
+
+  function hopDuration() {
+    return [0.155, 0.129, 0.108, 0.093][save.upgrades.boots];
+  }
+
+  function enqueueMove(dx, dd, facing) {
+    if (run.state !== 'playing') return;
+    ensureAudio();
+    if (player.queue.length >= 4) return;
+    player.queue.push({ dx, dd, facing });
+    if (!player.hop && player.blockedDelay <= 0) beginNextHop();
+  }
+
+  function beginNextHop() {
+    if (run.state !== 'playing' || player.hop || player.blockedDelay > 0 || player.queue.length === 0) return;
+    const move = player.queue.shift();
+    const targetCol = player.col + move.dx;
+    const targetDepth = player.depth + move.dd;
+
+    if (targetCol < 0 || targetCol >= COLS || targetDepth < 0 || (run.returning && move.dd > 0)) {
+      player.blockedDelay = .045;
+      player.lastFacing = move.facing;
+      sfx.blocked();
+      if (run.returning && move.dd > 0) {
+        addFloater(colCenterX(player.col), laneCenterY(player.depth) - 24, 'RETURN TRIP COMMITTED', '#ffd15f', .68, 11);
+      }
+      return;
+    }
+
+    generateThrough(targetDepth + 12);
+    player.lastFacing = move.facing;
+    player.hop = {
+      startCol: player.col,
+      startDepth: player.depth,
+      targetCol,
+      targetDepth,
+      elapsed: 0,
+      duration: hopDuration()
+    };
+    sfx.hop();
+  }
+
+  function finishHop() {
+    const hop = player.hop;
+    if (!hop) return;
+    player.col = hop.targetCol;
+    player.depth = hop.targetDepth;
+    player.renderCol = player.col;
+    player.renderDepth = player.depth;
+    player.hop = null;
+    player.landingSquash = 1;
+    spawnLandingDust();
+    sfx.land();
+
+    run.runMaxDepth = Math.max(run.runMaxDepth, player.depth);
+    if (run.runMaxDepth > save.bestDepth) {
+      save.bestDepth = run.runMaxDepth;
+      persist();
+    }
+    if (!run.returning && !run.newBestAnnounced && run.runMaxDepth > run.previousBestDepth && run.runMaxDepth >= Math.max(8, run.previousBestDepth + 1)) {
+      run.newBestAnnounced = true;
+      sfx.record();
+      showSignal(`NEW BEST DEPTH · ${run.runMaxDepth}`, '#65d5dd');
+    }
+
+    const zone = zoneForDepth(player.depth);
+    if (!run.returning && zone.id !== run.lastZoneId) {
+      run.lastZoneId = zone.id;
+      sfx.warning();
+      buzz([18, 35, 18]);
+      showSignal(`ENTERING ${zone.name} · DISTRICT CACHE AHEAD`, zone.accent);
+    }
+
+    generateThrough(player.depth + 12);
+    collectNearbyLoot();
+    checkOrderProgress();
+
+    if (run.returning && player.depth === 0) {
+      finishExtraction();
+      return;
+    }
+    if (run.returning) checkReturnMilestones();
+
+    updateHUD();
+    if (player.queue.length > 0) beginNextHop();
+  }
+
+  function moveByName(name) {
+    if (name === 'up') enqueueMove(0, 1, 'up');
+    else if (name === 'down') enqueueMove(0, -1, 'down');
+    else if (name === 'left') enqueueMove(-1, 0, 'left');
+    else if (name === 'right') enqueueMove(1, 0, 'right');
+  }
+
+  document.querySelectorAll('.dir-btn').forEach(btn => {
+    const press = (event) => {
+      event.preventDefault();
+      btn.classList.add('pressed');
+      moveByName(btn.dataset.dir);
+    };
+    btn.addEventListener('pointerdown', press);
+    btn.addEventListener('pointerup', () => btn.classList.remove('pressed'));
+    btn.addEventListener('pointercancel', () => btn.classList.remove('pressed'));
+    btn.addEventListener('pointerleave', () => btn.classList.remove('pressed'));
+  });
+
+  window.addEventListener('keydown', (event) => {
+    const key = event.key.toLowerCase();
+    const movement = {
+      arrowup: 'up', w: 'up',
+      arrowdown: 'down', s: 'down',
+      arrowleft: 'left', a: 'left',
+      arrowright: 'right', d: 'right'
+    }[key];
+
+    if (movement) {
+      event.preventDefault();
+      moveByName(movement);
+      return;
+    }
+
+    if (key === 'r') {
+      event.preventDefault();
+      beginReturn();
+      return;
+    }
+
+    if ((key === 'enter' || key === ' ') && modal.classList.contains('open')) {
+      event.preventDefault();
+      startRun();
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('pointerdown', (event) => {
+    event.preventDefault();
+    ensureAudio();
+    swipeStart = { x: event.clientX, y: event.clientY, id: event.pointerId };
+    try { canvas.setPointerCapture(event.pointerId); } catch (_) {}
+  });
+
+  canvas.addEventListener('pointerup', (event) => {
+    if (!swipeStart || swipeStart.id !== event.pointerId) return;
+    event.preventDefault();
+    const dx = event.clientX - swipeStart.x;
+    const dy = event.clientY - swipeStart.y;
+    const threshold = 20;
+    if (Math.max(Math.abs(dx), Math.abs(dy)) >= threshold) {
+      if (Math.abs(dx) > Math.abs(dy)) moveByName(dx > 0 ? 'right' : 'left');
+      else moveByName(dy > 0 ? 'down' : 'up');
+    } else {
+      // A quick tap is a forward hop, keeping one-thumb play fast.
+      moveByName('up');
+    }
+    swipeStart = null;
+  });
+
+  canvas.addEventListener('pointercancel', () => { swipeStart = null; });
+  returnBtn.addEventListener('click', beginReturn);
+
+  soundBtn.addEventListener('click', () => {
+    save.muted = !save.muted;
+    persist();
+    if (!save.muted) {
+      ensureAudio();
+      tone({ freq: 440, endFreq: 660, duration: .1, type: 'triangle', volume: .035 });
+    }
+    updateHUD();
+  });
+
+  // ---------------------------------------------------------------------------
+  // Pickups, particles, and effects
+  // ---------------------------------------------------------------------------
+
+  function lootScreenPosition(loot) {
+    return {
+      x: colCenterX(loot.col),
+      y: laneCenterY(loot.depth) - 2 + Math.sin(run.elapsed * 3.2 + loot.bob) * 3
+    };
+  }
+
+  function collectNearbyLoot() {
+    const magnetLevel = save.upgrades.magnet;
+    const radiusTiles = [0.10, 1.35, 2.05, 2.75][magnetLevel];
+    const radius = radiusTiles * CELL;
+    const px = colCenterX(player.col);
+    const py = laneCenterY(player.depth);
+
+    for (let d = Math.max(0, player.depth - 3); d <= player.depth + 3; d++) {
+      const lane = run.lanes.get(d);
+      if (!lane || !lane.loot || lane.loot.collected) continue;
+      const loot = lane.loot;
+      const pos = lootScreenPosition(loot);
+      const dist = Math.hypot(pos.x - px, pos.y - py);
+      const directContact = loot.depth === player.depth && loot.col === player.col;
+      if (directContact || (magnetLevel > 0 && dist <= radius)) collectLoot(loot, pos, magnetLevel > 0 && !directContact);
+    }
+  }
+
+  function collectLoot(loot, pos, magneted) {
+    if (loot.collected) return;
+    loot.collected = true;
+    run.cargoValue += loot.value;
+    run.cargoItems += 1;
+    run.cargoByRarity[loot.rarityIndex] += 1;
+    run.bestItemThisRun = Math.max(run.bestItemThisRun, loot.value);
+    save.highestLoot = Math.max(save.highestLoot, loot.value);
+    persist();
+    const rarity = RARITIES[loot.rarityIndex];
+    sfx.pickup(loot.rarityIndex);
+    if (loot.rarityIndex >= 4) buzz([28, 30, 28, 30, 55]);
+    else if (loot.rarityIndex >= 2) buzz(24);
+
+    const count = 7 + loot.rarityIndex * 5;
+    for (let i = 0; i < count; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 25 + Math.random() * (45 + loot.rarityIndex * 15);
+      particles.push({
+        x: pos.x,
+        y: pos.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 15,
+        gravity: 40,
+        life: .45 + Math.random() * .35,
+        maxLife: .8,
+        size: 2 + Math.random() * (2 + loot.rarityIndex),
+        color: rarity.color,
+        shape: loot.rarityIndex >= 3 ? 'diamond' : 'square'
+      });
+    }
+
+    if (magneted) {
+      for (let i = 0; i < 5; i++) {
+        particles.push({
+          x: pos.x,
+          y: pos.y,
+          vx: (colCenterX(player.col) - pos.x) * (2.2 + Math.random()),
+          vy: (laneCenterY(player.depth) - pos.y) * (2.2 + Math.random()),
+          gravity: 0,
+          life: .25,
+          maxLife: .25,
+          size: 2.2,
+          color: '#7ee9ec',
+          shape: 'square'
+        });
+      }
+    }
+
+    addFloater(pos.x, pos.y - 12, `+${formatNumber(loot.value)} ${rarity.name}${loot.jackpot ? ' JACKPOT' : ''}`, rarity.color, loot.rarityIndex >= 3 ? 1.4 : 1.0, loot.rarityIndex >= 3 ? 16 : 13);
+    if (loot.rarityIndex >= 3) {
+      flashOverlay = Math.max(flashOverlay, loot.rarityIndex === 4 ? .42 : .23);
+      shake = Math.max(shake, loot.rarityIndex === 4 ? 8 : 3.5);
+    }
+    if (loot.signal) {
+      showSignal(`${rarity.label} SECURED · ${formatNumber(run.cargoValue)} TOTAL AT RISK`, rarity.color);
+    }
+    checkCargoPrompt();
+    checkOrderProgress();
+  }
+
+  function checkCargoPrompt() {
+    const prompts = [250, 650, 1400, 2800];
+    let crossed = 0;
+    while (run.cargoPromptIndex < prompts.length && run.cargoValue >= prompts[run.cargoPromptIndex]) {
+      crossed = prompts[run.cargoPromptIndex++];
+    }
+    if (crossed > 0) {
+      sfx.warning();
+      const copy = crossed >= 1400 ? 'JACKPOT LOAD — GET IT HOME?' : 'VALUABLE LOAD — TURN BACK?';
+      showSignal(`${formatNumber(run.cargoValue)} CARGO AT RISK · ${copy}`, crossed >= 1400 ? '#ffd15f' : '#ef8b57');
+    }
+  }
+
+  function addFloater(x, y, text, color, life = 1, size = 13) {
+    floaters.push({ x, y, text, color, life, maxLife: life, size });
+  }
+
+  function spawnLandingDust() {
+    const x = colCenterX(player.col);
+    const y = laneCenterY(player.depth) + 15;
+    for (let i = 0; i < 7; i++) {
+      particles.push({
+        x: x + randRange(Math.random, -7, 7),
+        y,
+        vx: randRange(Math.random, -35, 35),
+        vy: randRange(Math.random, -24, -8),
+        gravity: 55,
+        life: randRange(Math.random, .22, .38),
+        maxLife: .38,
+        size: randRange(Math.random, 2, 4),
+        color: '#9cb4aa',
+        shape: 'circle'
+      });
+    }
+  }
+
+  function deathBurst() {
+    const x = colCenterX(player.renderCol);
+    const y = laneCenterY(player.renderDepth);
+    for (let i = 0; i < 24; i++) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 45 + Math.random() * 120;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed - 35,
+        gravity: 125,
+        life: .55 + Math.random() * .55,
+        maxLife: 1.1,
+        size: 3 + Math.random() * 5,
+        color: choice(Math.random, ['#f0b64b', '#ef6a58', '#65d5dd', '#dbe9e5']),
+        shape: Math.random() < .5 ? 'diamond' : 'square'
+      });
+    }
+  }
+
+  function extractionBurst() {
+    const x = colCenterX(player.col);
+    const y = laneCenterY(0);
+    for (let i = 0; i < 46; i++) {
+      const angle = randRange(Math.random, -Math.PI * .9, -Math.PI * .1);
+      const speed = 55 + Math.random() * 150;
+      particles.push({
+        x, y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        gravity: 105,
+        life: .8 + Math.random() * .8,
+        maxLife: 1.6,
+        size: 3 + Math.random() * 5,
+        color: choice(Math.random, ['#ffd15f', '#65d5dd', '#78d596', '#eef7f4']),
+        shape: Math.random() < .55 ? 'diamond' : 'square'
+      });
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Collision and near misses
+  // ---------------------------------------------------------------------------
+
+  function vehicleX(lane, vehicle) {
+    const traffic = lane.traffic;
+    return mod(vehicle.base + traffic.phase + traffic.direction * traffic.speed * run.elapsed, traffic.cycle) - traffic.margin;
+  }
+
+  function absorbOrDie(cause, x, y) {
+    if (run.armorCharges > 0) {
+      run.armorCharges -= 1;
+      run.armorHits += 1;
+      player.invuln = cause === 'RAIL' ? 1.85 : 1.15;
+      player.flash = 1;
+      shake = Math.max(shake, 10);
+      flashOverlay = Math.max(flashOverlay, .28);
+      sfx.armor();
+      addFloater(x, y - 25, `ARMOR BLOCKED ${cause}`, '#7ee9ec', 1.0, 14);
+      for (let i = 0; i < 14; i++) {
+        particles.push({
+          x, y,
+          vx: randRange(Math.random, -100, 100),
+          vy: randRange(Math.random, -95, 15),
+          gravity: 110,
+          life: randRange(Math.random, .35, .7),
+          maxLife: .7,
+          size: randRange(Math.random, 2, 5),
+          color: '#6ee7ec',
+          shape: 'diamond'
+        });
+      }
+      buzz([55, 35, 30]);
+      if (run.order && run.order.type === 'clean' && run.armorHits === 1) {
+        showSignal('CLEAN RETURN ORDER FAILED · THE RUN CONTINUES', '#ef8b57');
+      }
+      checkOrderProgress(false);
+    } else {
+      die(cause);
+    }
+  }
+
+  function handleCollision() {
+    if (run.state !== 'playing' || player.invuln > 0 || run.qaInvulnerable) return;
+    const nearestDepth = Math.round(player.renderDepth);
+    if (Math.abs(player.renderDepth - nearestDepth) > .31) return;
+    const lane = run.lanes.get(nearestDepth);
+    if (!lane) return;
+
+    const px = colCenterX(player.renderCol);
+    const py = laneCenterY(nearestDepth);
+    const playerHalf = 13;
+
+    if (lane.rail) {
+      const timing = railTiming(lane);
+      if (timing.visible && px > timing.left - playerHalf && px < timing.right + playerHalf) {
+        absorbOrDie('RAIL', px, py);
+      }
+      return;
+    }
+
+    if (lane.crusher) {
+      const timing = crusherTiming(lane);
+      const col = Math.round(player.renderCol);
+      if (timing.state === 'slam' && Math.abs(player.renderCol - col) < .31 && timing.columns.includes(col)) {
+        absorbOrDie('CRUSHER', px, py);
+      }
+      return;
+    }
+
+    if (!lane.traffic) return;
+    for (const vehicle of lane.traffic.vehicles) {
+      const vx = vehicleX(lane, vehicle);
+      const half = vehicle.width / 2;
+      if (Math.abs(px - vx) < half + playerHalf) {
+        absorbOrDie('TRAFFIC', px, py);
+        return;
+      }
+    }
+  }
+
+  function checkNearMiss() {
+    if (run.state !== 'playing' || player.nearCooldown > 0 || player.invuln > 0) return;
+    const nearestDepth = Math.round(player.renderDepth);
+    if (Math.abs(player.renderDepth - nearestDepth) > .24) return;
+    const lane = run.lanes.get(nearestDepth);
+    if (!lane || !lane.traffic) return;
+
+    const px = colCenterX(player.renderCol);
+    const playerHalf = 13;
+    const direction = lane.traffic.direction;
+
+    for (const vehicle of lane.traffic.vehicles) {
+      const vx = vehicleX(lane, vehicle);
+      const half = vehicle.width / 2;
+      let passedGap = Infinity;
+      if (direction > 0 && vx > px) passedGap = (vx - half) - (px + playerHalf);
+      if (direction < 0 && vx < px) passedGap = (px - playerHalf) - (vx + half);
+      if (passedGap > 1 && passedGap < 13 && run.elapsed - vehicle.lastNearAt > 1.6) {
+        vehicle.lastNearAt = run.elapsed;
+        player.nearCooldown = .75;
+        run.nearMisses += 1;
+        sfx.near();
+        addFloater(px, laneCenterY(nearestDepth) - 28, 'CLOSE!', '#f6de79', .65, 13);
+        shake = Math.max(shake, 1.8);
+        return;
+      }
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Update
+  // ---------------------------------------------------------------------------
+
+  function update(dt) {
+    dt = Math.min(dt, .05);
+    run.elapsed += dt;
+
+    if (bankTween) {
+      bankTween.elapsed += dt;
+      const t = clamp(bankTween.elapsed / bankTween.duration, 0, 1);
+      displayBank = Math.round(lerp(bankTween.from, bankTween.to, smoothstep(t)));
+      if (t >= 1) bankTween = null;
+    } else {
+      displayBank = save.banked;
+    }
+
+    if (run.state === 'playing') {
+      player.blockedDelay = Math.max(0, player.blockedDelay - dt);
+      player.invuln = Math.max(0, player.invuln - dt);
+      player.flash = Math.max(0, player.flash - dt * 3.5);
+      player.landingSquash = Math.max(0, player.landingSquash - dt * 7);
+      player.nearCooldown = Math.max(0, player.nearCooldown - dt);
+
+      if (player.hop) {
+        player.hop.elapsed += dt;
+        const t = clamp(player.hop.elapsed / player.hop.duration, 0, 1);
+        const eased = smoothstep(t);
+        player.renderCol = lerp(player.hop.startCol, player.hop.targetCol, eased);
+        player.renderDepth = lerp(player.hop.startDepth, player.hop.targetDepth, eased);
+        if (t >= 1) finishHop();
+      } else if (player.queue.length > 0 && player.blockedDelay <= 0) {
+        beginNextHop();
+      }
+
+      const follow = 1 - Math.pow(.001, dt);
+      run.cameraDepth = lerp(run.cameraDepth, player.renderDepth, follow * .34);
+      generateThrough(player.depth + 12);
+      handleCollision();
+      checkNearMiss();
+      updateCrusherAudio();
+      updateRailAudio();
+      scanForSignals(dt);
+    } else {
+      run.cameraDepth = lerp(run.cameraDepth, player.renderDepth, 1 - Math.pow(.04, dt));
+    }
+
+    if (run.overlayDelay > 0) {
+      run.overlayDelay -= dt;
+      if (run.overlayDelay <= 0 && run.pendingOverlay) {
+        renderModal(run.pendingOverlay.type, run.pendingOverlay);
+        run.pendingOverlay = null;
+      }
+    }
+
+    signalTimer = Math.max(0, signalTimer - dt);
+    if (signalTargetDepth != null && player.depth >= signalTargetDepth) signalTimer = 0;
+    if (signalTimer === 0) {
+      signalBanner.classList.remove('show');
+      signalTargetDepth = null;
+    }
+    shake = Math.max(0, shake - dt * 28);
+    flashOverlay = Math.max(0, flashOverlay - dt * 1.8);
+
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.life -= dt;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      p.vy += (p.gravity || 0) * dt;
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+    }
+
+    for (let i = floaters.length - 1; i >= 0; i--) {
+      const f = floaters[i];
+      f.life -= dt;
+      if (f.life <= 0) { floaters.splice(i, 1); continue; }
+      f.y -= 22 * dt;
+    }
+
+    updateHUD();
+  }
+
+  function updateCrusherAudio() {
+    const nearest = Math.round(player.renderDepth);
+    for (let d = nearest - 4; d <= nearest + 6; d++) {
+      const lane = run.lanes.get(d);
+      if (!lane || !lane.crusher) continue;
+      const timing = crusherTiming(lane);
+      if (timing.state === 'slam' && lane.crusher.lastSlamCycle !== timing.cycle) {
+        lane.crusher.lastSlamCycle = timing.cycle;
+        const y = laneCenterY(d);
+        if (y > -LANE_H && y < viewH + LANE_H) {
+          sfx.crusher();
+          shake = Math.max(shake, 2.4);
+        }
+      }
+    }
+  }
+
+  function updateRailAudio() {
+    const nearest = Math.round(player.renderDepth);
+    for (let d = nearest - 4; d <= nearest + 7; d++) {
+      const lane = run.lanes.get(d);
+      if (!lane || !lane.rail) continue;
+      const timing = railTiming(lane);
+      const y = laneCenterY(d);
+      if (y < -LANE_H || y > viewH + LANE_H) continue;
+
+      const incomingCycle = timing.cycle + 1;
+      if (timing.warning && lane.rail.lastWarnCycle !== incomingCycle) {
+        lane.rail.lastWarnCycle = incomingCycle;
+        sfx.railWarn();
+        if (Math.abs(d - player.renderDepth) <= 1.2) buzz([18, 45, 18]);
+      }
+      if (timing.visible && lane.rail.lastPassCycle !== timing.cycle) {
+        lane.rail.lastPassCycle = timing.cycle;
+        sfx.train();
+      }
+      if (timing.visible && Math.abs(d - player.renderDepth) < 1.4) {
+        shake = Math.max(shake, .45);
+      }
+    }
+  }
+
+  function scanForSignals(dt) {
+    run.signalCooldown = Math.max(0, run.signalCooldown - dt);
+    if (run.returning || run.signalCooldown > 0) return;
+
+    for (let d = player.depth + 3; d <= player.depth + 10; d++) {
+      const lane = run.lanes.get(d);
+      const loot = lane && lane.loot;
+      if (!loot || loot.collected || loot.announced || loot.rarityIndex < 2) continue;
+      loot.announced = true;
+      run.signalCooldown = 4.2;
+      const rarity = RARITIES[loot.rarityIndex];
+      showSignal(`${rarity.label}${loot.jackpot ? ' — JACKPOT SIGNAL' : ''} · ${d - player.depth} LANES AHEAD`, rarity.color, d);
+      return;
+    }
+  }
+
+  function showSignal(text, color, targetDepth = null) {
+    signalBanner.textContent = text;
+    signalBanner.style.color = color;
+    signalTargetDepth = targetDepth;
+    signalBanner.classList.remove('show');
+    void signalBanner.offsetWidth;
+    signalBanner.classList.add('show');
+    signalTimer = 2.7;
+  }
+
+  // ---------------------------------------------------------------------------
+  // HUD
+  // ---------------------------------------------------------------------------
+
+  function cargoRiskInfo(value) {
+    if (value >= 1800) return { cls: 'jackpot', label: 'JACKPOT CARGO — EVERY HOP PUTS IT AT RISK' };
+    if (value >= 750) return { cls: 'high-risk', label: 'HIGH-RISK CARGO — TURN BACK TO SECURE IT' };
+    if (value >= 250) return { cls: 'valuable', label: 'VALUABLE CARGO — RETURN HOME TO BANK IT' };
+    return { cls: '', label: 'UNBANKED CARGO — RETURN HOME TO KEEP IT' };
+  }
+
+  function updateHUD() {
+    bankedValue.textContent = formatNumber(displayBank);
+    depthValue.textContent = formatNumber(player.depth);
+    bestValue.textContent = formatNumber(save.bestDepth);
+    cargoValue.textContent = formatNumber(run.cargoValue);
+    cargoCount.textContent = formatNumber(run.cargoItems);
+    soundBtn.textContent = save.muted ? 'SOUND OFF' : 'SOUND ON';
+    const risk = cargoRiskInfo(run.cargoValue);
+    const zone = zoneForDepth(player.depth);
+    cargoCard.className = `cargo-card${risk.cls ? ` ${risk.cls}` : ''}${run.returning && run.state === 'playing' ? ' returning' : ''}`;
+    cargoLabel.textContent = run.returning && run.state === 'playing'
+      ? `${formatNumber(run.cargoValue)} CARGO — ${player.depth} ${player.depth === 1 ? 'LANE' : 'LANES'} FROM SAFETY`
+      : risk.label;
+
+    if (run.state === 'playing' && run.returning) {
+      statusText.textContent = `RETURNING · ${zone.name} — HOME ${player.depth} ${player.depth === 1 ? 'LANE' : 'LANES'} DOWN`;
+      statusText.className = 'returning';
+      returnBtn.textContent = 'RETURNING';
+      returnBtn.classList.add('returning');
+      returnBtn.disabled = true;
+    } else {
+      statusText.textContent = run.state === 'playing' ? `OUTBOUND · ${zone.name} — PUSH OR TURN BACK` : 'AT THE SCRAPYARD';
+      statusText.className = 'outbound';
+      returnBtn.textContent = 'TURN BACK';
+      returnBtn.classList.remove('returning');
+      returnBtn.disabled = run.state !== 'playing' || player.depth <= 0;
+    }
+
+    if (run.state === 'playing') {
+      armorText.textContent = run.armorCharges > 0 ? `ARMOR: ${run.armorCharges} READY` : 'ARMOR: EMPTY';
+    } else {
+      armorText.textContent = save.upgrades.armor > 0 ? `ARMOR LV ${save.upgrades.armor}` : 'ARMOR: NONE';
+    }
+
+    if (run.state === 'playing' && run.order) {
+      const progress = orderProgress();
+      contractBar.classList.toggle('complete', progress.complete);
+      contractText.textContent = `${run.order.title} · ${run.order.description}`;
+      contractProgress.textContent = progress.complete
+        ? `READY +${formatNumber(run.order.reward)}`
+        : `${progress.text} · +${formatNumber(run.order.reward)}`;
+    } else {
+      contractBar.classList.remove('complete');
+      contractText.textContent = 'OPTIONAL SCRAPYARD ORDER EACH EXPEDITION';
+      contractProgress.textContent = `${formatNumber(save.ordersCompleted)} DONE`;
+    }
+  }
+
+  // ---------------------------------------------------------------------------
+  // Drawing — environment
+  // ---------------------------------------------------------------------------
+
+  function drawBackground() {
+    const gradient = ctx.createLinearGradient(0, 0, 0, viewH);
+    gradient.addColorStop(0, '#0d1c23');
+    gradient.addColorStop(1, '#071116');
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, VIEW_W, viewH);
+    const zone = zoneForDepth(player.depth);
+    ctx.fillStyle = zone.accent + '0c';
+    ctx.fillRect(0, 0, VIEW_W, viewH);
+
+    ctx.fillStyle = 'rgba(99, 182, 184, .055)';
+    for (let i = 0; i < 22; i++) {
+      const x = mod(i * 83 + run.elapsed * 3.5, VIEW_W + 40) - 20;
+      const y = mod(i * 137 + run.elapsed * 1.4, viewH + 40) - 20;
+      ctx.fillRect(x, y, 1.5, 1.5);
+    }
+  }
+
+  function drawLane(lane, y) {
+    const top = y - LANE_H / 2;
+    if (lane.type === 'safe') drawSafeLane(lane, top);
+    else if (lane.type === 'industrial') drawIndustrialLane(lane, top);
+    else if (lane.type === 'crusher') drawCrusherLane(lane, top);
+    else if (lane.type === 'rail') drawRailLane(lane, top);
+    else drawRoadLane(lane, top);
+
+    drawLaneLabel(lane, top);
+    if (lane.traffic) drawTraffic(lane, y);
+    if (lane.rail) drawRailTrain(lane, y);
+    if (lane.loot && !lane.loot.collected) drawLoot(lane.loot);
+  }
+
+  function drawSafeLane(lane, top) {
+    ctx.fillStyle = lane.depth === 0 ? '#173b36' : (lane.zone ? lane.zone.ground : '#24433c');
+    ctx.fillRect(0, top, VIEW_W, LANE_H);
+    ctx.fillStyle = 'rgba(132, 185, 151, .08)';
+    ctx.fillRect(0, top + 4, VIEW_W, 2);
+    ctx.fillRect(0, top + LANE_H - 6, VIEW_W, 2);
+
+    if (lane.depth === 0) {
+      ctx.fillStyle = 'rgba(240, 189, 75, .16)';
+      ctx.fillRect(0, top, VIEW_W, LANE_H);
+      ctx.strokeStyle = '#d9aa45';
+      ctx.lineWidth = 3;
+      ctx.setLineDash([15, 10]);
+      ctx.beginPath();
+      ctx.moveTo(0, top + 4);
+      ctx.lineTo(VIEW_W, top + 4);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.save();
+      ctx.globalAlpha = .35;
+      ctx.fillStyle = '#f6df91';
+      ctx.font = '900 12px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('SCRAPYARD EXTRACTION LINE', VIEW_W / 2, top + 17);
+      ctx.restore();
+    }
+
+    if (lane.gateZone) {
+      ctx.save();
+      ctx.globalAlpha = .18;
+      ctx.fillStyle = lane.gateZone.accent;
+      ctx.fillRect(0, top, VIEW_W, LANE_H);
+      ctx.globalAlpha = .72;
+      ctx.strokeStyle = lane.gateZone.accent;
+      ctx.lineWidth = 2;
+      ctx.setLineDash([11, 8]);
+      ctx.beginPath();
+      ctx.moveTo(0, top + 5); ctx.lineTo(VIEW_W, top + 5);
+      ctx.moveTo(0, top + LANE_H - 5); ctx.lineTo(VIEW_W, top + LANE_H - 5);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.globalAlpha = .34;
+      ctx.fillStyle = '#ffffff';
+      ctx.font = '1000 17px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(lane.gateZone.name, VIEW_W / 2, top + 38);
+      ctx.restore();
+    }
+
+    for (const deco of lane.decorations) drawScrapDecoration(deco, top + LANE_H / 2);
+  }
+
+  function drawScrapDecoration(deco, centerY) {
+    ctx.save();
+    ctx.translate(deco.x, centerY + deco.y);
+    ctx.rotate(deco.rot);
+    ctx.globalAlpha = .34;
+    if (deco.kind === 0) {
+      ctx.strokeStyle = '#6e8f86';
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(0, 0, deco.size, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(-deco.size, 0); ctx.lineTo(deco.size, 0);
+      ctx.stroke();
+    } else if (deco.kind === 1) {
+      ctx.fillStyle = '#8a7661';
+      ctx.fillRect(-deco.size, -deco.size * .35, deco.size * 2, deco.size * .7);
+    } else if (deco.kind === 2) {
+      ctx.fillStyle = '#59776f';
+      ctx.beginPath();
+      ctx.moveTo(-deco.size, deco.size);
+      ctx.lineTo(0, -deco.size);
+      ctx.lineTo(deco.size, deco.size);
+      ctx.closePath();
+      ctx.fill();
+    } else {
+      ctx.fillStyle = '#4f6862';
+      ctx.fillRect(-deco.size * .35, -deco.size, deco.size * .7, deco.size * 2);
+      ctx.fillRect(-deco.size, -deco.size * .35, deco.size * 2, deco.size * .7);
+    }
+    ctx.restore();
+  }
+
+  function dashedBoundary(y, color, dash = 20, gap = 17, width = 3) {
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    ctx.setLineDash([dash, gap]);
+    ctx.lineDashOffset = 0;
+    ctx.beginPath();
+    ctx.moveTo(8, y);
+    ctx.lineTo(VIEW_W - 8, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  function drawRoadLane(lane, top) {
+    const fast = lane.type === 'fast';
+    ctx.fillStyle = fast ? '#242b35' : '#2c3740';
+    ctx.fillRect(0, top, VIEW_W, LANE_H);
+
+    // Divider markings live on the lane boundaries. Vehicles travel in the clear band between them.
+    dashedBoundary(top + 2, fast ? '#d46a66' : '#c4b766', fast ? 17 : 28, fast ? 13 : 20, fast ? 3.2 : 2.6);
+    dashedBoundary(top + LANE_H - 2, fast ? '#d46a66' : '#c4b766', fast ? 17 : 28, fast ? 13 : 20, fast ? 3.2 : 2.6);
+
+    ctx.globalAlpha = .12;
+    ctx.fillStyle = '#d8e5e3';
+    ctx.fillRect(0, top + LANE_H * .31, VIEW_W, 1);
+    ctx.fillRect(0, top + LANE_H * .68, VIEW_W, 1);
+    ctx.globalAlpha = 1;
+  }
+
+  function drawIndustrialLane(lane, top) {
+    ctx.fillStyle = '#493720';
+    ctx.fillRect(0, top, VIEW_W, LANE_H);
+    ctx.fillStyle = '#3a2b1c';
+    for (let x = -20; x < VIEW_W + 20; x += 26) {
+      ctx.save();
+      ctx.translate(x, top + 4);
+      ctx.rotate(-.62);
+      ctx.fillStyle = '#d4983f';
+      ctx.fillRect(-4, -9, 8, 23);
+      ctx.restore();
+      ctx.save();
+      ctx.translate(x + 13, top + LANE_H - 4);
+      ctx.rotate(-.62);
+      ctx.fillStyle = '#d4983f';
+      ctx.fillRect(-4, -13, 8, 23);
+      ctx.restore();
+    }
+    ctx.strokeStyle = 'rgba(209, 158, 67, .25)';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, top + LANE_H / 2);
+    ctx.lineTo(VIEW_W, top + LANE_H / 2);
+    ctx.stroke();
+    for (const deco of lane.decorations) {
+      ctx.fillStyle = 'rgba(230, 177, 75, .26)';
+      ctx.beginPath();
+      ctx.arc(deco.x, top + LANE_H / 2 + deco.y, 1.5, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+
+  function drawRailLane(lane, top) {
+    const timing = railTiming(lane);
+    ctx.fillStyle = '#342f2d';
+    ctx.fillRect(0, top, VIEW_W, LANE_H);
+
+    // Concrete crossing plates make every grid column readable as a viable route.
+    for (let col = 0; col < COLS; col++) {
+      const x = colCenterX(col);
+      ctx.fillStyle = col % 2 === 0 ? 'rgba(105, 112, 111, .18)' : 'rgba(80, 87, 88, .14)';
+      roundRectPath(ctx, x - CELL * .42, top + 7, CELL * .84, LANE_H - 14, 3);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = '#171b1d';
+    for (let x = -12; x < VIEW_W + 18; x += 27) {
+      ctx.save();
+      ctx.translate(x, top + LANE_H / 2);
+      ctx.rotate(.03);
+      ctx.fillRect(-4, -22, 8, 44);
+      ctx.restore();
+    }
+
+    ctx.strokeStyle = '#0d1214';
+    ctx.lineWidth = 6;
+    ctx.beginPath();
+    ctx.moveTo(0, top + 16); ctx.lineTo(VIEW_W, top + 16);
+    ctx.moveTo(0, top + 40); ctx.lineTo(VIEW_W, top + 40);
+    ctx.stroke();
+    ctx.strokeStyle = '#7e898a';
+    ctx.lineWidth = 2.4;
+    ctx.beginPath();
+    ctx.moveTo(0, top + 15); ctx.lineTo(VIEW_W, top + 15);
+    ctx.moveTo(0, top + 39); ctx.lineTo(VIEW_W, top + 39);
+    ctx.stroke();
+
+    const pulse = .45 + .55 * Math.sin(run.elapsed * 16);
+    const entryX = lane.rail.direction > 0 ? 16 : VIEW_W - 16;
+    ctx.save();
+    ctx.translate(entryX, top + 28);
+    ctx.fillStyle = '#13191c';
+    ctx.fillRect(-4, -20, 8, 40);
+    ctx.fillStyle = '#2b373b';
+    roundRectPath(ctx, -10, -19, 20, 18, 4); ctx.fill();
+    ctx.fillStyle = timing.warning ? `rgba(255, 84, 61, ${.55 + pulse * .45})` : '#5f2b27';
+    ctx.beginPath(); ctx.arc(0, -10, 5.5, 0, Math.PI * 2); ctx.fill();
+    ctx.strokeStyle = timing.warning ? '#ffd08a' : '#4d595d';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(0, -10, 7.5, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+
+    if (timing.warning) {
+      ctx.save();
+      ctx.globalAlpha = .18 + pulse * .14;
+      ctx.fillStyle = '#ef6a58';
+      ctx.fillRect(0, top, VIEW_W, LANE_H);
+      ctx.globalAlpha = .86;
+      ctx.fillStyle = '#ffd15f';
+      ctx.font = '1000 11px system-ui, sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText('TRAIN INBOUND', VIEW_W / 2, top + 34);
+      ctx.restore();
+    }
+  }
+
+  function drawRailTrain(lane, y) {
+    const timing = railTiming(lane);
+    if (!timing.visible) return;
+    const rail = lane.rail;
+    const length = rail.length;
+    const h = 40;
+
+    ctx.save();
+    ctx.translate(timing.x, y + 1);
+    ctx.scale(rail.direction, 1);
+
+    ctx.fillStyle = 'rgba(0,0,0,.43)';
+    ctx.beginPath();
+    ctx.ellipse(0, h * .46, length * .49, h * .25, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#101619';
+    roundRectPath(ctx, -length / 2, -h * .42, length, h * .84, 5); ctx.fill();
+
+    const locoW = 72;
+    const freightLeft = -length / 2 + 5;
+    const freightRight = length / 2 - locoW - 5;
+    const freightWidth = Math.max(40, freightRight - freightLeft);
+    const carCount = Math.max(2, Math.floor(freightWidth / 53));
+    const carW = freightWidth / carCount;
+
+    for (let i = 0; i < carCount; i++) {
+      const x = freightLeft + i * carW;
+      ctx.fillStyle = i % 2 ? shadeColor(rail.color, -.14) : shadeColor(rail.color, -.04);
+      ctx.strokeStyle = '#0b1114';
+      ctx.lineWidth = 2;
+      roundRectPath(ctx, x + 1.5, -h * .35, carW - 4, h * .70, 4); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = 'rgba(12, 20, 22, .40)';
+      ctx.fillRect(x + 7, -h * .23, carW - 15, h * .46);
+
+      // Code-drawn scrap loads give each freight car a rough silhouette.
+      ctx.fillStyle = i % 3 === 0 ? '#8ca09a' : i % 3 === 1 ? '#b17a45' : '#607d7b';
+      ctx.fillRect(x + 10, -8, Math.max(7, carW * .24), 14);
+      ctx.fillStyle = '#677672';
+      ctx.beginPath();
+      ctx.arc(x + carW * .58, 1, Math.min(8, carW * .14), 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = '#c6d0ca';
+      ctx.lineWidth = 1.3;
+      ctx.beginPath();
+      ctx.moveTo(x + carW * .72, -10); ctx.lineTo(x + carW * .84, 9);
+      ctx.stroke();
+    }
+
+    const locoX = length / 2 - locoW;
+    ctx.fillStyle = rail.color;
+    ctx.strokeStyle = '#091114';
+    ctx.lineWidth = 3;
+    roundRectPath(ctx, locoX, -h / 2, locoW, h, 7); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = shadeColor(rail.color, .11);
+    roundRectPath(ctx, locoX + 23, -h * .39, locoW - 27, h * .78, 5); ctx.fill();
+    ctx.fillStyle = '#80d7df';
+    roundRectPath(ctx, locoX + 31, -h * .29, 23, 11, 3); ctx.fill();
+    ctx.fillStyle = '#15363e';
+    ctx.fillRect(locoX + 35, -h * .25, 6, 6);
+    ctx.fillRect(locoX + 45, -h * .25, 6, 6);
+    ctx.fillStyle = '#f0bd4b';
+    ctx.fillRect(locoX + 5, h * .12, locoW - 10, 5);
+
+    ctx.fillStyle = '#fff1a8';
+    ctx.beginPath(); ctx.arc(length / 2 - 5, 0, 5.2, 0, Math.PI * 2); ctx.fill();
+    ctx.fillStyle = 'rgba(255, 230, 140, .18)';
+    ctx.beginPath(); ctx.arc(length / 2 + 2, 0, 17, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = '#090f12';
+    for (let x = -length / 2 + 20; x < length / 2 - 10; x += 38) {
+      roundRectPath(ctx, x - 7, h * .29, 14, 9, 3); ctx.fill();
+      roundRectPath(ctx, x - 7, -h * .49, 14, 9, 3); ctx.fill();
+    }
+
+    ctx.restore();
+  }
+
+  function drawCrusherLane(lane, top) {
+    const timing = crusherTiming(lane);
+    ctx.fillStyle = '#252c31';
+    ctx.fillRect(0, top, VIEW_W, LANE_H);
+    ctx.fillStyle = '#1b2227';
+    for (let x = 0; x < VIEW_W; x += 32) {
+      ctx.fillRect(x, top + 2, 2, LANE_H - 4);
+    }
+    ctx.strokeStyle = '#59656b';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, top + 3); ctx.lineTo(VIEW_W, top + 3);
+    ctx.moveTo(0, top + LANE_H - 3); ctx.lineTo(VIEW_W, top + LANE_H - 3);
+    ctx.stroke();
+
+    for (let col = 0; col < COLS; col++) {
+      const x = colCenterX(col);
+      const targeted = timing.columns.includes(col);
+      const warningPulse = .45 + .55 * Math.sin(run.elapsed * 15);
+      ctx.save();
+      ctx.translate(x, top + LANE_H / 2);
+      ctx.fillStyle = targeted && timing.state === 'warning'
+        ? `rgba(239, 92, 72, ${.28 + warningPulse * .35})`
+        : 'rgba(103, 120, 125, .18)';
+      roundRectPath(ctx, -20, -19, 40, 38, 5); ctx.fill();
+      ctx.strokeStyle = targeted && timing.state === 'warning' ? '#ef6a58' : '#4e5b60';
+      ctx.lineWidth = targeted && timing.state === 'warning' ? 2.5 : 1.2;
+      roundRectPath(ctx, -20, -19, 40, 38, 5); ctx.stroke();
+
+      if (targeted && timing.state === 'warning') {
+        ctx.fillStyle = '#ffd15f';
+        ctx.beginPath();
+        ctx.moveTo(0, -10); ctx.lineTo(9, 9); ctx.lineTo(-9, 9); ctx.closePath(); ctx.fill();
+        ctx.fillStyle = '#4b2d18';
+        ctx.fillRect(-1.5, -4, 3, 8);
+        ctx.fillRect(-1.5, 6, 3, 3);
+      }
+
+      if (targeted && timing.state === 'slam') {
+        const slam = clamp(timing.amount * 2.2, 0, 1);
+        ctx.fillStyle = 'rgba(0,0,0,.45)';
+        ctx.beginPath(); ctx.ellipse(0, 14, 23, 7, 0, 0, Math.PI * 2); ctx.fill();
+        ctx.fillStyle = '#78868a';
+        ctx.strokeStyle = '#12191c';
+        ctx.lineWidth = 3;
+        roundRectPath(ctx, -22, -25 + (1 - slam) * -20, 44, 43, 5); ctx.fill(); ctx.stroke();
+        ctx.fillStyle = '#4f5b5f';
+        ctx.fillRect(-17, -19 + (1 - slam) * -20, 34, 7);
+        ctx.fillStyle = '#ef8b57';
+        ctx.fillRect(-17, 7 + (1 - slam) * -20, 34, 5);
+      } else {
+        ctx.fillStyle = '#566267';
+        ctx.fillRect(-14, -28, 28, 6);
+        ctx.fillStyle = '#303a3f';
+        ctx.fillRect(-4, -23, 8, 7);
+      }
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.globalAlpha = .55;
+    ctx.fillStyle = '#d59b3f';
+    for (let x = -12; x < VIEW_W + 12; x += 30) {
+      ctx.save(); ctx.translate(x, top + 5); ctx.rotate(-.6); ctx.fillRect(-3, -8, 6, 17); ctx.restore();
+      ctx.save(); ctx.translate(x + 15, top + LANE_H - 5); ctx.rotate(-.6); ctx.fillRect(-3, -8, 6, 17); ctx.restore();
+    }
+    ctx.restore();
+  }
+
+  function drawLaneLabel(lane, top) {
+    if (top < -20 || top > viewH) return;
+    const colors = {
+      safe: '#b2cac8',
+      traffic: '#b2cac8',
+      fast: '#f29a91',
+      industrial: '#edbe6d',
+      crusher: '#f19a7f',
+      rail: '#ffd08a'
+    };
+    const labels = {
+      safe: lane.gateZone ? `${lane.gateZone.name} CACHE FIELD` : 'SAFE SCRAP FIELD',
+      traffic: 'TRAFFIC ROAD',
+      fast: 'FAST ROAD',
+      industrial: 'INDUSTRIAL FORKLIFT LANE',
+      crusher: 'INDUSTRIAL CRUSHER BAY',
+      rail: 'SCRAP FREIGHT RAIL'
+    };
+    ctx.save();
+    ctx.globalAlpha = .72;
+    ctx.fillStyle = colors[lane.type] || '#b2cac8';
+    ctx.font = '900 8px system-ui, sans-serif';
+    ctx.textAlign = 'left';
+    ctx.fillText(`${labels[lane.type] || 'UNKNOWN LANE'} · DEPTH ${lane.depth}`, 4, top + 11);
+    ctx.restore();
+  }
+
+  function drawTraffic(lane, y) {
+    for (const vehicle of lane.traffic.vehicles) {
+      const x = vehicleX(lane, vehicle);
+      if (x + vehicle.width / 2 < -8 || x - vehicle.width / 2 > VIEW_W + 8) continue;
+      if (vehicle.kind === 'forklift') drawForklift(x, y + 3, vehicle, lane.traffic.direction);
+      else drawVehicle(x, y + 2, vehicle, lane.traffic.direction);
+    }
+  }
+
+  function drawVehicle(x, y, vehicle, direction) {
+    const w = vehicle.width;
+    const h = vehicle.height;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(direction, 1);
+
+    ctx.fillStyle = 'rgba(0,0,0,.34)';
+    ctx.beginPath();
+    ctx.ellipse(0, h * .45, w * .46, h * .28, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#101a1f';
+    roundRectPath(ctx, -w * .39, -h * .12, w * .18, h * .56, 4); ctx.fill();
+    roundRectPath(ctx, w * .20, -h * .12, w * .18, h * .56, 4); ctx.fill();
+
+    ctx.fillStyle = vehicle.color;
+    ctx.strokeStyle = '#10191e';
+    ctx.lineWidth = 3;
+    roundRectPath(ctx, -w / 2, -h / 2, w, h, 7);
+    ctx.fill(); ctx.stroke();
+
+    if (vehicle.kind === 'truck') {
+      ctx.fillStyle = shadeColor(vehicle.color, -.13);
+      roundRectPath(ctx, -w * .48, -h * .39, w * .57, h * .78, 4); ctx.fill();
+      ctx.strokeStyle = 'rgba(8,15,18,.45)';
+      ctx.lineWidth = 2;
+      ctx.strokeRect(-w * .20, -h * .36, 1, h * .72);
+      ctx.fillStyle = vehicle.accent;
+      roundRectPath(ctx, w * .12, -h * .35, w * .28, h * .36, 3); ctx.fill();
+    } else {
+      ctx.fillStyle = vehicle.accent;
+      roundRectPath(ctx, -w * .14, -h * .37, w * .36, h * .34, 4); ctx.fill();
+      ctx.fillStyle = 'rgba(7,32,39,.55)';
+      ctx.fillRect(-w * .10, -h * .33, 2, h * .25);
+      ctx.fillStyle = shadeColor(vehicle.color, .12);
+      roundRectPath(ctx, -w * .43, h * .05, w * .25, h * .23, 3); ctx.fill();
+    }
+
+    ctx.fillStyle = '#f7df86';
+    ctx.fillRect(w * .43, -h * .28, 4, 6);
+    ctx.fillRect(w * .43, h * .14, 4, 6);
+    ctx.fillStyle = '#e55348';
+    ctx.fillRect(-w * .47, -h * .28, 4, 6);
+    ctx.fillRect(-w * .47, h * .14, 4, 6);
+    ctx.restore();
+  }
+
+  function drawForklift(x, y, vehicle, direction) {
+    const w = vehicle.width;
+    const h = vehicle.height;
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(direction, 1);
+
+    ctx.fillStyle = 'rgba(0,0,0,.35)';
+    ctx.beginPath();
+    ctx.ellipse(0, h * .45, w * .46, h * .25, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = '#10191d';
+    ctx.beginPath(); ctx.arc(-w * .22, h * .32, 8, 0, Math.PI * 2); ctx.fill();
+    ctx.beginPath(); ctx.arc(w * .17, h * .32, 6, 0, Math.PI * 2); ctx.fill();
+
+    ctx.fillStyle = '#e0a53f';
+    ctx.strokeStyle = '#121b1e';
+    ctx.lineWidth = 3;
+    roundRectPath(ctx, -w * .38, -h * .31, w * .51, h * .62, 5); ctx.fill(); ctx.stroke();
+
+    ctx.fillStyle = '#83cbd0';
+    roundRectPath(ctx, -w * .18, -h * .60, w * .26, h * .48, 3); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = '#1a2a2d';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-w * .20, -h * .60); ctx.lineTo(-w * .20, h * .12);
+    ctx.moveTo(w * .09, -h * .60); ctx.lineTo(w * .09, h * .12);
+    ctx.stroke();
+
+    ctx.fillStyle = '#202c2f';
+    ctx.fillRect(w * .12, -h * .56, 5, h * 1.08);
+    ctx.fillRect(w * .23, -h * .56, 5, h * 1.08);
+    ctx.fillStyle = '#b9b4a1';
+    ctx.fillRect(w * .16, h * .27, w * .35, 4);
+    ctx.fillRect(w * .16, h * .05, w * .35, 4);
+
+    ctx.fillStyle = '#f5da77';
+    ctx.fillRect(-w * .42, -h * .18, 4, 7);
+    ctx.restore();
+  }
+
+  function shadeColor(hex, amount) {
+    const value = parseInt(hex.slice(1), 16);
+    const r = clamp((value >> 16) + Math.round(255 * amount), 0, 255);
+    const g = clamp(((value >> 8) & 255) + Math.round(255 * amount), 0, 255);
+    const b = clamp((value & 255) + Math.round(255 * amount), 0, 255);
+    return `rgb(${r},${g},${b})`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Drawing — loot and player
+  // ---------------------------------------------------------------------------
+
+  function drawLootBeacon(loot, pos, rarity) {
+    if (!loot.signal || run.returning) return;
+    const pulse = .45 + .55 * Math.sin(run.elapsed * 4.2 + loot.pulse);
+    ctx.save();
+    const beam = ctx.createLinearGradient(pos.x, pos.y - 46, pos.x, pos.y + 30);
+    beam.addColorStop(0, rarity.glow + '00');
+    beam.addColorStop(.55, rarity.glow + '38');
+    beam.addColorStop(1, rarity.glow + '00');
+    ctx.fillStyle = beam;
+    ctx.fillRect(pos.x - 18 - pulse * 4, pos.y - 52, 36 + pulse * 8, 82);
+    ctx.strokeStyle = rarity.color;
+    ctx.globalAlpha = .45 + pulse * .45;
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.ellipse(pos.x, pos.y + 10, 21 + pulse * 8, 7 + pulse * 2, 0, 0, Math.PI * 2); ctx.stroke();
+    ctx.restore();
+  }
+
+  function drawLoot(loot) {
+    const pos = lootScreenPosition(loot);
+    if (pos.y < -35 || pos.y > viewH + 35) return;
+    const rarity = RARITIES[loot.rarityIndex];
+    const pulse = .5 + .5 * Math.sin(run.elapsed * (loot.rarityIndex >= 3 ? 5.2 : 3.1) + loot.pulse);
+    const scale = 1 + pulse * (.03 + loot.rarityIndex * .012);
+    drawLootBeacon(loot, pos, rarity);
+
+    ctx.save();
+    ctx.translate(pos.x, pos.y);
+    ctx.scale(scale, scale);
+
+    if (loot.rarityIndex >= 2) {
+      const glow = ctx.createRadialGradient(0, 0, 2, 0, 0, 26 + loot.rarityIndex * 6);
+      glow.addColorStop(0, rarity.glow + 'aa');
+      glow.addColorStop(1, rarity.glow + '00');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(0, 0, 28 + loot.rarityIndex * 6, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.fillStyle = 'rgba(0,0,0,.34)';
+    ctx.beginPath();
+    ctx.ellipse(0, 14, 14, 5, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    if (loot.rarityIndex === 0) drawScrapLoot(rarity);
+    else if (loot.rarityIndex === 1) drawComponentLoot(rarity);
+    else if (loot.rarityIndex === 2) drawPowerCellLoot(rarity);
+    else if (loot.rarityIndex === 3) drawEpicLoot(rarity, loot.spin);
+    else drawLegendaryLoot(rarity, loot.spin);
+
+    ctx.restore();
+
+    if (loot.rarityIndex >= 2) {
+      ctx.save();
+      ctx.font = `1000 ${loot.rarityIndex === 4 ? 11 : 9}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.fillStyle = rarity.color;
+      ctx.strokeStyle = '#071016';
+      ctx.lineWidth = 3;
+      const label = `${loot.signal ? 'SIGNAL: ' : ''}${rarity.label}${loot.jackpot ? ' JACKPOT' : ''}`;
+      ctx.strokeText(label, pos.x, pos.y - 25);
+      ctx.fillText(label, pos.x, pos.y - 25);
+      ctx.restore();
+    }
+  }
+
+  function drawScrapLoot(rarity) {
+    ctx.strokeStyle = '#182226';
+    ctx.lineWidth = 2.5;
+    ctx.fillStyle = rarity.color;
+    ctx.beginPath();
+    for (let i = 0; i < 8; i++) {
+      const a = i * Math.PI / 4;
+      const r = i % 2 ? 9 : 13;
+      const x = Math.cos(a) * r;
+      const y = Math.sin(a) * r;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#647b73';
+    ctx.beginPath(); ctx.arc(0, 0, 4, 0, Math.PI * 2); ctx.fill();
+  }
+
+  function drawComponentLoot(rarity) {
+    ctx.strokeStyle = '#14221d';
+    ctx.lineWidth = 2.5;
+    ctx.fillStyle = rarity.color;
+    roundRectPath(ctx, -12, -10, 24, 20, 4); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#173d31';
+    ctx.fillRect(-6, -4, 12, 8);
+    ctx.strokeStyle = '#d7f6df';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.moveTo(-9, -6); ctx.lineTo(-4, -6); ctx.lineTo(-4, -1); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(9, 6); ctx.lineTo(4, 6); ctx.lineTo(4, 1); ctx.stroke();
+  }
+
+  function drawPowerCellLoot(rarity) {
+    ctx.strokeStyle = '#10242b';
+    ctx.lineWidth = 2.5;
+    ctx.fillStyle = rarity.color;
+    roundRectPath(ctx, -10, -14, 20, 28, 5); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#e7ffff';
+    ctx.fillRect(-3, -17, 6, 4);
+    ctx.fillStyle = '#1a6577';
+    ctx.fillRect(-4, -8, 8, 16);
+    ctx.fillStyle = '#e7ffff';
+    ctx.beginPath();
+    ctx.moveTo(2, -8); ctx.lineTo(-3, 0); ctx.lineTo(1, 0); ctx.lineTo(-2, 8); ctx.lineTo(5, -2); ctx.lineTo(1, -2); ctx.closePath();
+    ctx.fill();
+  }
+
+  function drawEpicLoot(rarity, spin) {
+    ctx.save();
+    ctx.rotate(run.elapsed * .7 + spin);
+    ctx.strokeStyle = '#301340';
+    ctx.lineWidth = 2.5;
+    ctx.fillStyle = rarity.color;
+    ctx.beginPath();
+    ctx.moveTo(0, -15); ctx.lineTo(13, -3); ctx.lineTo(8, 14); ctx.lineTo(-8, 14); ctx.lineTo(-13, -3); ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#f2d8ff';
+    ctx.beginPath(); ctx.moveTo(0, -9); ctx.lineTo(6, 0); ctx.lineTo(0, 8); ctx.lineTo(-6, 0); ctx.closePath(); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = 'rgba(232,204,255,.8)';
+    ctx.lineWidth = 1.5;
+    ctx.beginPath(); ctx.ellipse(0, 0, 19, 7, -run.elapsed * .45, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  function drawLegendaryLoot(rarity, spin) {
+    ctx.save();
+    ctx.rotate(-run.elapsed * .6 + spin);
+    ctx.strokeStyle = '#5e3410';
+    ctx.lineWidth = 2.5;
+    ctx.fillStyle = rarity.color;
+    ctx.beginPath();
+    for (let i = 0; i < 12; i++) {
+      const a = -Math.PI / 2 + i * Math.PI / 6;
+      const r = i % 2 ? 8 : 17;
+      const x = Math.cos(a) * r;
+      const y = Math.sin(a) * r;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#fff2b0';
+    ctx.beginPath(); ctx.arc(0, 0, 5.5, 0, Math.PI * 2); ctx.fill();
+    ctx.restore();
+    ctx.strokeStyle = '#ffe9a0';
+    ctx.lineWidth = 1.7;
+    ctx.beginPath(); ctx.ellipse(0, 0, 24, 8, run.elapsed * .6, 0, Math.PI * 2); ctx.stroke();
+    ctx.beginPath(); ctx.ellipse(0, 0, 24, 8, run.elapsed * .6 + Math.PI / 2, 0, Math.PI * 2); ctx.stroke();
+  }
+
+  function drawScrapyardBase(edgeY) {
+    if (edgeY >= viewH || edgeY < -40) return;
+    const y = Math.max(-20, edgeY);
+    ctx.save();
+    const grad = ctx.createLinearGradient(0, y, 0, viewH);
+    grad.addColorStop(0, '#162d2c');
+    grad.addColorStop(1, '#091719');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, y, VIEW_W, viewH - y);
+
+    ctx.strokeStyle = 'rgba(84, 126, 119, .20)';
+    ctx.lineWidth = 1;
+    for (let gx = 20; gx < VIEW_W; gx += 44) {
+      ctx.beginPath(); ctx.moveTo(gx, y); ctx.lineTo(gx, viewH); ctx.stroke();
+    }
+    for (let gy = y + 28; gy < viewH; gy += 36) {
+      ctx.beginPath(); ctx.moveTo(0, gy); ctx.lineTo(VIEW_W, gy); ctx.stroke();
+    }
+
+    // Storage bins and scrap piles frame the extraction pad without obscuring play.
+    const binY = Math.min(viewH - 34, y + 82);
+    for (const bx of [35, VIEW_W - 83]) {
+      ctx.fillStyle = '#213941';
+      ctx.strokeStyle = '#091317';
+      ctx.lineWidth = 3;
+      roundRectPath(ctx, bx, binY, 48, 32, 5); ctx.fill(); ctx.stroke();
+      ctx.fillStyle = '#d49a3e';
+      ctx.fillRect(bx + 5, binY + 5, 38, 5);
+      ctx.fillStyle = '#617b78';
+      ctx.fillRect(bx + 8, binY + 16, 9, 8);
+      ctx.fillStyle = '#829c94';
+      ctx.fillRect(bx + 21, binY + 13, 7, 11);
+      ctx.fillStyle = '#506a66';
+      ctx.fillRect(bx + 31, binY + 17, 8, 7);
+    }
+
+    const padY = Math.min(viewH - 28, y + 60);
+    ctx.fillStyle = 'rgba(240, 189, 75, .10)';
+    roundRectPath(ctx, VIEW_W / 2 - 62, padY - 17, 124, 55, 11); ctx.fill();
+    ctx.strokeStyle = 'rgba(240, 189, 75, .48)';
+    ctx.lineWidth = 2;
+    roundRectPath(ctx, VIEW_W / 2 - 62, padY - 17, 124, 55, 11); ctx.stroke();
+    ctx.fillStyle = '#f0bd4b';
+    ctx.globalAlpha = .58;
+    for (let i = -1; i <= 1; i++) {
+      const x = VIEW_W / 2 + i * 24;
+      ctx.beginPath();
+      ctx.moveTo(x, padY + 23); ctx.lineTo(x - 8, padY + 11); ctx.lineTo(x - 3, padY + 11); ctx.lineTo(x - 3, padY + 2); ctx.lineTo(x + 3, padY + 2); ctx.lineTo(x + 3, padY + 11); ctx.lineTo(x + 8, padY + 11); ctx.closePath();
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#8fa9a3';
+    ctx.font = '900 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillText('HOME BAY · BANK CARGO HERE', VIEW_W / 2, padY + 50);
+    ctx.restore();
+  }
+
+  function nearestSignalLoot() {
+    let target = null;
+    for (let d = player.depth + 1; d <= player.depth + 14; d++) {
+      const lane = run.lanes.get(d);
+      if (lane && lane.loot && lane.loot.signal && !lane.loot.collected) { target = lane.loot; break; }
+    }
+    return target;
+  }
+
+  function drawSignalCompass() {
+    if (run.returning || run.state !== 'playing') return;
+    const loot = nearestSignalLoot();
+    if (!loot) return;
+    const pos = lootScreenPosition(loot);
+    if (pos.y >= 36) return;
+    const rarity = RARITIES[loot.rarityIndex];
+    const x = clamp(pos.x, 54, VIEW_W - 54);
+    const pulse = .5 + .5 * Math.sin(run.elapsed * 5);
+    ctx.save();
+    ctx.translate(x, 22);
+    ctx.globalAlpha = .75 + pulse * .25;
+    ctx.fillStyle = rarity.color;
+    ctx.strokeStyle = '#081015';
+    ctx.lineWidth = 3;
+    ctx.beginPath(); ctx.moveTo(0, 13); ctx.lineTo(-11, -3); ctx.lineTo(-4, -3); ctx.lineTo(-4, -12); ctx.lineTo(4, -12); ctx.lineTo(4, -3); ctx.lineTo(11, -3); ctx.closePath(); ctx.fill(); ctx.stroke();
+    ctx.font = '1000 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.strokeText(`${loot.depth - player.depth} LANES`, 0, 27);
+    ctx.fillText(`${loot.depth - player.depth} LANES`, 0, 27);
+    ctx.restore();
+  }
+
+  function drawReturnVignette() {
+    if (!run.returning || run.state !== 'playing') return;
+    const risk = clamp(run.cargoValue / 1800, 0, 1);
+    const pulse = .5 + .5 * Math.sin(run.elapsed * 3.3);
+    const gradient = ctx.createRadialGradient(VIEW_W / 2, viewH * .55, Math.min(VIEW_W, viewH) * .26, VIEW_W / 2, viewH * .55, Math.max(VIEW_W, viewH) * .62);
+    gradient.addColorStop(.55, 'rgba(0,0,0,0)');
+    gradient.addColorStop(1, `rgba(239, 134, 62, ${.035 + risk * .06 + pulse * .018})`);
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0, 0, VIEW_W, viewH);
+  }
+
+  function drawPlayer() {
+    const x = colCenterX(player.renderCol);
+    const yBase = laneCenterY(player.renderDepth);
+    let hopT = 0;
+    let hopLift = 0;
+    if (player.hop) {
+      hopT = clamp(player.hop.elapsed / player.hop.duration, 0, 1);
+      hopLift = Math.sin(hopT * Math.PI) * 13;
+    }
+    const y = yBase - hopLift;
+    const air = Math.sin(hopT * Math.PI);
+    const squash = player.landingSquash;
+    const scaleX = 1 + squash * .13 - air * .06;
+    const scaleY = 1 - squash * .12 + air * .10;
+    const tilt = player.lastFacing === 'left' ? -.09 : player.lastFacing === 'right' ? .09 : 0;
+
+    ctx.save();
+    ctx.globalAlpha = run.state === 'dead' ? .25 : 1;
+    ctx.fillStyle = `rgba(0,0,0,${.34 - air * .15})`;
+    ctx.beginPath();
+    ctx.ellipse(x, yBase + 17, 17 - air * 3, 6 - air * 1.5, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(tilt);
+    ctx.scale(scaleX, scaleY);
+    if (player.invuln > 0 && Math.floor(run.elapsed * 18) % 2 === 0) ctx.globalAlpha = .38;
+
+    if (run.armorCharges > 0) {
+      ctx.strokeStyle = 'rgba(99, 224, 234, .72)';
+      ctx.lineWidth = 2.2;
+      ctx.beginPath();
+      ctx.arc(0, 0, 23 + Math.sin(run.elapsed * 5) * 1.5, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    // Cargo rack behind the bot grows slightly with carried items.
+    if (run.cargoItems > 0) {
+      ctx.fillStyle = '#3c2c20';
+      ctx.strokeStyle = '#111a1e';
+      ctx.lineWidth = 2;
+      roundRectPath(ctx, -15, 6, 30, 13, 3); ctx.fill(); ctx.stroke();
+      const visibleBits = Math.min(4, run.cargoItems);
+      for (let i = 0; i < visibleBits; i++) {
+        ctx.fillStyle = ['#aebcb8', '#6fcf98', '#61cce3', '#b97af0'][i % 4];
+        ctx.fillRect(-10 + i * 6, 2 - (i % 2) * 3, 5, 7);
+      }
+    }
+
+    // Feet / little suspension legs.
+    ctx.fillStyle = '#19252a';
+    roundRectPath(ctx, -15, 11, 10, 8, 3); ctx.fill();
+    roundRectPath(ctx, 5, 11, 10, 8, 3); ctx.fill();
+    ctx.fillStyle = '#d18a2f';
+    ctx.fillRect(-12, 8, 5, 6);
+    ctx.fillRect(7, 8, 5, 6);
+
+    // Main orange utility body.
+    ctx.fillStyle = '#eea43f';
+    ctx.strokeStyle = '#101a1f';
+    ctx.lineWidth = 3;
+    roundRectPath(ctx, -18, -11, 36, 27, 7); ctx.fill(); ctx.stroke();
+
+    // Side grabber arms.
+    ctx.fillStyle = '#cc7c2d';
+    roundRectPath(ctx, -23, -5, 7, 14, 3); ctx.fill(); ctx.stroke();
+    roundRectPath(ctx, 16, -5, 7, 14, 3); ctx.fill(); ctx.stroke();
+
+    // Head/visor gives an immediately readable face.
+    ctx.fillStyle = '#f5b84d';
+    roundRectPath(ctx, -14, -22, 28, 18, 6); ctx.fill(); ctx.stroke();
+    ctx.fillStyle = '#75d9df';
+    roundRectPath(ctx, -10, -18, 20, 9, 4); ctx.fill();
+    ctx.fillStyle = '#153941';
+    ctx.fillRect(-6, -16, 4, 4);
+    ctx.fillRect(3, -16, 4, 4);
+    ctx.fillStyle = 'rgba(255,255,255,.7)';
+    ctx.fillRect(-8, -17, 5, 2);
+
+    // Antenna and beacon.
+    ctx.strokeStyle = '#18242a';
+    ctx.lineWidth = 2.5;
+    ctx.beginPath(); ctx.moveTo(4, -22); ctx.lineTo(8, -30); ctx.stroke();
+    ctx.fillStyle = run.returning ? '#ffd15f' : '#72dce1';
+    ctx.beginPath(); ctx.arc(8, -31, 3.5 + Math.sin(run.elapsed * 5) * .4, 0, Math.PI * 2); ctx.fill();
+    ctx.stroke();
+
+    // Chest badge.
+    ctx.fillStyle = '#8c5427';
+    roundRectPath(ctx, -6, -2, 12, 9, 3); ctx.fill();
+    ctx.fillStyle = '#f8d681';
+    ctx.beginPath(); ctx.moveTo(0, -1); ctx.lineTo(3, 2); ctx.lineTo(0, 5); ctx.lineTo(-3, 2); ctx.closePath(); ctx.fill();
+
+    ctx.restore();
+  }
+
+  function drawHomeArrow() {
+    if (!run.returning || run.state !== 'playing') return;
+    const pulse = .5 + .5 * Math.sin(run.elapsed * 5.5);
+    const x = VIEW_W - 34;
+    const y = viewH - 32;
+    ctx.save();
+    ctx.globalAlpha = .72 + pulse * .28;
+    ctx.fillStyle = '#ffd15f';
+    ctx.strokeStyle = '#4a3411';
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(x, y + 15);
+    ctx.lineTo(x - 13, y - 2);
+    ctx.lineTo(x - 5, y - 2);
+    ctx.lineTo(x - 5, y - 18);
+    ctx.lineTo(x + 5, y - 18);
+    ctx.lineTo(x + 5, y - 2);
+    ctx.lineTo(x + 13, y - 2);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+    ctx.font = '1000 9px system-ui, sans-serif';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = '#fff1b6';
+    ctx.fillText(`HOME ${player.depth}`, x, y - 23);
+    ctx.restore();
+  }
+
+  function drawParticlesAndFloaters() {
+    for (const p of particles) {
+      const alpha = clamp(p.life / p.maxLife, 0, 1);
+      ctx.save();
+      ctx.globalAlpha = alpha;
+      ctx.fillStyle = p.color;
+      if (p.shape === 'circle') {
+        ctx.beginPath(); ctx.arc(p.x, p.y, p.size, 0, Math.PI * 2); ctx.fill();
+      } else if (p.shape === 'diamond') {
+        ctx.translate(p.x, p.y); ctx.rotate(Math.PI / 4); ctx.fillRect(-p.size / 2, -p.size / 2, p.size, p.size);
+      } else {
+        ctx.fillRect(p.x - p.size / 2, p.y - p.size / 2, p.size, p.size);
+      }
+      ctx.restore();
+    }
+
+    for (const f of floaters) {
+      const alpha = clamp(f.life / f.maxLife, 0, 1);
+      ctx.save();
+      ctx.globalAlpha = Math.min(1, alpha * 1.6);
+      ctx.font = `1000 ${f.size}px system-ui, sans-serif`;
+      ctx.textAlign = 'center';
+      ctx.strokeStyle = '#071016';
+      ctx.lineWidth = 4;
+      ctx.strokeText(f.text, f.x, f.y);
+      ctx.fillStyle = f.color;
+      ctx.fillText(f.text, f.x, f.y);
+      ctx.restore();
+    }
+  }
+
+  function draw() {
+    drawBackground();
+    const shakeX = shake > 0 ? randRange(Math.random, -shake, shake) : 0;
+    const shakeY = shake > 0 ? randRange(Math.random, -shake * .6, shake * .6) : 0;
+
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    drawScrapyardBase(laneCenterY(0) + LANE_H / 2);
+    const behind = Math.ceil((viewH - playerAnchorY()) / LANE_H) + 2;
+    const ahead = Math.ceil(playerAnchorY() / LANE_H) + 2;
+    const minDepth = Math.max(0, Math.floor(run.cameraDepth - behind));
+    const maxDepth = Math.ceil(run.cameraDepth + ahead);
+    generateThrough(maxDepth + 2);
+
+    for (let depth = maxDepth; depth >= minDepth; depth--) {
+      const lane = run.lanes.get(depth);
+      if (!lane) continue;
+      const y = laneCenterY(depth);
+      if (y < -LANE_H || y > viewH + LANE_H) continue;
+      drawLane(lane, y);
+    }
+
+    drawSignalCompass();
+    drawHomeArrow();
+    if (run.state !== 'dead' || run.overlayDelay > 0) drawPlayer();
+    drawParticlesAndFloaters();
+    ctx.restore();
+    drawReturnVignette();
+
+    if (flashOverlay > 0) {
+      ctx.save();
+      ctx.globalAlpha = Math.min(.34, flashOverlay);
+      ctx.fillStyle = run.state === 'dead' ? '#ff5e4c' : '#fff4c2';
+      ctx.fillRect(0, 0, VIEW_W, viewH);
+      ctx.restore();
+    }
+
+    // Subtle vignette keeps the play area visually focused.
+    const vignette = ctx.createRadialGradient(VIEW_W / 2, viewH * .53, viewH * .1, VIEW_W / 2, viewH * .53, Math.max(VIEW_W, viewH) * .65);
+    vignette.addColorStop(.6, 'rgba(0,0,0,0)');
+    vignette.addColorStop(1, 'rgba(0,0,0,.27)');
+    ctx.fillStyle = vignette;
+    ctx.fillRect(0, 0, VIEW_W, viewH);
+  }
+
+  // ---------------------------------------------------------------------------
+  // Main loop and diagnostics
+  // ---------------------------------------------------------------------------
+
+  function frame(now) {
+    const dt = (now - lastFrame) / 1000;
+    lastFrame = now;
+    update(dt);
+    draw();
+    requestAnimationFrame(frame);
+  }
+
+  function getDiagnosticState() {
+    return {
+      state: run.state,
+      depth: player.depth,
+      col: player.col,
+      cargoValue: run.cargoValue,
+      cargoItems: run.cargoItems,
+      returning: run.returning,
+      armorCharges: run.armorCharges,
+      queueLength: player.queue.length,
+      hopping: !!player.hop,
+      lanesGenerated: run.lanes.size,
+      runMaxDepth: run.runMaxDepth,
+      nearMisses: run.nearMisses,
+      zone: zoneForDepth(player.depth).name,
+      order: run.order ? { ...run.order, progress: orderProgress() } : null,
+      crusherLanes: [...run.lanes.values()].filter(lane => lane.type === 'crusher').length,
+      railLanes: [...run.lanes.values()].filter(lane => lane.type === 'rail').length,
+      save: JSON.parse(JSON.stringify(save))
+    };
+  }
+
+  if (new URLSearchParams(location.search).has('qa') || window.__SCRAP_RUN_QA__ === true) {
+    window.__scrapRunQA = {
+      start: startRun,
+      move: moveByName,
+      turnBack: beginReturn,
+      state: getDiagnosticState,
+      setInvulnerable(value) { run.qaInvulnerable = !!value; },
+      forceCargo(value = 500, items = 3) { run.cargoValue = value; run.cargoItems = items; updateHUD(); },
+      teleport(depth, col = 4) {
+        generateThrough(depth + 12);
+        player.depth = Math.max(0, Math.floor(depth));
+        player.renderDepth = player.depth;
+        player.col = clamp(Math.floor(col), 0, COLS - 1);
+        player.renderCol = player.col;
+        run.cameraDepth = player.depth;
+        run.runMaxDepth = Math.max(run.runMaxDepth, player.depth);
+        updateHUD();
+      },
+      collectFirstNearby() {
+        for (const lane of run.lanes.values()) {
+          if (lane.loot && !lane.loot.collected) {
+            const loot = lane.loot;
+            loot.depth = player.depth;
+            loot.col = player.col;
+            collectLoot(loot, { x: colCenterX(player.col), y: laneCenterY(player.depth) }, false);
+            return true;
+          }
+        }
+        return false;
+      },
+      die,
+      extract: finishExtraction,
+      findLane(type) {
+        for (const lane of run.lanes.values()) if (lane.type === type) return lane.depth;
+        return -1;
+      },
+      crusherState(depth) {
+        const lane = run.lanes.get(depth);
+        return lane && lane.crusher ? crusherTiming(lane) : null;
+      },
+      railState(depth) {
+        const lane = run.lanes.get(depth);
+        return lane && lane.rail ? railTiming(lane) : null;
+      },
+      setOrder(order) {
+        run.order = { ...order };
+        run.orderComplete = false;
+        run.orderNotified = false;
+        checkOrderProgress(false);
+      },
+      buy: buyUpgrade,
+      saveKey: STORAGE_KEY
+    };
+  }
+
+  renderModal('start');
+  updateHUD();
+  requestAnimationFrame(frame);
+})();
+</script>
 </body>
 </html>
