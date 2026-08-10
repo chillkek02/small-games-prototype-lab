@@ -64,7 +64,7 @@ window.SMALL_GAMES = [
     "slug": "wildcards",
     "folder": "06-wildcards",
     "title": "Project Wildcards",
-    "version": "v004",
+    "version": "v008",
     "genre": "Ecosystem \u00b7 Management",
     "hook": "Build a living ecosystem and stop it from eating itself.",
     "accent": "#77df91",
