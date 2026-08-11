@@ -4,7 +4,7 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no,maximum-scale=1" />
 <meta name="theme-color" content="#07110f" />
-<title>Ringkeep v2</title>
+<title>Ringkeep v11</title>
 <style>
 :root{
   --bg:#07110f;--panel:#10201d;--panel2:#172a26;--ink:#f4f0db;--muted:#a4b4a5;
@@ -148,7 +148,7 @@ button:active{transform:translateY(1px) scale(.99);background:#1c3b31}button.pri
 <script>
 'use strict';
 
-/* RINGKEEP v9 — Prototype #13
+/* RINGKEEP v11 — Prototype #13 • LAB CANDIDATE
    HTML/CSS/JS only. Foundation adapted from Small Games Kit v0.1.
    Curated embedded sounds from the uploaded 400 Sounds Pack:
    UI/select_2, Items/coin_collect, Materials/stone_push_short,
@@ -1519,6 +1519,56 @@ Game.draw=function(){_v9DrawV10.call(this);this.drawV10Readability()};
 
 const _v9ResetRunV10=Game.resetRun;
 Game.resetRun=function(){_v9ResetRunV10.call(this);this._readyCheckedNight=0;this.battleReport=null;this.lastBattleReport=null};
+
+
+
+/* =========================
+   RINGKEEP v11 — LAB CANDIDATE FREEZE
+   Mechanics frozen after v10 readiness pass. This block only cleans player-facing
+   help/versioning and exposes non-invasive build metadata for Prototype Lab QA.
+   ========================= */
+window.RINGKEEP_BUILD=Object.freeze({
+  name:'Ringkeep',prototype:13,version:'v11',status:'lab-candidate',
+  languageSupport:['en','es'],nights:6,selfContained:true
+});
+document.documentElement.dataset.ringkeepBuild='v11';
+
+L10N.en.howText=`GOAL
+Survive 6 nights and defeat the Siege Titan. The run ends only when the central Keep reaches 0 HP.
+
+DAY
+Read the scout report, then spend scarce gold on economy and defense. Tap fixed slots to build Farms, Houses, Archer Towers, Barracks, Ranger Halls, Walls, and Cannons. Upgrade buildings to specialize them, repair battle damage, and rotate the Inner, Middle, or Outer Ring. Rotating a ring moves EVERY building attached to it, so moving a Cannon toward danger may expose a Farm. Selected towers show their coverage before you commit.
+
+NIGHT
+Move the King by dragging on touch or with WASD / arrow keys. The King attacks automatically and has a weapon ability. Towers fire automatically. Barracks field melee troops; Ranger Halls field mobile ranged troops. Use RALLY and SECTOR orders to reinforce a weak side, and MARK THREAT to focus a dangerous enemy. If you unlock Rapid Rotation, you may rotate one ring once during combat.
+
+RUN GROWTH
+Choose a King weapon at the start. Royal Decrees appear during the run. After Night 3 the Keep specializes into economy, defense, or military support. Before Night 6 the Crown Foundry offers one final research choice. An optional Crown Trial adds score but never permanent combat power.
+
+TIP
+Greed is powerful but dangerous. Build enough economy to grow, but keep enough defense to survive tonight. The best layouts use the rings to move strength toward the announced attack without sacrificing everything else.`;
+
+L10N.es.howText=`OBJETIVO
+Sobrevive 6 noches y derrota al Titán de Asedio. La partida termina solo cuando el Torreón central llega a 0 PV.
+
+DÍA
+Lee el informe de exploradores y gasta el oro limitado entre economía y defensa. Toca espacios fijos para construir Granjas, Casas, Torres de Arqueros, Cuarteles, Salones de Guardabosques, Muros y Cañones. Mejora edificios para especializarlos, repara el daño y gira el Anillo Interior, Medio o Exterior. Girar un anillo mueve TODOS los edificios unidos a él, así que acercar un Cañón al peligro también puede exponer una Granja. Las torres seleccionadas muestran su cobertura antes de decidir.
+
+NOCHE
+Mueve al Rey arrastrando en pantalla o con WASD / flechas. El Rey ataca automáticamente y tiene una habilidad de arma. Las torres disparan solas. Los Cuarteles aportan tropas cuerpo a cuerpo y los Salones de Guardabosques tropas móviles a distancia. Usa REAGRUPAR y SECTOR para reforzar un lado débil, y MARCAR AMENAZA para concentrar el ataque en un enemigo peligroso. Si desbloqueas Giro Rápido, puedes girar un anillo una vez durante el combate.
+
+PROGRESIÓN DE LA PARTIDA
+Elige un arma para el Rey al comenzar. Durante la partida aparecen Decretos Reales. Tras la Noche 3, el Torreón se especializa en economía, defensa o apoyo militar. Antes de la Noche 6, la Fundición de la Corona ofrece una última investigación. Un Desafío de la Corona opcional suma puntuación, pero nunca poder permanente.
+
+CONSEJO
+La codicia puede ser muy rentable, pero también peligrosa. Invierte lo suficiente en economía para crecer sin descuidar la defensa de esta noche. Las mejores fortalezas usan los anillos para mover fuerza hacia el ataque anunciado sin sacrificar todo lo demás.`;
+
+const _v10UpdateLocalizedUILab=updateLocalizedUI;
+updateLocalizedUI=function(){
+  _v10UpdateLocalizedUILab();
+  const devTitle=document.getElementById('devTitle');
+  if(devTitle)devTitle.textContent=`${t('devTitle')} • v11`;
+};
 
 Game.plan=Game.makePlan(1);updateLocalizedUI();SGK.start();
 if(SGK.Save.get('lang',null)==null)showLanguage(true);else showTitle();

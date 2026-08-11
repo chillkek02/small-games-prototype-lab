@@ -148,12 +148,12 @@ window.SMALL_GAMES = [
     "slug": "ringkeep",
     "folder": "13-ringkeep",
     "title": "Ringkeep",
-    "version": "v10",
-    "genre": "Kingdom Defense \u00b7 Strategy",
-    "hook": "Build on rotating fortress rings and reconfigure your defenses before each siege.",
+    "version": "v11",
+    "genre": "Streamlined Kingdom Builder \u00b7 Active Tower Defense",
+    "hook": "Build a kingdom on three rotating fortress rings. Rotating a ring moves every attached building, letting you reposition defenses while potentially exposing your economy.",
     "accent": "#d7a650",
     "symbol": "\u25ce",
-    "status": "PROTOTYPE"
+    "status": "PLAYTEST READY"
   },
   {
     "id": 14,
