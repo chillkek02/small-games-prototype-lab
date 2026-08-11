@@ -23,7 +23,7 @@
   <section class="hero">
     <div class="eyebrow">PRIVATE PLAYTEST HUB · BUILD FAST · KEEP THE WINNERS</div>
     <h1>SMALL GAMES<br>PROTOTYPE LAB</h1>
-    <p>Nine fast experiments. Play anything that catches your eye, then submit a rating for the whole team to review.</p>
+    <p><span id="experimentCount">0</span> fast experiments. Play anything that catches your eye, then submit a rating for the whole team to review.</p>
     <div class="hero-actions">
       <button class="btn primary" id="randomBtn">PLAY A RANDOM PROTOTYPE</button>
       <button class="btn secondary" id="myRatingsBtn">MY RATINGS</button>
@@ -70,6 +70,8 @@
 const STORE='smallGamesPrototypeLabReviewsV2';
 const NAME='smallGamesPrototypeLabTesterV1';
 const games=window.SMALL_GAMES||[];
+const experimentCount=document.getElementById('experimentCount');
+if(experimentCount)experimentCount.textContent=games.length;
 const grid=document.getElementById('gameGrid');
 const nameInput=document.getElementById('testerName');
 const modal=document.getElementById('ratingModal');

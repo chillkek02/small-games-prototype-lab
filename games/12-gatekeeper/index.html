@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="theme-color" content="#24180f" />
+<title>Project Gatekeeper v7</title>
+<style>
+  :root{
+    --ink:#f7ecd2;--muted:#c6b38d;--gold:#e7b653;--green:#4e9e69;--red:#a94b3d;
+    --wood:#2a190f;--paper:#e6d1a1;--paper2:#d5b87e;--dark:#160e09;--line:#6f4a28;
+    --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+    --safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#0d0906;color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;touch-action:none;overscroll-behavior:none}
+  #app{position:fixed;inset:0;padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);display:flex;align-items:center;justify-content:center;background:radial-gradient(circle at 50% 15%,#49301b 0,#1c120b 50%,#0c0805 100%)}
+  #shell{position:relative;width:min(100vw,540px,calc(100vh * .5625));height:auto;aspect-ratio:9/16;overflow:hidden;background:#24160d;box-shadow:0 0 0 1px #5d3b1f,0 24px 90px #000c}
+  canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+  #topButtons{position:absolute;z-index:34;right:10px;top:10px;display:flex;gap:6px}
+  button{appearance:none;border:1px solid #8a6035;background:#2d1b10;color:#f8edcf;border-radius:10px;padding:8px 10px;font-weight:900;letter-spacing:.03em;box-shadow:0 5px 14px #0007;font-size:11px}
+  button:active{transform:translateY(1px) scale(.98)}
+  #toast{position:absolute;z-index:55;left:50%;top:13%;transform:translate(-50%,-10px);max-width:84%;text-align:center;padding:9px 13px;border-radius:999px;background:#160e09eb;border:1px solid #9d7448;color:#f7ecd2;font-weight:900;font-size:12px;opacity:0;pointer-events:none;transition:.16s ease;box-shadow:0 8px 28px #0009}
+  #toast.show{opacity:1;transform:translate(-50%,0)}
+  #devPanel{position:absolute;z-index:64;right:8px;top:48px;width:205px;background:#150d08f4;border:1px solid #8e6236;border-radius:12px;padding:9px;display:none;box-shadow:0 16px 48px #000b}
+  #devPanel.show{display:block}
+  #devPanel h3{font-size:10px;margin:1px 0 7px;color:#e7b653;letter-spacing:.08em}
+  #devPanel button{width:100%;font-size:10px;padding:7px;margin:3px 0;text-align:left}
+  #telemetry{position:absolute;z-index:63;left:8px;top:52px;display:none;background:#130c08ed;border:1px solid #7f5b37;border-radius:10px;padding:8px;color:#e1cc9f;font:9px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;pointer-events:none;white-space:pre;box-shadow:0 8px 30px #0009}
+  #telemetry.show{display:block}
+  #modal{position:absolute;inset:0;z-index:72;background:#0a0705df;display:none;align-items:center;justify-content:center;padding:22px}
+  #modal.show{display:flex}
+  #modalCard{width:100%;max-width:430px;max-height:90%;overflow-y:auto;touch-action:pan-y;background:linear-gradient(#2a1a10,#1d120b);border:1px solid #9d7447;border-radius:18px;padding:18px;box-shadow:0 28px 80px #000d;position:relative}
+  #modalCard:before{content:"";position:absolute;inset:7px;border:1px solid #60401f;border-radius:12px;pointer-events:none}
+  #modalKicker{font-size:10px;font-weight:900;letter-spacing:.16em;color:#d7a949;text-transform:uppercase;margin-bottom:6px;position:relative}
+  #modalTitle{margin:0 0 9px;font-family:Georgia,serif;font-size:26px;color:#fff0c9;position:relative}
+  #modalText{white-space:pre-line;color:#d8c6a1;line-height:1.45;font-size:13px;margin:0;position:relative}
+  #modalActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:15px;position:relative}
+  #modalActions button{flex:1;min-width:120px;background:#5a3920;border-color:#a97b45;padding:11px 12px}
+  @media(min-width:700px){#shell{border-radius:18px}}
+</style>
+</head>
+<body>
+<div id="app"><div id="shell">
+  <canvas id="game" width="540" height="960" aria-label="Project Gatekeeper game canvas"></canvas>
+  <div id="topButtons">
+    <button id="soundBtn">SOUND ON</button>
+    <button id="devBtn">DEV</button>
+  </div>
+  <div id="toast"></div>
+  <div id="telemetry"></div>
+  <div id="devPanel">
+    <h3>PROJECT GATEKEEPER v7 — DEV / CAPTURE</h3>
+    <button data-dev="fraud">Load obvious permit fraud</button>
+    <button data-dev="cleric">Load strategic illegal cleric</button>
+    <button data-dev="contraband">Load searchable contraband</button>
+    <button data-dev="alias">Load sigil / alias case</button>
+    <button data-dev="missing">Load missing-document case</button>
+    <button data-dev="quest">Load quest-statement mismatch</button>
+    <button data-dev="writ">Load Royal Writ exception</button>
+    <button data-dev="circle">Load sealed-request target</button>
+    <button data-dev="returner">Load corrected-paper return</button>
+    <button data-dev="emergency">Trigger emergency order</button>
+    <button data-dev="party">Fill strong party</button>
+    <button data-dev="danger">Force dangerous expedition</button>
+    <button data-dev="relic">Force relic-ready party</button>
+    <button data-dev="streak">Set clean-seal streak to 3</button>
+    <button data-dev="nextday">Jump to next day</button>
+    <button data-dev="slow">Toggle slow motion</button>
+    <button data-dev="telemetry">Show / hide telemetry</button>
+    <button data-dev="reset">Reset records</button>
+    <button data-dev="close">Close</button>
+  </div>
+  <div id="modal">
+    <div id="modalCard">
+      <div id="modalKicker"></div>
+      <h2 id="modalTitle">Project Gatekeeper</h2>
+      <p id="modalText"></p>
+      <div id="modalActions"></div>
+    </div>
+  </div>
+</div></div>
+<script>
+'use strict';
+
+/* =========================================================
+   SMALL GAMES KIT v0.1 — adapted for PROJECT GATEKEEPER v7
+   Self-contained HTML/CSS/JS. No external libraries/assets.
+   Preserved: responsive shell, touch + keyboard input, game loop,
+   scene support, RNG helpers, localStorage, procedural audio,
+   particles, shake, flashes, floating text, tweens, HUD-style canvas,
+   modals/toasts, telemetry, and developer/capture tools.
+   ========================================================= */
+
+const SGK=(()=>{
+  const canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+  const W=canvas.width,H=canvas.height;
+  const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const lerp=(a,b,t)=>a+(b-a)*t;
+  const rand=(a=0,b=1)=>a+Math.random()*(b-a);
+  const irand=(a,b)=>Math.floor(rand(a,b+1));
+  const choose=a=>a[Math.floor(Math.random()*a.length)];
+  const shuffle=a=>{const b=[...a];for(let i=b.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[b[i],b[j]]=[b[j],b[i]]}return b};
+  const weightedChoice=e=>{const total=e.reduce((s,x)=>s+x.weight,0);let r=Math.random()*total;for(const x of e){r-=x.weight;if(r<=0)return x.value}return e[e.length-1]?.value};
+  function mulberry32(seed){return function(){let t=seed+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return((t^t>>>14)>>>0)/4294967296}}
+
+  const PREFIX='sgk_gatekeeper_v1_';
+  const Save={
+    get(k,f=null){try{const r=localStorage.getItem(PREFIX+k);return r===null?f:JSON.parse(r)}catch{return f}},
+    set(k,v){try{localStorage.setItem(PREFIX+k,JSON.stringify(v));return true}catch{return false}},
+    reset(){try{Object.keys(localStorage).filter(k=>k.startsWith(PREFIX)).forEach(k=>localStorage.removeItem(k))}catch{}}
+  };
+  const Telemetry={
+    data:Save.get('telemetry',{sessions:0,runsStarted:0,runsCompleted:0,wins:0,daysCompleted:0,applicants:0,correct:0,citations:0,approved:0,rejected:0,expeditions:0,survived:0,deaths:0,returns:0,restarts:0,playMs:0}),
+    init(){this.data.sessions++;this.persist()},startRun(){this.data.runsStarted++;this.persist()},
+    tick(ms){this.data.playMs+=ms},inc(k,n=1){this.data[k]=(this.data[k]||0)+n;this.persist()},
+    completeRun(win){this.data.runsCompleted++;if(win)this.data.wins++;this.persist()},restart(){this.data.restarts++;this.persist()},
+    persist(){Save.set('telemetry',this.data)},reset(){this.data={sessions:1,runsStarted:0,runsCompleted:0,wins:0,daysCompleted:0,applicants:0,correct:0,citations:0,approved:0,rejected:0,expeditions:0,survived:0,deaths:0,returns:0,restarts:0,playMs:0};this.persist()}
+  };
+
+  const Input={
+    keys:new Set(),pressed:new Set(),queue:[],pointer:{x:0,y:0,down:false,startX:0,startY:0},
+    init(){
+      addEventListener('keydown',e=>{const k=e.key.toLowerCase();if(!this.keys.has(k))this.pressed.add(k);this.keys.add(k);if([' ','arrowup','arrowdown','arrowleft','arrowright'].includes(k))e.preventDefault();if(k==='`')UI.toggleDev()},{passive:false});
+      addEventListener('keyup',e=>this.keys.delete(e.key.toLowerCase()));
+      const pos=e=>{const r=canvas.getBoundingClientRect();return{x:(e.clientX-r.left)*W/r.width,y:(e.clientY-r.top)*H/r.height}};
+      canvas.addEventListener('pointerdown',e=>{const p=pos(e);this.pointer={x:p.x,y:p.y,down:true,startX:p.x,startY:p.y};Audio.unlock();try{canvas.setPointerCapture(e.pointerId)}catch{}});
+      canvas.addEventListener('pointermove',e=>{const p=pos(e);this.pointer.x=p.x;this.pointer.y=p.y});
+      canvas.addEventListener('pointerup',e=>{const p=pos(e);this.pointer.x=p.x;this.pointer.y=p.y;this.pointer.down=false;this.queue.push({type:'tap',x:p.x,y:p.y})});
+    },
+    tap(){const i=this.queue.findIndex(x=>x.type==='tap');return i>=0?this.queue.splice(i,1)[0]:null},
+    key(k){if(this.pressed.has(k)){this.pressed.delete(k);return true}return false},
+    endFrame(){this.pressed.clear()}
+  };
+
+  const Audio={
+    ctx:null,master:null,enabled:Save.get('sound',true),
+    unlock(){if(this.ctx)return;try{const AC=window.AudioContext||window.webkitAudioContext;this.ctx=new AC();this.master=this.ctx.createGain();this.master.gain.value=this.enabled?.18:0;this.master.connect(this.ctx.destination)}catch{}},
+    setEnabled(v){this.enabled=v;Save.set('sound',v);if(this.master)this.master.gain.value=v?.18:0},
+    tone(freq=440,dur=.08,type='sine',vol=.3,slide=0,delay=0){if(!this.enabled)return;this.unlock();if(!this.ctx)return;const t=this.ctx.currentTime+delay,o=this.ctx.createOscillator(),g=this.ctx.createGain();o.type=type;o.frequency.setValueAtTime(freq,t);if(slide)o.frequency.exponentialRampToValueAtTime(Math.max(40,freq+slide),t+dur);g.gain.setValueAtTime(.0001,t);g.gain.exponentialRampToValueAtTime(vol,t+.008);g.gain.exponentialRampToValueAtTime(.0001,t+dur);o.connect(g);g.connect(this.master);o.start(t);o.stop(t+dur+.03)},
+    click(){this.tone(330,.045,'square',.14,70)},
+    arrival(){this.tone(310,.06,'triangle',.16,80);this.tone(440,.05,'triangle',.12,30,.06)},
+    page(){this.tone(250,.035,'triangle',.08,70)},
+    compare(ok){if(ok){this.tone(760,.07,'sine',.2,220);this.tone(980,.08,'sine',.16,80,.06)}else this.tone(250,.06,'triangle',.1,40)},
+    stamp(approved){this.tone(approved?105:85,.13,'square',.3,-20);this.tone(approved?380:230,.06,'triangle',.12,-80,.03)},
+    citation(){this.tone(145,.14,'sawtooth',.28,-55);this.tone(105,.18,'square',.18,-25,.09)},
+    coin(){this.tone(740,.055,'sine',.18,110);this.tone(980,.06,'sine',.12,80,.05)},
+    gate(){this.tone(90,.25,'sawtooth',.16,-25);this.tone(72,.28,'square',.1,15,.12)},
+    death(){this.tone(180,.16,'sawtooth',.24,-110);this.tone(90,.22,'triangle',.16,-35,.1)},
+    success(){[520,660,820].forEach((f,i)=>this.tone(f,.11,'triangle',.2,70,i*.07))},
+    day(){[390,520,650].forEach((f,i)=>this.tone(f,.1,'triangle',.16,40,i*.07))},
+    bell(){this.tone(520,.18,'triangle',.22,-30);this.tone(390,.24,'triangle',.18,-20,.12)},
+    question(){this.tone(300,.06,'triangle',.13,120);this.tone(460,.07,'triangle',.1,40,.06)},
+    search(){this.tone(210,.05,'square',.1,90);this.tone(340,.07,'triangle',.12,70,.05)},
+    detain(){this.tone(92,.18,'square',.25,-20);this.tone(150,.12,'sawtooth',.18,-40,.08)},
+    verify(ok=true){this.tone(ok?620:180,.08,ok?'sine':'sawtooth',.17,ok?190:-60);this.tone(ok?880:110,.09,'triangle',.13,ok?90:-30,.06)},
+    upgrade(){[430,570,740].forEach((f,i)=>this.tone(f,.085,'triangle',.14,50,i*.055))},
+    alert(){this.tone(330,.09,'square',.16,70);this.tone(480,.12,'triangle',.14,120,.08)},
+    audit(ok=true){this.tone(ok?520:260,.1,ok?'triangle':'square',.16,ok?110:-50);this.tone(ok?760:180,.12,'sine',.13,ok?80:-20,.07)},
+    returner(){this.tone(410,.07,'triangle',.12,80);this.tone(610,.08,'sine',.11,60,.05)},
+    fired(){[220,170,120].forEach((f,i)=>this.tone(f,.18,'sawtooth',.25,-40,i*.09))}
+  };
+
+  const Juice={
+    shake:{power:0,time:0,max:.16},flash:{alpha:0,color:'#fff'},particles:[],floats:[],tweens:[],
+    addShake(power=8,time=.16){this.shake.power=Math.max(this.shake.power,power);this.shake.time=Math.max(this.shake.time,time);this.shake.max=Math.max(this.shake.max,time)},
+    addFlash(color='#fff',alpha=.25){this.flash.color=color;this.flash.alpha=Math.max(this.flash.alpha,alpha)},
+    particleBurst(x,y,count=12,o={}){for(let i=0;i<count;i++){const a=rand(0,Math.PI*2),sp=rand(o.speedMin||30,o.speedMax||130);this.particles.push({x,y,vx:Math.cos(a)*sp,vy:Math.sin(a)*sp,life:rand(.35,.8),maxLife:.8,size:rand(o.sizeMin||2,o.sizeMax||6),color:o.color||choose(['#e7b653','#b65d47','#f4e3b7','#7b9c67']),gravity:o.gravity??120})}},
+    floatText(x,y,text,color='#fff',size=18){this.floats.push({x,y,text,color,size,life:1,maxLife:1})},
+    tween(obj,to,d=.2,e=t=>1-(1-t)*(1-t),done=null){const from={};Object.keys(to).forEach(k=>from[k]=obj[k]);this.tweens.push({obj,to,from,d,t:0,e,done})},
+    update(dt){if(this.shake.time>0){this.shake.time-=dt;if(this.shake.time<=0)this.shake.power=0}this.flash.alpha=Math.max(0,this.flash.alpha-dt*2.7);for(const p of this.particles){p.life-=dt;p.vy+=p.gravity*dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.vx*=Math.pow(.18,dt)}this.particles=this.particles.filter(p=>p.life>0);for(const f of this.floats){f.life-=dt;f.y-=34*dt}this.floats=this.floats.filter(f=>f.life>0);for(const tw of this.tweens){tw.t+=dt;const q=clamp(tw.t/tw.d,0,1),z=tw.e(q);Object.keys(tw.to).forEach(k=>tw.obj[k]=lerp(tw.from[k],tw.to[k],z));if(q>=1)tw.finished=true}const d=this.tweens.filter(t=>t.finished);this.tweens=this.tweens.filter(t=>!t.finished);d.forEach(t=>t.done&&t.done())},
+    beginCamera(){if(this.shake.power>0){const d=clamp(this.shake.time/this.shake.max,0,1);ctx.save();ctx.translate(rand(-1,1)*this.shake.power*d,rand(-1,1)*this.shake.power*d);return true}return false},
+    endCamera(s){if(s)ctx.restore()},
+    drawOverlay(){for(const p of this.particles){ctx.globalAlpha=clamp(p.life/p.maxLife,0,1);ctx.fillStyle=p.color;ctx.beginPath();ctx.arc(p.x,p.y,p.size,0,Math.PI*2);ctx.fill()}ctx.globalAlpha=1;for(const f of this.floats){ctx.globalAlpha=clamp(f.life/f.maxLife,0,1);ctx.fillStyle=f.color;ctx.font=`900 ${f.size}px system-ui`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(f.text,f.x,f.y)}ctx.globalAlpha=1;if(this.flash.alpha>0){ctx.globalAlpha=this.flash.alpha;ctx.fillStyle=this.flash.color;ctx.fillRect(0,0,W,H);ctx.globalAlpha=1}}
+  };
+
+  const UI={
+    toastTimer:null,toast(msg,ms=1400){const e=document.getElementById('toast');e.textContent=msg;e.classList.add('show');clearTimeout(this.toastTimer);this.toastTimer=setTimeout(()=>e.classList.remove('show'),ms)},
+    modal(kicker,title,text,actions=[{label:'OK'}]){const m=document.getElementById('modal'),a=document.getElementById('modalActions');document.getElementById('modalKicker').textContent=kicker||'';document.getElementById('modalTitle').textContent=title;document.getElementById('modalText').textContent=text;a.innerHTML='';actions.forEach(act=>{const b=document.createElement('button');b.textContent=act.label||'OK';b.onclick=()=>{Audio.unlock();Audio.click();m.classList.remove('show');act.onClick&&act.onClick()};a.appendChild(b)});m.classList.add('show')},
+    modalOpen(){return document.getElementById('modal').classList.contains('show')},
+    toggleDev(force){const p=document.getElementById('devPanel');p.classList.toggle('show',force===undefined?!p.classList.contains('show'):force)},
+    telemetry(show){document.getElementById('telemetry').classList.toggle('show',show)}
+  };
+
+  const Draw={
+    rr(x,y,w,h,r,fill,stroke=null,line=1){ctx.beginPath();ctx.roundRect(x,y,w,h,r);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=line;ctx.stroke()}},
+    text(t,x,y,s=16,c='#fff',a='left',w=700,font='system-ui'){ctx.fillStyle=c;ctx.textAlign=a;ctx.textBaseline='middle';ctx.font=`${w} ${s}px ${font}`;ctx.fillText(t,x,y)},
+    circle(x,y,r,fill,stroke=null,line=1){ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=line;ctx.stroke()}},
+    line(x1,y1,x2,y2,c='#fff',w=1){ctx.strokeStyle=c;ctx.lineWidth=w;ctx.beginPath();ctx.moveTo(x1,y1);ctx.lineTo(x2,y2);ctx.stroke()}
+  };
+  const Scenes={current:null,set(s){this.current?.exit?.();this.current=s;this.current?.enter?.()},update(dt){this.current?.update?.(dt)},draw(){this.current?.draw?.()}};
+  let last=performance.now(),timeScale=1,running=false;
+  function loop(now){if(!running)return;const raw=Math.min(.05,(now-last)/1000);last=now;Telemetry.tick(raw*1000);const dt=raw*timeScale;Juice.update(dt);Scenes.update(dt);ctx.clearRect(0,0,W,H);const s=Juice.beginCamera();Scenes.draw();Juice.endCamera(s);Juice.drawOverlay();Input.endFrame();updateTelemetry();requestAnimationFrame(loop)}
+  function updateTelemetry(){const el=document.getElementById('telemetry');if(!el.classList.contains('show'))return;const d=Telemetry.data;el.textContent=`sessions ${d.sessions}\nruns ${d.runsStarted}\ndays ${d.daysCompleted}\napplicants ${d.applicants}\ncorrect ${d.correct}\ncitations ${d.citations}\nexpeditions ${d.expeditions}\nsurvived ${d.survived}\ndeaths ${d.deaths}\nreturns ${d.returns}\nplay ${(d.playMs/60000).toFixed(1)}m\nparticles ${Juice.particles.length}`}
+  function start(scene){Input.init();Telemetry.init();Scenes.set(scene);running=true;last=performance.now();requestAnimationFrame(loop)}
+  return{canvas,ctx,W,H,clamp,lerp,rand,irand,choose,shuffle,weightedChoice,mulberry32,Save,Telemetry,Input,Audio,Juice,UI,Draw,Scenes,start,setTimeScale:v=>timeScale=v};
+})();
+
+/* =========================================================
+   PROJECT GATEKEEPER v7
+   ========================================================= */
+
+const Gatekeeper=(()=>{
+  const {ctx,Draw}=SGK;
+  const DAYS=[
+    {name:'GOBLIN WARRENS',subtitle:'A friendly little death-hole.',day:1,minLevel:2,permit:false,guild:false,cert:false,wanted:false,shiftSeconds:105,targetCases:5,priorityPurpose:null,priorityBonus:0,
+      threats:['Goblin swarms','Light melee'],regs:['LEVEL 2+ REQUIRED'],advice:['Bring enough damage','A sturdy frontliner helps'],targets:{combat:17,defense:9,healing:2,utility:2},tags:['swarm']},
+    {name:'OLD IRON MINES',subtitle:'Now with more traps than floor.',day:2,minLevel:2,permit:true,guild:false,cert:false,wanted:false,shiftSeconds:125,targetCases:6,priorityPurpose:null,priorityBonus:0,
+      threats:['Armored goblins','Rusty traps'],regs:['LEVEL 2+ REQUIRED','VALID DUNGEON PERMIT'],advice:['Piercing or blunt damage','Trap utility recommended'],targets:{combat:20,defense:11,healing:3,utility:7},tags:['armor','traps']},
+    {name:'POISON MARSH',subtitle:'The air tastes medically concerning.',day:3,minLevel:3,permit:true,guild:true,questRule:true,cert:false,wanted:false,poisonRule:true,shiftSeconds:145,targetCases:6,priorityPurpose:'Rescue Delver',priorityBonus:18,
+      threats:['Poison spores','Disease pools'],regs:['LEVEL 3+ REQUIRED','VALID DUNGEON PERMIT','GUILD BADGE MUST MATCH IDENTITY','GUILD BADGES USE ROUND RED SEAL','QUEST CONTRACT MUST MATCH DECLARATION','POISON RESIST OR ANTIDOTE'],advice:['Healing strongly recommended','Utility avoids bog hazards'],targets:{combat:22,defense:12,healing:7,utility:6},tags:['poison','disease']},
+    {name:'UNDEAD CRYPT',subtitle:'Please return all borrowed skeletons.',day:4,minLevel:4,permit:true,guild:true,questRule:true,cert:true,wanted:true,banNecro:true,writRule:true,shiftSeconds:165,targetCases:7,priorityPurpose:'Recover Relic',priorityBonus:22,
+      threats:['Undead knights','Curses','False walls'],regs:['LEVEL 4+ REQUIRED','VALID DUNGEON PERMIT','GUILD BADGE MUST MATCH IDENTITY','QUEST CONTRACT MUST MATCH DECLARATION','MAGES NEED ARCANE CERT','WANTED PERSONS REJECTED','NECROMANCERS PROHIBITED','ROYAL WRIT MAY WAIVE PERMIT EXPIRY / DESTINATION'],advice:['Holy or silver damage','Healing / curse protection'],targets:{combat:26,defense:15,healing:8,utility:7},tags:['undead','curse']},
+    {name:'FIRE CAVERNS',subtitle:'The rocks are angry and so is payroll.',day:5,minLevel:4,permit:true,guild:true,questRule:true,cert:true,wanted:true,packRule:true,writRule:true,shiftSeconds:185,targetCases:7,priorityPurpose:'Bounty Hunt',priorityBonus:28,
+      threats:['Fire traps','Armored salamanders','Lava bridge'],regs:['LEVEL 4+ REQUIRED','VALID DUNGEON PERMIT','QUEST CONTRACT MUST MATCH DECLARATION','MAGES NEED ARCANE CERT','WANTED PERSONS REJECTED','CREDENTIALS MUST MATCH','PACK WEIGHT MUST MATCH DECLARATION','CURSED CONTRABAND PROHIBITED','ROYAL WRIT MAY WAIVE PERMIT EXPIRY / DESTINATION'],advice:['Fire resist OR strong healing','Piercing damage for armor','Balanced party strongly advised'],targets:{combat:30,defense:18,healing:10,utility:8},tags:['fire','armor']}
+  ];
+
+  const CLASS={
+    Knight:{combat:3,defense:5,healing:0,utility:1,role:'FRONTLINE'},
+    Cleric:{combat:1,defense:2,healing:6,utility:1,role:'SUPPORT'},
+    Rogue:{combat:4,defense:1,healing:0,utility:5,role:'UTILITY'},
+    Ranger:{combat:4,defense:2,healing:0,utility:4,role:'SCOUT'},
+    Mage:{combat:6,defense:1,healing:0,utility:4,role:'ARCANE'},
+    Barbarian:{combat:7,defense:2,healing:0,utility:0,role:'DAMAGE'},
+    Paladin:{combat:4,defense:5,healing:3,utility:1,role:'HOLY'},
+    Scholar:{combat:1,defense:1,healing:1,utility:7,role:'UTILITY'},
+    Engineer:{combat:2,defense:3,healing:0,utility:7,role:'UTILITY'},
+    Necromancer:{combat:6,defense:1,healing:1,utility:3,role:'FORBIDDEN'}
+  };
+  const SPECIES=['Human','Elf','Dwarf','Goblin','Orc','Halfling'];
+  const NAMES=['Sir Bumblefoot','Mira Vale','Bram Stone','Gribble Nix','Torr Magnificent','Sister Pella','Dorn Kegbreaker','Lysa Quickstep','Orin Ashcap','Fenwick Bolt','Nimble Nan','Krag Softvoice','Edda Flint','Vell Sable','Brother Moss','Rook Underhill','Pip Ironbelly','Selene Wisp','Garrick Mildly-Brave','Zobble'];
+  const QUOTES=[
+    'I have trained for nearly several hours.','My confidence is fully armored.','This paperwork was definitely purchased legally.','I packed snacks. That counts as preparation.','I have survived worse. Probably.','The guild said this would build character.','I only panic professionally.','Nothing in there can be worse than rent.','I read half the warning sign.','Glory first. Planning later.'
+  ];
+  const REACTIONS_OK=['Finally. Glory awaits!','Tell the dungeon I said hello.','Excellent. I regret nothing.','My mother will be so relieved.','Open the gate!'];
+  const REACTIONS_NO=['What? This is premium paperwork!','My mother forged that herself!','Rules are just very stern suggestions.','I demand a less observant Gatekeeper.','Fine. I feared the stairs anyway.'];
+  const WEAPONS=[
+    {name:'Longsword',tag:'slash',power:2},{name:'Warhammer',tag:'blunt',power:3},{name:'Spear',tag:'piercing',power:3},{name:'Silver Blade',tag:'silver',power:2},
+    {name:'Blessed Mace',tag:'holy',power:2},{name:'Crossbow',tag:'piercing',power:3},{name:'Twin Daggers',tag:'slash',power:3},{name:'Arcane Staff',tag:'magic',power:4},
+    {name:'Enormous Spoon',tag:'blunt',power:1},{name:'Bent Rapier',tag:'piercing',power:1}
+  ];
+  const ARMOR=[{name:'Cloth Robes',def:0},{name:'Leather Jerkin',def:1},{name:'Chain Shirt',def:2},{name:'Plate Armor',def:4},{name:'Decorative Cape',def:0},{name:'Half a Shield',def:1}];
+  const TRAITS=['Fearless','Cautious','Greedy','Lucky','Clumsy','Veteran','Bookish','Hotheaded'];
+  const TITLES=['LAVA-SCORCHED','CRYPT-BOTHERER','GOBLIN-TESTED','MARSH-SCENTED','LUCKY ENOUGH'];
+  const PURPOSES=['Cull Monsters','Recover Relic','Rescue Delver','Survey Ruins','Bounty Hunt'];
+  const UPGRADES={
+    sandglass:{name:'LONGER SANDGLASS',desc:'+15 seconds on every future shift.'},
+    ruleStand:{name:'RULEBOOK STAND',desc:'The shift clock pauses while the rulebook is open.'},
+    compareLens:{name:'COMPARE LENS',desc:'The shift clock nearly pauses while comparing facts.'},
+    springStamp:{name:'SPRING-LOADED STAMP',desc:'Approve / Reject stamps resolve much faster.'}
+  };
+
+  let state,mode='desk',tab=0,current=null,stamp=null,compareRows=[],compareResult='',compareTimer=0,expedition=null,expTimer=0,summary=null,book=false;
+  let applicantBob=0,arrival=0,slow=false,tele=false;
+  const tabNames=['IDENTITY','PERMIT','GEAR','GUILD / QUEST'];
+  const rects={
+    tabs:[{x:18,y:350,w:122,h:34},{x:145,y:350,w:122,h:34},{x:272,y:350,w:122,h:34},{x:399,y:350,w:123,h:34}],
+    reject:{x:18,y:845,w:158,h:88},compare:{x:191,y:845,w:158,h:88},approve:{x:364,y:845,w:158,h:88},
+    rules:{x:414,y:77,w:108,h:31},bookBack:{x:180,y:856,w:180,h:56},
+    compareBack:{x:190,y:886,w:160,h:48},compareAction:{x:48,y:822,w:202,h:52},compareDetain:{x:290,y:822,w:202,h:52}
+  };
+
+  function freshStats(){return{processed:0,approved:0,rejected:0,correct:0,citations:0,warnings:0,fines:0,wages:0,expenses:0,detained:0,unprocessed:0,parties:0,survived:0,lost:0,goldDelta:0,repDelta:0,priorityBonus:0,secretBonus:0,resubmissions:0,auditBonus:0,cleanSeals:0,perfectParties:0,relicBonus:0}}
+  function resetRun(){
+    state={day:1,gold:120,rep:72,party:[],survivorPool:[],stats:freshStats(),dayStats:freshStats(),applicants:[],idx:0,ended:false,lastHeadline:'',completedExpeditions:0,shiftLeft:0,closing:false,mistakesToday:0,corruption:0,upgrades:[],history:[],emergency:null,pendingEmergency:null,streak:0,bestStreak:0,story:{gribbleLast:'none',circleTrust:0,circleRequest:null,mail:[],writSeen:0,resubmissionsToday:0,auditToday:false,auditAwards:0}};
+    SGK.Telemetry.startRun();generateDay();showBriefing();
+  }
+  function hasUpgrade(id){return state.upgrades.includes(id)}
+  function effectiveShiftSeconds(day){return day.shiftSeconds+(hasUpgrade('sandglass')?15:0)}
+  function generateDay(){
+    state.dayStats=freshStats();state.idx=0;state.party=[];state.closing=false;state.mistakesToday=0;state.emergency=null;state.pendingEmergency=null;state.story.resubmissionsToday=0;state.story.auditToday=false;const day=DAYS[state.day-1];state.shiftLeft=effectiveShiftSeconds(day);state.story.circleRequest=secretRequestForDay();
+    const count=[7,9,10,11,12][state.day-1];state.applicants=[];
+    if(state.day===1){state.applicants.push(makeApplicant({name:'Sister Mira',className:'Cleric',level:3,forceLegal:true,quote:'I am told the first one is easy.'}));state.applicants.push(makeApplicant({name:'Pip Ironbelly',className:'Barbarian',level:1,forceLegal:false,invalidType:'level',quote:'Numbers are a conspiracy.'}));}
+    while(state.applicants.length<count)state.applicants.push(makeApplicant({forceLegal:Math.random()<.62}));
+    if(state.day>=3 && state.survivorPool.length){const base=SGK.choose(state.survivorPool);const ret=makeReturning(base);const slot=Math.min(state.applicants.length-1,SGK.irand(2,state.applicants.length-1));state.applicants[slot]=ret;}
+    injectSpecial(day,state.applicants);
+    current=state.applicants[0];tab=0;mode='desk';arrival=.4;SGK.Audio.arrival();
+  }
+  function secretRequestForDay(){
+    if(state.day===4)return{target:'Rook Underhill',action:'APPROVE',reward:35,resolved:false,fulfilled:false,text:'Approve Rook Underhill. He has a job inside the Crypt. Guild law still applies.'};
+    if(state.day===5&&state.story.circleTrust>0)return{target:'Sister Pella',action:'APPROVE',reward:45,resolved:false,fulfilled:false,text:'Admit Sister Pella. Her license is stale; our wounded are not. Guild law still applies.'};
+    return null;
+  }
+  function injectSpecial(day,list){
+    if(day.day===2){
+      const g=makeApplicant({name:'Gribble Nix',className:'Rogue',level:3,forceLegal:false,invalidType:'expired',quote:'Yesterday is a paperwork concept.'});g.special='FAMILIAR TROUBLEMAKER';list[3]=g;
+      const b=list[list.length-1];if(!b.legal){b.bribe=35;b.special='OFFERS 35 GOLD “PROCESSING TIP”';}
+    }
+    if(day.day===3){
+      const f=makeApplicant({name:'Torr Magnificent',className:'Mage',level:5,forceLegal:false,invalidType:'forgedBadge',quote:'The seal? Custom edition. Very exclusive.'});list[3]=f;
+      const a=makeApplicant({name:'Brother Moss',className:'Cleric',level:4,forceLegal:true,quote:'I can heal. I cannot pay. Different problem.'});a.special='POOR — NO ENTRANCE FEE';a.poor=true;list[list.length-2]=a;
+    }
+    if(day.day===4){
+      const memory=state.story.gribbleLast==='approved'?'You waved me through last time. I knew you were sensible.':state.story.gribbleLast==='rejected'?'I fixed everything you complained about. Mostly.':'I shortened my name for dramatic reasons.';
+      const alias=makeApplicant({name:'Gribble Nix',className:'Rogue',level:5,forceLegal:false,invalidType:'alias',quote:memory});alias.special='RETURNING TROUBLEMAKER';list[2]=alias;
+      const writ=makeApplicant({name:'Lady Ember Vale',className:'Ranger',level:5,forceLegal:false,invalidType:'expired',quote:'The gold seal outranks the red ink.'});writ.royalWrit=true;writ.special='ROYAL WRIT — PERMIT WAIVER';{const c=legalCheck(writ,day);writ.legal=c.ok;writ.illegalReasons=c.reasons;}list[4]=writ;
+      const a=makeApplicant({name:'Rook Underhill',className:'Rogue',level:6,forceLegal:false,invalidType:'wanted',quote:'Wanted posters are basically fan art.'});a.weapon={name:'Silver Blade',tag:'silver',power:2};a.utilityBonus=2;if(state.story.circleRequest?.target===a.name)a.special='WANTED • SEALED NOTE TARGET';list[list.length-2]=a;
+    }
+    if(day.day===5){
+      const sm=makeApplicant({name:'Nimble Nan',className:'Rogue',level:6,forceLegal:false,invalidType:'contraband',quote:'My backpack always hums like that.'});sm.special='HEAVY PACK';list[2]=sm;
+      const a=makeApplicant({name:'Sister Pella',className:'Cleric',level:7,forceLegal:false,invalidType:'expired',quote:'The license expired. My healing did not.'});a.fireRes=true;a.special=state.story.circleRequest?.target===a.name?'STRATEGIC TEMPTATION • SEALED NOTE':'STRATEGIC TEMPTATION';list[Math.max(4,list.length-3)]=a;
+      const h=makeApplicant({name:'Sir Bumblefoot',className:'Knight',level:7,forceLegal:true,quote:'Still not wearing a helmet.'});h.famous=true;h.special='FAMOUS HERO';h.weapon={name:'Spear',tag:'piercing',power:3};list[list.length-1]=h;
+    }
+  }
+  function makeReturning(base){
+    const memory=base.lastDungeon?(base.lastClean?`Back from ${base.lastDungeon}. Your party call was solid.`:`Back from ${base.lastDungeon}. We lost people down there.`):'You did not kill me last time.';const a=makeApplicant({name:base.name,className:base.className,level:Math.min(9,base.level+1),species:base.species,forceLegal:true,quote:base.name.includes('Bumblefoot')?'Still no helmet.':memory});
+    a.returning=true;a.title=base.veteranTitle||SGK.choose(TITLES);a.lastDungeon=base.lastDungeon||'';a.lastClean=!!base.lastClean;a.legacyRelic=base.legacyRelic||'';if(a.legacyRelic)a.weapon.power+=1;a.special=a.legacyRelic?`RETURNING — ${a.title} • RELIC BEARER`:`RETURNING — ${a.title}`;SGK.Telemetry.inc('returns');return a;
+  }
+  function makeApplicant(opt={}){
+    const day=DAYS[(state?.day||1)-1];
+    const className=opt.className||SGK.choose(Object.keys(CLASS).filter(x=>!(day.day<4&&x==='Necromancer')));
+    const level=opt.level??SGK.irand(1,Math.min(9,day.minLevel+4));
+    const name=opt.name||uniqueName();const species=opt.species||SGK.choose(SPECIES);
+    const weapon=SGK.choose(WEAPONS),armor=SGK.choose(ARMOR),trait=SGK.choose(TRAITS);const baseWeight=SGK.irand(3,8);
+    const declaredPurpose=SGK.choose(PURPOSES),declaredDuration=SGK.irand(1,3);
+    const a={id:Math.random().toString(36).slice(2),name,className,level,species,weapon:{...weapon},armor:{...armor},trait,quote:opt.quote||SGK.choose(QUOTES),permitProvided:true,permitName:name,permitDungeon:day.name,permitExpiry:Math.max(day.day,SGK.irand(day.day,6)),guildProvided:true,guildClass:className,guildLevel:level,guildSealValid:true,certProvided:true,certClass:className,certExpiry:6,wanted:false,poisonRes:Math.random()<.24,fireRes:Math.random()<.22,arcaneRes:Math.random()<.18,curseRes:Math.random()<.16,antidote:Math.random()<.28,healingPotions:SGK.irand(0,3),portraitSeed:hash(name+species+className),bribe:0,bribeResolved:false,bribeTaken:false,poor:false,famous:false,returning:false,special:'',utilityBonus:0,packDeclared:baseWeight,packActual:baseWeight,contraband:'',searched:false,questioned:false,detainUnlocked:false,foundIssues:[],lastExcuse:'',declaredPurpose,contractPurpose:declaredPurpose,declaredDuration,contractDuration:declaredDuration,contractProvided:true,forgottenPermit:false,forgottenGuild:false,forgottenContract:false,canCorrectStatement:false,sigilAliasValid:false,sigilChecked:false,identityVerified:false,royalWrit:false};
+    if(className==='Cleric'||className==='Paladin')a.healingPotions+=1;if(className==='Mage')a.arcaneRes=true;
+    if(opt.forceLegal===true)makeLegal(a,day);else if(opt.forceLegal===false)makeInvalid(a,day,opt.invalidType);else if(Math.random()<.62)makeLegal(a,day);else makeInvalid(a,day,opt.invalidType);
+    const check=legalCheck(a,day);a.legal=check.ok;a.illegalReasons=check.reasons;return a;
+  }
+  function uniqueName(){const used=new Set(state?.applicants?.map(a=>a.name)||[]);const reserved=new Set(['Brother Moss','Rook Underhill','Sister Pella','Sir Bumblefoot','Gribble Nix']);const pool=NAMES.filter(n=>!used.has(n)&&!reserved.has(n));return SGK.choose(pool.length?pool:NAMES.filter(n=>!reserved.has(n)))}
+  function makeLegal(a,day){
+    if(day.banNecro&&a.className==='Necromancer')a.className='Mage';a.level=Math.max(a.level,day.minLevel);a.permitProvided=true;a.permitName=a.name;a.permitDungeon=day.name;a.permitExpiry=Math.max(day.day,a.permitExpiry);a.guildProvided=true;a.guildClass=a.className;a.guildLevel=a.level;a.guildSealValid=true;a.certProvided=true;a.wanted=false;a.certClass=a.className;a.certExpiry=Math.max(day.day,a.certExpiry);a.contractProvided=true;a.contractPurpose=a.declaredPurpose;a.contractDuration=a.declaredDuration;a.contraband='';a.packActual=a.packDeclared;a.identityVerified=false;a.sigilChecked=false;a.sigilAliasValid=false;
+    if(day.poisonRule&&!(a.poisonRes||a.antidote))a.antidote=true;
+  }
+  function makeInvalid(a,day,type){
+    const options=['level'];if(day.permit)options.push('expired','wrongDungeon','nameMismatch','missingPermit');if(day.guild)options.push('guildMismatch','forgedBadge','missingGuild');if(day.questRule)options.push('questPurpose','questDuration','missingContract');if(day.day>=4&&day.permit)options.push('alias');if(day.poisonRule)options.push('poison');if(day.cert&&a.className==='Mage')options.push('certExpired','certMismatch');if(day.wanted)options.push('wanted');if(day.banNecro)options.push('necro');if(day.packRule)options.push('contraband');type=type||SGK.choose(options);makeLegal(a,day);
+    if(type==='level')a.level=Math.max(1,day.minLevel-1);else if(type==='expired')a.permitExpiry=Math.max(0,day.day-1);else if(type==='wrongDungeon')a.permitDungeon=SGK.choose(DAYS.filter(d=>d.name!==day.name).map(d=>d.name));else if(type==='nameMismatch'){a.permitName=a.name.replace(/[aeiou]/i,m=>m==='a'?'e':'a')+(Math.random()<.4?' Jr.':'');a.sigilAliasValid=false;}else if(type==='alias'){a.permitName=a.name.split(' ')[0].slice(0,Math.max(2,a.name.split(' ')[0].length-2))+' '+a.name.split(' ').slice(1).join(' ');a.sigilAliasValid=true;}else if(type==='missingPermit'){a.permitProvided=false;a.forgottenPermit=Math.random()<.55;}else if(type==='guildMismatch')a.guildLevel=Math.max(1,a.level-SGK.irand(1,3));else if(type==='forgedBadge')a.guildSealValid=false;else if(type==='missingGuild'){a.guildProvided=false;a.forgottenGuild=Math.random()<.5;}else if(type==='questPurpose'){a.contractPurpose=SGK.choose(PURPOSES.filter(x=>x!==a.declaredPurpose));a.canCorrectStatement=Math.random()<.45;}else if(type==='questDuration'){a.contractDuration=a.declaredDuration===3?1:a.declaredDuration+1;a.canCorrectStatement=Math.random()<.45;}else if(type==='missingContract'){a.contractProvided=false;a.forgottenContract=Math.random()<.55;}else if(type==='poison'){a.poisonRes=false;a.antidote=false;}else if(type==='certExpired')a.certExpiry=day.day-1;else if(type==='certMismatch')a.certClass=a.className==='Mage'?'Scholar':'Mage';else if(type==='wanted')a.wanted=true;else if(type==='necro'){a.className='Necromancer';a.guildClass='Necromancer';}else if(type==='contraband'){a.contraband=SGK.choose(['Cursed Idol','Necrotic Egg','Royal Lockpicks','Unlicensed Mimic Jar']);a.packActual=a.packDeclared+SGK.irand(2,4);}
+  }
+  function legalCheck(a,day){
+    const r=[];if(a.level<day.minLevel)r.push(`Level ${a.level} below required ${day.minLevel}`);if(day.permit){if(!a.permitProvided)r.push('Dungeon permit not provided');else{if(a.permitName!==a.name&&!a.sigilAliasValid&&!a.identityVerified)r.push('Permit name does not match identity');if(a.permitExpiry<day.day&&!(day.writRule&&a.royalWrit))r.push(`Permit expired on Day ${a.permitExpiry}`);if(a.permitDungeon!==day.name&&!(day.writRule&&a.royalWrit))r.push('Permit authorizes the wrong dungeon');}}if(day.guild){if(!a.guildProvided)r.push('Guild badge not provided');else{if(a.guildClass!==a.className)r.push('Guild class contradicts identity');if(a.guildLevel!==a.level)r.push('Guild certified level contradicts identity');if(!a.guildSealValid)r.push('Guild badge uses a forged seal');}}if(day.questRule){if(!a.contractProvided)r.push('Quest contract not provided');else{if(a.contractPurpose!==a.declaredPurpose)r.push('Quest purpose contradicts applicant statement');if(a.contractDuration!==a.declaredDuration)r.push('Quest duration contradicts applicant statement');}}if(day.poisonRule&&!(a.poisonRes||a.antidote))r.push('No poison resistance or antidote');if(day.cert&&a.className==='Mage'){if(!a.certProvided)r.push('Arcane certificate not provided');else{if(a.certExpiry<day.day)r.push('Arcane certificate expired');if(a.certClass!==a.className)r.push('Arcane certificate class does not match');}}if(day.wanted&&a.wanted)r.push('Applicant appears on wanted poster');if(day.banNecro&&a.className==='Necromancer')r.push('Necromancers are prohibited today');if(day.packRule){if(a.packActual!==a.packDeclared)r.push('Pack weight contradicts declaration');if(a.contraband)r.push(`Prohibited contraband: ${a.contraband}`);}if(state?.emergency==='holyEntry'&&!(a.weapon.tag==='holy'||a.weapon.tag==='silver'||a.className==='Cleric'||a.className==='Paladin'))r.push('Emergency order requires holy / silver gear or a holy class');if(state?.emergency==='firePrep'&&!(a.fireRes||a.healingPotions>=2))r.push('Emergency order requires fire resistance or 2+ healing potions');return{ok:r.length===0,reasons:r};
+  }
+  function isDetainable(a,day){return !!(a.wanted||!a.guildSealValid||a.contraband||(a.sigilChecked&&a.permitName!==a.name&&!a.sigilAliasValid)||(day.guild&&a.guildProvided&&a.guildClass!==a.className));}
+  function found(a,key){return !!a.foundIssues?.includes(key)}
+  function markFound(a,key){a.foundIssues=a.foundIssues||[];if(!a.foundIssues.includes(key))a.foundIssues.push(key)}
+  function hash(s){let h=2166136261;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+
+  function emergencyRule(){
+    if(!state.emergency)return null;
+    if(state.emergency==='holyEntry')return 'EMERGENCY — HOLY / SILVER WEAPON OR HOLY CLASS REQUIRED';
+    if(state.emergency==='firePrep')return 'EMERGENCY — FIRE RESIST OR 2+ HEALING POTIONS REQUIRED';
+    return null;
+  }
+  function activeRegs(day=DAYS[state.day-1]){const e=emergencyRule();return e?[e,...day.regs]:[...day.regs];}
+  function canResubmit(a,check){
+    if(state.day<2||state.story.resubmissionsToday>=2||a.resubmission||a.returning||a.wanted||a.contraband||!a.guildSealValid||a.className==='Necromancer')return false;
+    if(!check.reasons.length)return false;
+    const fixable=['Dungeon permit not provided','Permit expired','Permit authorizes the wrong dungeon','Guild badge not provided','Quest contract not provided','Quest purpose contradicts','Quest duration contradicts','Arcane certificate expired'];
+    return check.reasons.every(r=>fixable.some(f=>r.includes(f)));
+  }
+  function scheduleResubmission(a,check){
+    if(!canResubmit(a,check)||Math.random()>.62)return;
+    const day=DAYS[state.day-1],b={...a,weapon:{...a.weapon},armor:{...a.armor},foundIssues:[]};
+    makeLegal(b,day);b.id=Math.random().toString(36).slice(2);b.resubmission=true;b.returning=false;b.questioned=false;b.detainUnlocked=false;b.searched=false;b.reaction='';b.bribe=0;b.bribeResolved=true;b.special='RETURNED — PAPERS CORRECTED';b.quote=SGK.choose(['I fixed it. Please admire the ink.','Back already. The clerk used the correct stamp this time.','I have returned with aggressively valid paperwork.','You were right. I hate that for me.']);
+    const c=legalCheck(b,day);b.legal=c.ok;b.illegalReasons=c.reasons;
+    const at=Math.min(state.applicants.length,state.idx+SGK.irand(1,2));state.applicants.splice(at,0,b);state.story.resubmissionsToday++;state.stats.resubmissions++;state.dayStats.resubmissions++;
+    SGK.UI.toast(`${a.name.toUpperCase()} MAY RETURN WITH CORRECTED PAPERS`,1800);
+  }
+  function maybeTriggerEmergency(){
+    if(state.pendingEmergency||state.emergency||state.dayStats.parties!==1)return;
+    if(state.day===4)state.pendingEmergency={type:'holyEntry',title:'CRYPT SEAL FRACTURED',text:'The first expedition broke an ancient seal. For the rest of today, every entrant must carry a HOLY / SILVER weapon or be a CLERIC / PALADIN. The rulebook has been updated.'};
+    if(state.day===5)state.pendingEmergency={type:'firePrep',title:'LAVA SURGE',text:'A lava channel has breached the main route. For the rest of today, every entrant needs FIRE RESISTANCE or at least 2 HEALING POTIONS. The rulebook has been updated.'};
+  }
+  function showEmergencyNotice(){
+    const e=state.pendingEmergency;if(!e){nextApplicant();return}state.pendingEmergency=null;state.emergency=e.type;SGK.Audio.alert();SGK.Juice.addFlash('#d08a42',.17);mode='paused';SGK.UI.modal('EMERGENCY DUNGEON BULLETIN',e.title,e.text,[{label:'UPDATE DESK',onClick:()=>{mode='desk';nextApplicant()}}]);
+  }
+  function maybeAudit(){
+    if(state.story.auditToday||state.day<4||state.dayStats.processed<4)return false;
+    state.story.auditToday=true;const todays=state.history.filter(h=>h.day===state.day).slice(-5),right=todays.filter(h=>h.correct).length,total=todays.length,rate=total?right/total:0;
+    if(rate>=.8){const bonus=12;state.story.auditAwards++;state.stats.auditBonus+=bonus;state.dayStats.auditBonus+=bonus;changeGold(bonus,'AUDITOR BONUS');changeRep(2,'AUDITOR PRAISE');SGK.Audio.audit(true);mode='paused';SGK.UI.modal('GUILD AUDITOR VISIT','ACCURACY SEAL AWARDED',`The auditor reviews your last ${total} rulings.
+
+${right}/${total} correct.
+
+“Efficient. Legible. Disturbingly competent.”
+
++${bonus} gold  •  +2 reputation`,[{label:'BACK TO WORK',onClick:()=>{mode='desk';nextApplicant()}}]);}
+    else{SGK.Audio.audit(false);mode='paused';SGK.UI.modal('GUILD AUDITOR VISIT','NO PENALTY — JUST A LOOK',`The auditor reviews your last ${total} rulings.
+
+${right}/${total} correct.
+
+“No fine today. Consider reading the bulletin with both eyes.”`,[{label:'BACK TO WORK',onClick:()=>{mode='desk';nextApplicant()}}]);}
+    return true;
+  }
+  function showBriefing(){
+    const d=DAYS[state.day-1],prev=state.day>1?DAYS[state.day-2]:null,newRegs=d.regs.filter(r=>!prev||!prev.regs.includes(r));mode='paused';const aids=state.upgrades.length?state.upgrades.map(id=>'• '+UPGRADES[id].name).join('\n'):'• None yet';
+    const letter=state.story.mail.length?state.story.mail.shift():'';const req=state.story.circleRequest;const priority=d.priorityPurpose?`\nGUILD PRIORITY\n• ${d.priorityPurpose} contract in a successful party: +${d.priorityBonus} gold + 2 reputation\n`:'';const post=letter?`\nOVERNIGHT POST\n• ${letter}\n`:'';const sealed=req?`\nSEALED NOTE — OPTIONAL\n• ${req.text}\n• Payment if obeyed: ${req.reward} gold\n`:'';
+    SGK.UI.modal(`DAY ${state.day} — MORNING BULLETIN`,d.name,`${d.subtitle}
+
+SHIFT
+• ${formatTime(effectiveShiftSeconds(d))} on the clock
+• Guild target: ${d.targetCases} cases
+• Gatekeeper wage: 5 gold per processed case
+• Reading / Compare slow the clock
+${state.day>=2?'• Rejected applicants may return after correcting fixable papers\n':''}${state.day>=4?'• A Guild Auditor may review a streak of rulings mid-shift\n':''}${priority}${post}${sealed}
+NEW / ACTIVE ORDERS
+${newRegs.map(x=>'★ '+x).concat(d.regs.filter(x=>!newRegs.includes(x)).map(x=>'• '+x)).join('\n')}
+
+DUNGEON THREATS
+${d.threats.map(x=>'• '+x).join('\n')}
+
+DESK AIDS
+${aids}`,[{label:'BEGIN SHIFT',onClick:()=>{mode='desk';current=state.applicants[state.idx];arrival=.35;SGK.Audio.arrival();if(state.day===1&&state.idx===0)SGK.UI.toast('CHECK THE RULE, THEN APPROVE OR REJECT.',2200)}}]);
+  }
+  function nextApplicant(){
+    if(state.closing||state.idx>=state.applicants.length){finishDay();return}if(maybeAudit())return;current=state.applicants[state.idx];tab=0;compareResult='';arrival=.38;mode='desk';SGK.Audio.arrival();if(current.resubmission){SGK.Audio.returner();SGK.UI.toast('CORRECTED PAPERS — APPLICANT RETURNED',1800)}maybeOfferBribe(current);
+  }
+  function maybeOfferBribe(a){
+    if(!a?.bribe||a.bribeResolved)return;setTimeout(()=>{if(current!==a||mode!=='desk'||SGK.UI.modalOpen()||a.bribeResolved)return;SGK.UI.modal('A POUCH SLIDES ACROSS THE DESK','“PROCESSING TIP”',`${a.name} quietly offers ${a.bribe} gold.
+
+You may take the money or push it back. Their paperwork does not become legal either way.`,[{label:'TAKE COIN',onClick:()=>{a.bribeResolved=true;a.bribeTaken=true;state.corruption++;changeGold(a.bribe,'BRIBE');a.special='BRIBE TAKEN';SGK.UI.toast('The pouch disappears beneath the desk.',1500)}},{label:'RETURN IT',onClick:()=>{a.bribeResolved=true;a.special='BRIBE REFUSED';changeRep(1,'INTEGRITY');SGK.UI.toast('The pouch goes back. The applicant looks wounded.',1500)}}])},260);
+  }
+  function formatTime(sec){sec=Math.max(0,Math.ceil(sec));return `${String(Math.floor(sec/60)).padStart(2,'0')}:${String(sec%60).padStart(2,'0')}`}
+  function tickShift(dt){if(state.closing||state.ended)return;state.shiftLeft=Math.max(0,state.shiftLeft-dt);if(state.shiftLeft<=0){state.closing=true;SGK.Audio.bell();SGK.Juice.addFlash('#d7a24e',.1);SGK.UI.toast('CLOSING BELL — FINISH THIS APPLICANT',2400)}}
+  function decide(approved,detained=false){
+    if(mode!=='desk'||book||SGK.UI.modalOpen())return;if(detained&&!current.detainUnlocked){SGK.UI.toast('Find and question a serious discrepancy first.',1500);return}SGK.Audio.unlock();mode='stamping';stamp={approved,detained,t:0,scale:2.4,rot:(Math.random()-.5)*.16};if(detained)SGK.Audio.detain();else SGK.Audio.stamp(approved);SGK.Juice.addShake(detained?12:(approved?7:9),.18);SGK.Juice.addFlash(detained?'#b17a37':approved?'#6b9f60':'#a94b3d',.11);SGK.Juice.particleBurst(detained?270:approved?440:98,570,18,{color:detained?'#b17a37':approved?'#5b7e4d':'#8d3b32',speedMin:30,speedMax:120,gravity:60});current.reaction=detained?'Wait. DETAINED?!':SGK.choose(approved?REACTIONS_OK:REACTIONS_NO);current.decisionApproved=approved;current.decisionDetained=detained;
+  }
+  function finalizeDecision(){
+    if(!stamp){mode='transition';return;}mode='transition';const approved=stamp.approved,detained=!!stamp.detained,day=DAYS[state.day-1],check=legalCheck(current,day);state.stats.processed++;state.dayStats.processed++;SGK.Telemetry.inc('applicants');state.stats.wages+=5;state.dayStats.wages+=5;changeGold(5,'CASE WAGE');if(approved){state.stats.approved++;state.dayStats.approved++;SGK.Telemetry.inc('approved');if(!current.poor)changeGold(4,'ENTRANCE FEE')}else{state.stats.rejected++;state.dayStats.rejected++;SGK.Telemetry.inc('rejected')}if(detained){state.stats.detained++;state.dayStats.detained++;}
+    const correct=detained?(isDetainable(current,day)&&!check.ok):((approved&&check.ok)||(!approved&&!check.ok));state.history.push({day:state.day,name:current.name,approved,detained,correct});if(current.name==='Gribble Nix')state.story.gribbleLast=detained?'detained':approved?'approved':'rejected';if(current.royalWrit)state.story.writSeen++;updateAccuracyStreak(correct);
+    if(correct){state.stats.correct++;state.dayStats.correct++;SGK.Telemetry.inc('correct');SGK.Juice.floatText(270,800,detained?'LAWFUL DETENTION':'CORRECT','#e7c46c',17);if(detained){const bounty=12+state.day*3;changeGold(bounty,'DETENTION BOUNTY');changeRep(2,'SECURITY');SGK.UI.toast(`DETENTION BOUNTY: +${bounty} GOLD`,1700)}else if(!approved)scheduleResubmission(current,check)}else issueCitation(approved,detained,check);
+    const req=state.story.circleRequest;if(req&&!req.resolved&&current.name===req.target){req.resolved=true;req.fulfilled=req.action==='APPROVE'?approved&&!detained:!approved;if(req.fulfilled){state.story.circleTrust++;state.stats.secretBonus+=req.reward;state.dayStats.secretBonus+=req.reward;changeGold(req.reward,'SEALED FAVOR');SGK.Juice.floatText(270,770,`SEALED FAVOR +${req.reward} G`,'#c9a5df',16);SGK.UI.toast(`SEALED FAVOR HONORED: +${req.reward} GOLD`,1900)}else SGK.UI.toast('The sealed request goes unanswered.',1500)}state.idx++;
+    if(approved){state.party.push(current);const slotX=18+(state.party.length-1)*169+36;SGK.Juice.particleBurst(slotX,694,10,{color:'#e7b653',speedMin:25,speedMax:90,gravity:65});SGK.Juice.floatText(270,732,`PARTY ${state.party.length}/3`,'#e7b653',18);if(state.party.length===3){setTimeout(()=>startExpedition(),220);return}}setTimeout(()=>nextApplicant(),280);
+  }
+  function updateAccuracyStreak(correct){
+    if(!correct){if(state.streak>=3)SGK.UI.toast(`CLEAN SEAL STREAK ENDED AT ${state.streak}`,1200);state.streak=0;return;}
+    state.streak++;state.bestStreak=Math.max(state.bestStreak,state.streak);
+    if(state.streak%4===0){const bonus=5+state.day;state.stats.cleanSeals++;state.dayStats.cleanSeals++;changeGold(bonus,'CLEAN SEAL');changeRep(1,'ACCURACY STREAK');SGK.Audio.audit(true);SGK.Juice.particleBurst(270,82,18,{color:'#e7b653',speedMin:25,speedMax:100,gravity:45});SGK.Juice.floatText(270,88,`CLEAN SEAL x${state.streak}  +${bonus} G`,'#f2cf6d',16);SGK.UI.toast(`ACCURACY COMMENDATION — ${state.streak} CORRECT IN A ROW`,1600)}
+  }
+  function issueCitation(approved,detained,check){state.mistakesToday++;state.stats.citations++;state.dayStats.citations++;SGK.Telemetry.inc('citations');const freeWarnings=state.day<=2?2:1,paidIndex=state.mistakesToday-freeWarnings,why=detained?'Unlawful detention':approved?(check.reasons[0]||'Invalid applicant approved'):'Valid applicant rejected';SGK.Audio.citation();SGK.Juice.addShake(11,.28);SGK.Juice.addFlash('#a94b3d',.18);if(paidIndex<=0){state.stats.warnings++;state.dayStats.warnings++;SGK.UI.toast(`GUILD WARNING: ${why} — NO FINE YET`,2400);return}const fine=(6+state.day*2)*paidIndex;state.stats.fines+=fine;state.dayStats.fines+=fine;changeGold(-fine,'CITATION');changeRep(-(2+Math.min(4,paidIndex)),'REGULATION ERROR');SGK.UI.toast(`CITATION ${paidIndex}: ${why}  -${fine} GOLD`,2600);}
+  function changeGold(n,label){state.gold=Math.max(0,state.gold+n);state.stats.goldDelta+=n;state.dayStats.goldDelta+=n;SGK.Juice.floatText(457,48,`${n>=0?'+':''}${n} G`,n>=0?'#e7b653':'#d46a59',15);if(n>0)SGK.Audio.coin()}
+  function changeRep(n,label){state.rep=SGK.clamp(state.rep+n,0,100);state.stats.repDelta+=n;state.dayStats.repDelta+=n;SGK.Juice.floatText(340,48,`${n>=0?'+':''}${n} REP`,n>=0?'#84b477':'#d46a59',15);if(state.rep<=0&&!state.ended)fireGatekeeper()}
+
+  function partyValues(party){
+    const v={combat:0,defense:0,healing:0,utility:0,holy:false,silver:false,piercing:false,blunt:false,fire:0,poison:0,curse:0,synergies:[],risk:0};
+    for(const a of party){const c=CLASS[a.className]||CLASS.Knight,lv=a.level*.72;v.combat+=c.combat+lv+a.weapon.power;v.defense+=c.defense+lv*.45+a.armor.def;v.healing+=c.healing+(a.healingPotions*.7);v.utility+=c.utility+lv*.25+(a.utilityBonus||0);v.holy ||= a.weapon.tag==='holy'||a.className==='Paladin'||a.className==='Cleric';v.silver ||= a.weapon.tag==='silver';v.piercing ||= a.weapon.tag==='piercing';v.blunt ||= a.weapon.tag==='blunt';v.fire+=a.fireRes?1:0;v.poison+=(a.poisonRes||a.antidote)?1:0;v.curse+=a.curseRes||a.className==='Cleric'||a.className==='Paladin'?1:0;if(a.trait==='Clumsy')v.risk+=.06;if(a.trait==='Veteran')v.risk-=.04;}
+    const classes=party.map(a=>a.className);
+    if(classes.includes('Knight')&&classes.includes('Cleric')){v.defense+=3;v.healing+=2;v.synergies.push('KNIGHT + CLERIC: guarded healing')}
+    if(classes.includes('Rogue')&&classes.includes('Ranger')){v.utility+=5;v.synergies.push('ROGUE + RANGER: trap hunters')}
+    if(classes.includes('Mage')&&classes.includes('Scholar')){v.utility+=4;v.combat+=2;v.synergies.push('MAGE + SCHOLAR: arcane insight')}
+    if(classes.includes('Barbarian')&&classes.includes('Cleric')){v.combat+=3;v.healing-=1;v.synergies.push('BARBARIAN + CLERIC: reckless momentum')}
+    if(classes.includes('Paladin')&&classes.some(x=>x==='Cleric')){v.combat+=2;v.defense+=2;v.synergies.push('HOLY PAIR: undead specialists')}
+    if(classes.includes('Engineer')&&classes.includes('Knight')){v.defense+=2;v.utility+=2;v.synergies.push('ENGINEER + KNIGHT: reinforced front')}
+    return v;
+  }
+  function partyForecast(party,candidate=null){
+    const d=DAYS[state.day-1],projected=candidate&&party.length<3?[...party,candidate]:[...party],v=partyValues(projected);
+    const ratios={combat:v.combat/d.targets.combat,defense:v.defense/d.targets.defense,healing:v.healing/d.targets.healing,utility:v.utility/d.targets.utility};
+    const needs=[];if(ratios.combat<.92)needs.push('COMBAT');if(ratios.defense<.92)needs.push('DEFENSE');if(ratios.healing<.92)needs.push('HEALING');if(ratios.utility<.92)needs.push('UTILITY');
+    if(d.tags.includes('poison')&&v.poison===0)needs.push('POISON PREP');if(d.tags.includes('fire')&&v.fire===0&&v.healing<d.targets.healing)needs.push('FIRE PREP');if(d.tags.includes('armor')&&!(v.piercing||v.blunt))needs.push('ARMOR BREAK');if(d.tags.includes('undead')&&!(v.holy||v.silver))needs.push('HOLY/SILVER');
+    const priorityReady=!!(d.priorityPurpose&&projected.some(a=>a.contractProvided&&a.contractPurpose===d.priorityPurpose));
+    return{projected,v,ratios,needs:[...new Set(needs)],priorityReady,synergy:v.synergies[0]||''};
+  }
+  function startExpedition(forceDanger=false,forceRelic=false){
+    if(state.ended)return;mode='expedition';expTimer=0;SGK.Telemetry.inc('expeditions');state.stats.parties++;state.dayStats.parties++;state.completedExpeditions++;const day=DAYS[state.day-1];const party=[...state.party];const v=partyValues(party);const events=[];const priorityMatched=!!(day.priorityPurpose&&party.some(a=>a.contractProvided&&a.contractPurpose===day.priorityPurpose));if(day.priorityPurpose)events.push({good:priorityMatched,text:priorityMatched?`Priority contract covered: ${day.priorityPurpose}.`:`No ${day.priorityPurpose} contract in this party.`});
+    const checks=[];
+    function add(label,value,target,bonus=0){const ratio=(value+bonus)/target;checks.push({label,value,target,ratio,pass:ratio>=.92})}
+    add('COMBAT',v.combat,day.targets.combat);add('DEFENSE',v.defense,day.targets.defense);add('HEALING',v.healing,day.targets.healing);add('UTILITY',v.utility,day.targets.utility);
+    let hazardBonus=0;
+    if(day.tags.includes('poison')&&v.poison===0){hazardBonus-=.18;events.push({good:false,text:'Poison spores overwhelm the unprotected party.'})}else if(day.tags.includes('poison'))events.push({good:true,text:'Poison protection holds.'});
+    if(day.tags.includes('fire')&&v.fire===0&&v.healing<day.targets.healing){hazardBonus-=.2;events.push({good:false,text:'Fire traps burn through their supplies.'})}else if(day.tags.includes('fire'))events.push({good:true,text:v.fire?'Fire resistance blunts the worst heat.':'Healing keeps the burns under control.'});
+    if(day.tags.includes('armor')&&!(v.piercing||v.blunt)){hazardBonus-=.13;events.push({good:false,text:'Armored enemies shrug off weak hits.'})}else if(day.tags.includes('armor'))events.push({good:true,text:'Armor-breaking weapons find openings.'});
+    if(day.tags.includes('undead')&&!(v.holy||v.silver)){hazardBonus-=.18;events.push({good:false,text:'The dead refuse to stay dead.'})}else if(day.tags.includes('undead'))events.push({good:true,text:'Holy / silver damage breaks the undead ranks.'});
+    if(day.tags.includes('traps')&&v.utility<day.targets.utility*.8){hazardBonus-=.1;events.push({good:false,text:'A trap claims blood before the first fight.'})}else if(day.tags.includes('traps'))events.push({good:true,text:'Scouts catch the worst traps.'});
+    const avg=checks.reduce((s,c)=>s+SGK.clamp(c.ratio,0,1.35),0)/checks.length;
+    const feats=[];let survival=SGK.clamp(.3+avg*.58+hazardBonus-v.risk,.18,.97);
+    if(v.synergies.length>=2){survival+=.035;feats.push('CHAINED SYNERGIES')}
+    if(v.healing>=day.targets.healing*1.25){survival+=.035;feats.push('FIELD MEDICS')}
+    if(v.defense>=day.targets.defense*1.2){survival+=.025;feats.push('IRON WALL')}
+    survival=SGK.clamp(survival,.18,.985);if(forceDanger)survival=.26;
+    let dead=[];for(const a of party){let personal=survival+(a.level-day.minLevel)*.035+(a.className==='Knight'||a.className==='Paladin'?0.04:0)+(a.famous?-0.02:0);if(Math.random()>personal)dead.push(a)}
+    if(avg<.55&&dead.length===0)dead=[party[SGK.irand(0,party.length-1)]];
+    if(avg>1.1&&dead.length>1)dead=dead.slice(0,1);
+    const survivors=party.filter(a=>!dead.includes(a));
+    const deathReasons=new Map();
+    for(const a of dead){
+      let reason='Boss Fight';
+      if(day.tags.includes('fire')&&v.fire===0)reason='Fire Trap';
+      else if(day.tags.includes('poison')&&v.poison===0)reason='Poison Spores';
+      else if(day.tags.includes('undead')&&!(v.holy||v.silver))reason='Undead Knight';
+      else if(day.tags.includes('traps')&&v.utility<day.targets.utility*.8)reason='Dungeon Trap';
+      else if(v.defense<day.targets.defense*.8)reason='Ambush';
+      deathReasons.set(a.id,reason);
+    }
+    const success=survivors.length>0 && (avg+hazardBonus)>.62;
+    let relic='';if(success&&v.utility>=day.targets.utility*1.05&&(forceRelic||Math.random()<.68)){relic=SGK.choose(['EMBER KEY','SAINT-BONE CHARM','GOBLIN KING TOKEN','MOONGLASS SHARD','IRON WYRM SCALE']);events.push({good:true,text:`High utility uncovers a rare relic: ${relic}.`});feats.push('RELIC HUNTERS')}
+    const priorityPayout=success&&priorityMatched?day.priorityBonus:0;const loot=success?Math.round(55+state.day*24+survivors.length*18+Math.max(0,avg-1)*60+(priorityMatched?day.priorityBonus*1.8:0)+(relic?18:0)):Math.round(12+survivors.length*8);const commission=success?Math.max(12,Math.round(loot*.35)):0;
+    expedition={party,v,checks,events,avg,survival,dead,survivors,deathReasons,success,loot,commission,priorityMatched,priorityPayout,relic,feats,cleanBonus:0,relicBonus:0,headline:'',done:false};state.party=[];SGK.Audio.gate();
+  }
+  function finishExpedition(){
+    if(expedition.done)return;expedition.done=true;const e=expedition;
+    SGK.Telemetry.inc('survived',e.survivors.length);SGK.Telemetry.inc('deaths',e.dead.length);state.stats.survived+=e.survivors.length;state.dayStats.survived+=e.survivors.length;state.stats.lost+=e.dead.length;state.dayStats.lost+=e.dead.length;
+    if(e.success){changeGold(e.commission,'LOOT COMMISSION');if(e.priorityPayout){changeGold(e.priorityPayout,'PRIORITY CONTRACT');changeRep(2,'GUILD PRIORITY');state.stats.priorityBonus+=e.priorityPayout;state.dayStats.priorityBonus+=e.priorityPayout;}if(e.dead.length===0){e.cleanBonus=8+state.day*2;state.stats.perfectParties++;state.dayStats.perfectParties++;changeGold(e.cleanBonus,'CLEAN EXPEDITION');changeRep(2,'NO CASUALTIES');e.feats.push('FLAWLESS RETURN')}if(e.relic){e.relicBonus=6+state.day*2;state.stats.relicBonus+=e.relicBonus;state.dayStats.relicBonus+=e.relicBonus;changeGold(e.relicBonus,'RELIC APPRAISAL');SGK.Juice.floatText(270,688,`${e.relic} +${e.relicBonus} G`,'#d9b9f0',15)}changeRep(5+e.survivors.length,'SUCCESS');SGK.Audio.success();SGK.Juice.addFlash('#d5b45d',.17);SGK.Juice.particleBurst(270,720,45,{color:'#e7b653',speedMin:50,speedMax:200,gravity:90});e.headline=e.dead.length?'EXPEDITION RETURNS BLOODY BUT PAID':e.relic?'RELIC-BEARING PARTY RETURNS WITHOUT A SCRATCH':'CLEAN EXPEDITION EARNS GUILD PRAISE';}
+    else{changeGold(-20,'FAILED EXPEDITION');changeRep(-8,'FAILED EXPEDITION');SGK.Audio.death();e.headline='GUILD ASKS IF “PREPARED” HAS LOST ITS MEANING';}
+    if(e.dead.length){const comp=e.dead.length*(14+state.day*3);changeGold(-comp,'DEATH COMPENSATION');changeRep(-e.dead.length*4,'CASUALTIES');for(const a of e.dead){SGK.Audio.death();if(a.famous){changeRep(-10,'FAMOUS HERO LOST');changeGold(-35,'FAMOUS HERO COMPENSATION');}}}
+    for(const a of e.survivors){if(a.famous)changeRep(8,'FAMOUS HERO SURVIVED');}
+    const relicBearer=e.relic&&e.survivors.length?SGK.choose(e.survivors):null;for(const a of e.survivors){if(!a.returning&&Math.random()<.65)state.survivorPool.push({...a,lastDungeon:DAYS[state.day-1].name,lastClean:e.dead.length===0,veteranTitle:SGK.choose(TITLES),legacyRelic:relicBearer===a?e.relic:''});}
+    queueOvernightPost(e);maybeTriggerEmergency();state.lastHeadline=e.headline;
+  }
+  function queueOvernightPost(e){
+    let text='';if(e.dead.length){const a=e.dead[0];text=`A note from ${a.name}’s guild: “We heard what happened in ${DAYS[state.day-1].name}. Choose the next party carefully.”`;}else if(e.survivors.length){const a=e.survivors[0];text=`${a.name} sent a stained postcard: “Alive. Richer. Still blaming the Gatekeeper for the stairs.”`;}if(text){state.story.mail.push(text);if(state.story.mail.length>3)state.story.mail.shift();}
+  }
+  function continueAfterExpedition(){mode='desk';expedition=null;if(state.rep<=0){fireGatekeeper();return}if(state.pendingEmergency){showEmergencyNotice();return}nextApplicant()}
+
+  function finishDay(){
+    if(mode==='summary'||state.ended)return;if(state.party.length){SGK.UI.toast(`${state.party.length} adventurer${state.party.length>1?'s':''} left without a full party.`,1700);state.party=[];}const d=DAYS[state.day-1];state.dayStats.unprocessed=Math.max(0,state.applicants.length-state.idx);state.stats.unprocessed+=state.dayStats.unprocessed;if(state.dayStats.processed>=d.targetCases){changeGold(10,'SHIFT TARGET');SGK.Juice.floatText(270,100,'TARGET BONUS +10 G','#e7b653',16)}else{changeRep(-3,'LOW THROUGHPUT');state.lastHeadline='GUILD QUESTIONS WHY THE LINE MOVED LIKE A SLEEPY OOZE';}const expenses=30+state.day*4,treasuryBefore=state.gold;state.dayStats.expenses=expenses;state.stats.expenses+=expenses;changeGold(-expenses,'NIGHT EXPENSES');if(treasuryBefore<expenses){changeRep(-5,'UNPAID GATEHOUSE COSTS');state.lastHeadline='GATEHOUSE CANDLE ACCOUNT OFFICIALLY “CONCERNING”';}mode='summary';summary={...state.dayStats};SGK.Telemetry.inc('daysCompleted');SGK.Audio.day();if(!state.lastHeadline)state.lastHeadline=summary.citations===0?'GUILD REPORTS SURPRISINGLY COMPETENT GATEKEEPING':'LOCAL SCRIBE ORDERS MORE RED INK';
+  }
+  function nextDay(){if(state.day>=5){completeRun();return}offerDeskUpgrade();}
+  function offerDeskUpgrade(){const available=Object.keys(UPGRADES).filter(id=>!hasUpgrade(id));if(!available.length){advanceDay();return}const choices=SGK.shuffle(available).slice(0,Math.min(2,available.length));mode='paused';SGK.UI.modal(`END OF DAY ${state.day}`,'GUILD DESK IMPROVEMENT',`Choose one free quality-of-life improvement. These are meant to make you faster, not add more paperwork.
+
+${choices.map(id=>UPGRADES[id].name+': '+UPGRADES[id].desc).join('\n\n')}`,choices.map(id=>({label:UPGRADES[id].name,onClick:()=>{state.upgrades.push(id);SGK.Audio.upgrade();SGK.UI.toast(`${UPGRADES[id].name} INSTALLED`,1700);advanceDay();}})));}
+  function advanceDay(){state.day++;generateDay();showBriefing();}
+  function endingTitle(){if(state.bestStreak>=12&&state.stats.lost<=2)return 'THE UNBROKEN SEAL';if(state.story.circleTrust>=2)return 'THE LANTERN’S FRIEND';if(state.corruption>=2)return 'THE GOLD-POCKET GATEKEEPER';if(state.stats.citations<=2&&state.stats.lost<=2&&state.rep>=80)return 'THE GOLD STANDARD';if(state.stats.lost===0)return 'KEEPER OF THE LIVING';if(state.story.auditAwards>=2)return 'THE DOUBLE-SEALED INSPECTOR';if(state.stats.correct>=Math.max(1,state.stats.processed*.88))return 'THE GUILD AUDITOR’S FAVORITE';if(state.stats.citations>=8)return 'THE RED-INK LEGEND';return 'STILL EMPLOYED, SOMEHOW';}
+  function completeRun(){state.ended=true;mode='paused';SGK.Telemetry.completeRun(true);const title=endingTitle();SGK.UI.modal('FIVE DAYS SURVIVED',title,`Your choices produced a different kind of Gatekeeper.
+
+Gold: ${state.gold}
+Guild Reputation: ${state.rep}%
+Correct decisions: ${state.stats.correct}/${state.stats.processed}
+Citations: ${state.stats.citations}
+Adventurers survived: ${state.stats.survived}
+Adventurers lost: ${state.stats.lost}
+Desk upgrades: ${state.upgrades.length}
+Sealed favors honored: ${state.story.circleTrust}
+Royal Writs recognized: ${state.story.writSeen}
+Corrected-paper returns: ${state.stats.resubmissions}
+Auditor accuracy seals: ${state.story.auditAwards}
+Best clean-seal streak: ${state.bestStreak}
+Flawless expeditions: ${state.stats.perfectParties}
+Relic bonuses: ${state.stats.relicBonus} G
+
+The guild renews your employment, mostly because nobody else applied.`,[{label:'PLAY AGAIN',onClick:()=>{SGK.Telemetry.restart();resetRun()}}]);SGK.Audio.success();}
+  function fireGatekeeper(){if(state.ended)return;state.ended=true;mode='paused';SGK.Telemetry.completeRun(false);SGK.Audio.fired();SGK.UI.modal('GUILD REPUTATION: 0','YOU’RE FIRED',`The guild has concluded that “technically alive” is not an acceptable expedition standard.\n\nDay reached: ${state.day}\nGold: ${state.gold}\nCitations: ${state.stats.citations}\nAdventurers lost: ${state.stats.lost}`,[{label:'TRY AGAIN',onClick:()=>{SGK.Telemetry.restart();resetRun()}}])}
+
+  function compareOptions(a,section=tab){
+    const d=DAYS[state.day-1],rows=[];
+    if(section===0){rows.push({key:'level',label:'IDENTITY LEVEL  ↔  MINIMUM LEVEL',left:`Level ${a.level}`,right:`Level ${d.minLevel}+`,bad:a.level<d.minLevel,why:a.level<d.minLevel?`Level ${a.level} is too low.`:'Level requirement satisfied.'});if(d.wanted)rows.push({key:'wanted',label:'WANTED POSTER  ↔  APPLICANT',left:a.wanted?'MATCH FOUND':'NO MATCH',right:a.name,bad:a.wanted,serious:true,why:a.wanted?'Applicant is wanted by the Crown.':'No wanted match.'});}
+    if(section===1&&d.permit){rows.push({key:'permitProvided',label:'REQUIRED PERMIT  ↔  DOCUMENTS',left:a.permitProvided?'PROVIDED':'NOT PROVIDED',right:'DUNGEON PERMIT REQUIRED',bad:!a.permitProvided,missing:true,why:!a.permitProvided?'Required dungeon permit is missing.':'Permit is present.'});if(a.permitProvided){rows.push({key:'permitName',label:'IDENTITY NAME  ↔  PERMIT NAME',left:a.name,right:a.permitName,bad:a.permitName!==a.name&&!a.identityVerified,serious:true,verify:true,why:a.permitName!==a.name&&!a.identityVerified?'Names do not match. Ask about the discrepancy.':a.identityVerified?'Alias verified by guild sigil.':'Names match.'});rows.push({key:'permitDungeon',label:'PERMIT DUNGEON  ↔  TODAY',left:a.permitDungeon,right:d.name,bad:a.permitDungeon!==d.name&&!(d.writRule&&a.royalWrit),why:a.permitDungeon!==d.name?(a.royalWrit&&d.writRule?'Royal Writ waives destination mismatch.':'Permit is for the wrong dungeon.'):'Dungeon authorization matches.'});rows.push({key:'permitExpiry',label:'PERMIT EXPIRY  ↔  TODAY',left:`Through Day ${a.permitExpiry}`,right:`Day ${d.day}`,bad:a.permitExpiry<d.day&&!(d.writRule&&a.royalWrit),why:a.permitExpiry<d.day?(a.royalWrit&&d.writRule?'Royal Writ waives permit expiry.':'Permit is expired.'):'Permit is still valid.'});if(a.royalWrit)rows.push({key:'royalWrit',label:'ROYAL WRIT  ↔  RULEBOOK',left:'GOLD-SEAL WRIT',right:'WAIVES EXPIRY / DESTINATION',bad:false,why:'Valid Royal Writ overrides permit expiry and dungeon destination only.'});}}
+    if(section===2){if(d.poisonRule)rows.push({key:'poison',label:'POISON RULE  ↔  EQUIPMENT',left:(a.poisonRes?'Resistance':a.antidote?'Antidote':'None'),right:'Protection required',bad:!(a.poisonRes||a.antidote),why:!(a.poisonRes||a.antidote)?'No poison protection found.':'Poison rule satisfied.'});if(d.packRule)rows.push({key:'packWeight',label:'DECLARED PACK  ↔  GATE SCALE',left:`${a.packDeclared} stones`,right:`${a.packActual} stones`,bad:a.packActual!==a.packDeclared,searchable:true,why:a.packActual!==a.packDeclared?'Pack is heavier than declared. Search authorized.':'Pack weight matches declaration.'});if(state.emergency==='holyEntry'){const ok=a.weapon.tag==='holy'||a.weapon.tag==='silver'||a.className==='Cleric'||a.className==='Paladin';rows.push({key:'emergencyHoly',label:'EMERGENCY ORDER  ↔  HOLY PREP',left:`${a.weapon.name} / ${a.className}`,right:'HOLY/SILVER OR HOLY CLASS',bad:!ok,why:ok?'Emergency holy-prep order satisfied.':'No holy/silver weapon and no holy-class exception.'});}if(state.emergency==='firePrep'){const ok=a.fireRes||a.healingPotions>=2;rows.push({key:'emergencyFire',label:'EMERGENCY ORDER  ↔  FIRE PREP',left:a.fireRes?'FIRE RESIST':`${a.healingPotions} HEALING POTION${a.healingPotions===1?'':'S'}`,right:'FIRE RESIST OR 2+ POTIONS',bad:!ok,why:ok?'Emergency fire-prep order satisfied.':'Insufficient protection for the lava surge.'});}}
+    if(section===3&&d.guild){rows.push({key:'guildProvided',label:'REQUIRED BADGE  ↔  DOCUMENTS',left:a.guildProvided?'PROVIDED':'NOT PROVIDED',right:'GUILD BADGE REQUIRED',bad:!a.guildProvided,missing:true,why:!a.guildProvided?'Required guild badge is missing.':'Guild badge is present.'});if(a.guildProvided){rows.push({key:'guildLevel',label:'IDENTITY LEVEL  ↔  GUILD BADGE',left:`Level ${a.level}`,right:`Certified ${a.guildLevel}`,bad:a.level!==a.guildLevel,why:a.level!==a.guildLevel?'Guild level contradicts identity.':'Guild level matches.'});rows.push({key:'guildSeal',label:'GUILD SEAL  ↔  OFFICIAL STANDARD',left:a.guildSealValid?'ROUND RED SEAL':'BLUE SQUARE SEAL',right:'ROUND RED SEAL',bad:!a.guildSealValid,serious:true,why:!a.guildSealValid?'Guild seal is forged.':'Guild seal is authentic.'});}if(d.questRule){rows.push({key:'contractProvided',label:'QUEST CONTRACT  ↔  DOCUMENTS',left:a.contractProvided?'PROVIDED':'NOT PROVIDED',right:'CONTRACT REQUIRED',bad:!a.contractProvided,missing:true,why:!a.contractProvided?'Required quest contract is missing.':'Quest contract is present.'});if(a.contractProvided){rows.push({key:'questPurpose',label:'SPOKEN PURPOSE  ↔  QUEST CONTRACT',left:a.declaredPurpose,right:a.contractPurpose,bad:a.declaredPurpose!==a.contractPurpose,why:a.declaredPurpose!==a.contractPurpose?'Applicant statement contradicts the contract.':'Quest purpose matches.'});rows.push({key:'questDuration',label:'SPOKEN RETURN  ↔  QUEST CONTRACT',left:`${a.declaredDuration} day${a.declaredDuration===1?'':'s'}`,right:`${a.contractDuration} day${a.contractDuration===1?'':'s'}`,bad:a.declaredDuration!==a.contractDuration,why:a.declaredDuration!==a.contractDuration?'Expected return time contradicts the contract.':'Return time matches.'});}}if(d.cert&&a.className==='Mage'){rows.push({key:'certExpiry',label:'ARCANE CERT EXPIRY  ↔  TODAY',left:`Through Day ${a.certExpiry}`,right:`Day ${d.day}`,bad:a.certExpiry<d.day,why:a.certExpiry<d.day?'Arcane certificate expired.':'Arcane certificate valid.'});rows.push({key:'certClass',label:'ARCANE CERT CLASS  ↔  IDENTITY',left:a.certClass,right:a.className,bad:a.certClass!==a.className,serious:true,why:a.certClass!==a.className?'Arcane registration belongs to another class.':'Arcane class matches.'});}}
+    return rows;
+  }
+  function excuseFor(a,row){const lines={permitName:a.sigilAliasValid?'I use an abbreviated guild name. Check my sigil.':'Spelling is a flexible art.',guildSeal:'The guild changed seals this morning. Probably.',wanted:'That portrait has much worse cheekbones.',certClass:'Forms are more of a suggestion to mages.',packWeight:'I packed a very dense sandwich.',level:'I level up emotionally under pressure.',permitExpiry:'Yesterday is practically today.',permitDungeon:'All dungeons look alike from underground.',guildLevel:'The guild has not recognized my greatness yet.',poison:'Antidotes are mostly confidence.',questPurpose:'I may have described the quest artistically.',questDuration:'Time behaves differently underground.',emergencyHoly:'I assumed emotional purity counted.',emergencyFire:'I planned to simply avoid the lava.'};return lines[row.key]||'There is a perfectly reasonable explanation. I do not have it.';}
+  function refreshCompare(){compareRows=compareOptions(current,tab)}
+  function requestMissingDocument(row){let supplied=false,label='document';if(row.key==='permitProvided'){label='dungeon permit';if(current.forgottenPermit){current.permitProvided=true;supplied=true}}else if(row.key==='guildProvided'){label='guild badge';if(current.forgottenGuild){current.guildProvided=true;supplied=true}}else if(row.key==='contractProvided'){label='quest contract';if(current.forgottenContract){current.contractProvided=true;supplied=true}}SGK.Audio.question();if(supplied){compareResult=`“Oh! Right.” ${label.toUpperCase()} PRODUCED FROM A POCKET.`;SGK.Juice.floatText(270,145,'DOCUMENT PRODUCED','#9fc582',18);refreshCompare()}else compareResult=`“I do not have the ${label}.”`;compareTimer=3;}
+  function verifySigilCurrent(){const row=compareRows.find(r=>r.key==='permitName'&&r.bad&&found(current,r.key));if(!row||!current.questioned){SGK.UI.toast('Question the name discrepancy first.',1400);return}current.sigilChecked=true;if(current.sigilAliasValid){current.identityVerified=true;current.detainUnlocked=false;compareResult='GUILD SIGIL MATCH — REGISTERED ALIAS CONFIRMED.';SGK.Audio.verify(true);SGK.Juice.addFlash('#81a86a',.12);SGK.Juice.floatText(270,145,'IDENTITY CONFIRMED','#9fc582',19)}else{current.detainUnlocked=true;compareResult='GUILD SIGIL MISMATCH — IDENTITY FRAUD CONFIRMED.';SGK.Audio.verify(false);SGK.Juice.addFlash('#a94b3d',.14);SGK.Juice.floatText(270,145,'SIGIL MISMATCH','#e08a76',19)}compareTimer=3.2;refreshCompare();}
+  function questionCurrent(){const row=compareRows.find(r=>r.bad&&found(current,r.key));if(!row){SGK.UI.toast('Find a discrepancy first.',1200);return}if(row.missing){requestMissingDocument(row);return}current.questioned=true;if((row.key==='questPurpose'||row.key==='questDuration')&&current.canCorrectStatement){if(row.key==='questPurpose')current.declaredPurpose=current.contractPurpose;else current.declaredDuration=current.contractDuration;current.canCorrectStatement=false;compareResult='“Right. Sorry.” THE APPLICANT CORRECTS THEIR STATEMENT.';compareTimer=3;SGK.Audio.question();SGK.Juice.floatText(270,145,'STATEMENT CORRECTED','#9fc582',18);refreshCompare();return}current.lastExcuse=excuseFor(current,row);if(row.serious&&row.key!=='permitName')current.detainUnlocked=true;compareResult=`${current.name}: “${current.lastExcuse}”`;compareTimer=3;SGK.Audio.question();}
+  function searchCurrent(){const row=compareRows.find(r=>r.key==='packWeight'&&r.bad&&found(current,r.key));if(!row){SGK.UI.toast('A weight discrepancy is required to search.',1500);return}current.searched=true;SGK.Audio.search();SGK.Juice.addShake(5,.14);if(current.contraband){current.detainUnlocked=true;markFound(current,'contraband');compareResult=`SEARCH: ${current.contraband.toUpperCase()} FOUND — CONTRABAND`;SGK.Juice.addFlash('#b8773d',.13)}else compareResult='SEARCH: No prohibited items found.';compareTimer=3.2;}
+  function compareActionKind(){const row=compareRows.find(r=>r.bad&&found(current,r.key));if(!row)return{label:'QUESTION',enabled:false};if(row.missing)return{label:'ASK FOR DOCUMENT',enabled:true};if(row.key==='packWeight'&&!current.searched)return{label:'SEARCH PACK',enabled:true};if(row.key==='permitName'&&current.questioned&&!current.sigilChecked)return{label:'VERIFY SIGIL',enabled:true};return{label:'QUESTION',enabled:true};}
+  function doCompareAction(){const action=compareActionKind();if(!action.enabled){SGK.UI.toast('Find a discrepancy first.',1200);return}if(action.label==='SEARCH PACK')searchCurrent();else if(action.label==='VERIFY SIGIL')verifySigilCurrent();else questionCurrent();}
+  function update(dt){
+    applicantBob+=dt*2.3;arrival=Math.max(0,arrival-dt);if(SGK.UI.modalOpen())return;if(!state.ended){let rate=0;if(book)rate=hasUpgrade('ruleStand')?0:.25;else if(mode==='compare')rate=hasUpgrade('compareLens')?.12:.5;else if(mode==='desk')rate=1;if(rate>0)tickShift(dt*rate);}
+    if(mode==='stamping'){if(!stamp){mode='transition';return;}stamp.t+=dt;stamp.scale=1+Math.max(0,.22-stamp.t)*6;if(stamp.t>(hasUpgrade('springStamp')?.42:.62)){finalizeDecision();stamp=null;}return}
+    if(mode==='expedition'){expTimer+=dt;if(expTimer>3.55&&expedition&&!expedition.done)finishExpedition();const tap=SGK.Input.tap();if(expedition&&expedition.done&&expTimer>3.8&&tap&&hit(tap,{x:170,y:850,w:200,h:62})){continueAfterExpedition();return}if(expedition&&expedition.done&&expTimer>3.8&&SGK.Input.key('enter')){continueAfterExpedition();return}return}
+    if(mode==='summary'){const tap=SGK.Input.tap();if(tap&&hit(tap,{x:155,y:856,w:230,h:60}))nextDay();if(SGK.Input.key('enter'))nextDay();return}
+    if(book){const tap=SGK.Input.tap();if(tap&&hit(tap,rects.bookBack))book=false;if(SGK.Input.key('b')||SGK.Input.key('escape'))book=false;return}
+    if(mode==='compare'){compareTimer=Math.max(0,compareTimer-dt);const tap=SGK.Input.tap();if(tap){if(hit(tap,rects.compareBack)){mode='desk';return}if(hit(tap,rects.compareAction)){doCompareAction();return}if(hit(tap,rects.compareDetain)&&current.detainUnlocked){mode='desk';decide(false,true);return}compareRows.forEach((r,i)=>{const rr={x:34,y:215+i*86,w:472,h:70};if(hit(tap,rr)){compareResult=r.why;compareTimer=2.2;SGK.Audio.compare(r.bad);if(r.bad){markFound(current,r.key);SGK.Juice.addFlash('#d8aa4c',.12);SGK.Juice.floatText(270,163,'DISCREPANCY FOUND','#f0c665',20)}else SGK.Juice.floatText(270,163,'NO CONFLICT','#9dbb83',18)}});return}if(SGK.Input.key('q'))doCompareAction();if(SGK.Input.key('d')&&current.detainUnlocked){mode='desk';decide(false,true);return}if(SGK.Input.key('c')||SGK.Input.key('escape'))mode='desk';return}
+    if(mode!=='desk')return;if(SGK.Input.key('a'))decide(true);if(SGK.Input.key('r'))decide(false);if(SGK.Input.key('c'))openCompare();if(SGK.Input.key('b'))book=true;for(let i=0;i<4;i++)if(SGK.Input.key(String(i+1))){tab=i;SGK.Audio.page()}const tap=SGK.Input.tap();if(!tap)return;rects.tabs.forEach((r,i)=>{if(hit(tap,r)){tab=i;SGK.Audio.page()}});if(hit(tap,rects.reject))decide(false);else if(hit(tap,rects.approve))decide(true);else if(hit(tap,rects.compare))openCompare();else if(hit(tap,rects.rules))book=true;
+  }
+  function openCompare(){compareRows=compareOptions(current,tab);if(!compareRows.length){SGK.UI.toast('Nothing on this tab needs comparing today.',1300);return}compareResult='';compareTimer=0;mode='compare';SGK.Audio.page()}
+  function hit(p,r){return p.x>=r.x&&p.x<=r.x+r.w&&p.y>=r.y&&p.y<=r.y+r.h}
+
+  function draw(){
+    drawBackground();drawHUD();
+    if(mode==='expedition'){drawExpedition();return}
+    if(mode==='summary'){drawSummary();return}
+    drawDesk();
+    if(book)drawRulebook();else if(mode==='compare')drawCompare();
+    if(stamp)drawStamp();
+  }
+  function drawBackground(){
+    ctx.fillStyle='#1f120a';ctx.fillRect(0,0,540,960);
+    const g=ctx.createLinearGradient(0,0,540,0);g.addColorStop(0,'#1b0f08');g.addColorStop(.5,'#3b2514');g.addColorStop(1,'#160d08');ctx.fillStyle=g;ctx.fillRect(0,0,540,960);
+    for(let y=0;y<960;y+=42){ctx.fillStyle=y%84===0?'#ffffff05':'#00000006';ctx.fillRect(0,y,540,2)}
+    // dungeon gate silhouette
+    ctx.fillStyle='#110b07';ctx.fillRect(205,66,130,86);ctx.beginPath();ctx.arc(270,68,65,Math.PI,0);ctx.fill();ctx.fillStyle='#51351d';for(let x=220;x<330;x+=18)ctx.fillRect(x,68,5,78);
+    // candle
+    ctx.fillStyle='#c79d56';ctx.fillRect(26,82,10,38);ctx.fillStyle='#ffcf69';ctx.beginPath();ctx.ellipse(31,77,5,10,0,0,Math.PI*2);ctx.fill();ctx.globalAlpha=.12;ctx.fillStyle='#ffca66';ctx.beginPath();ctx.arc(31,80,38,0,Math.PI*2);ctx.fill();ctx.globalAlpha=1;
+  }
+  function drawHUD(){
+    const d=DAYS[state.day-1];Draw.rr(12,12,385,52,13,'#170e09e8','#71502f',1.5);Draw.text(`DAY ${state.day} / 5`,25,28,13,'#e9c86c','left',900);Draw.text(`TARGET ${state.dayStats.processed}/${d.targetCases}  •  CLEAN SEAL x${state.streak}`,25,49,9.5,state.streak>=4?'#f0cd68':'#d9c4a1','left',800);Draw.text(`${state.gold} G`,285,29,13,'#e7b653','right',900);Draw.text(`REP ${state.rep}%`,384,29,13,state.rep<30?'#d96858':'#9fbd84','right',900);Draw.rr(rects.rules.x,rects.rules.y,rects.rules.w,rects.rules.h,9,'#382313','#8e653a',1);Draw.text('RULEBOOK',468,93,10,'#f0d89e','center',900);
+  }
+  function drawDesk(){
+    const d=DAYS[state.day-1];
+    // Applicant card
+    Draw.rr(18,112,188,226,15,'#d8bd85','#7a512a',2);Draw.rr(28,122,168,124,11,'#7d5631','#5b3b20',2);drawPortrait(current,112,184,arrival);
+    Draw.text(current.name,112,264,14,'#2a190f','center',900,'Georgia');Draw.text(`${current.species} ${current.className} • LEVEL ${current.level}`,112,284,10,'#5f4328','center',800);
+    Draw.text(`“${short(current.quote,29)}”`,112,305,9,'#62472e','center',700,'Georgia');
+    if(current.special){Draw.rr(31,316,162,15,7,current.famous?'#77531e':'#744232');Draw.text(short(current.special,27),112,324,8,'#fff2c9','center',900)}
+
+    // Rules / threat board
+    Draw.rr(218,112,304,226,15,'#25160eeb','#7e5834',2);Draw.text('TODAY',234,131,10,'#c89a4a','left',900);Draw.text(d.name,234,150,15,'#f3dfb5','left',900,'Georgia');Draw.rr(423,124,82,34,9,state.closing?'#6d3027':'#17110b',state.closing?'#c56f5f':'#8e683a',1);Draw.text(state.closing?'CLOSED':formatTime(state.shiftLeft),464,141,12,state.closing?'#ffd1c7':state.shiftLeft<20?'#e98970':'#f1d79d','center',900);
+    const regs=activeRegs(d);Draw.text(`REGULATIONS — ${regs.length} ACTIVE`,234,177,9,'#9ec182','left',900);
+    regs.slice(0,5).forEach((r,i)=>{const emergency=r===emergencyRule();Draw.circle(238,194+i*20,3,emergency?'#d7773c':'#9c7444');Draw.text(short(r,38),248,194+i*20,8.4,emergency?'#ffd0a8':'#e2cfaa','left',emergency?900:760)});if(regs.length>5)Draw.text(`+${regs.length-5} MORE — RULEBOOK`,248,296,8,'#d3a85b','left',900);
+    Draw.text(d.priorityPurpose?'PRIORITY':'SURVIVAL',234,318,8,'#d4a858','left',900);Draw.text(short(d.priorityPurpose?`${d.priorityPurpose} contract • +${d.priorityBonus} G`:d.advice[0],42),295,318,8,'#c6b38d','left',650);
+
+    if(d.questRule)Draw.text(`DECLARED: ${current.declaredPurpose.toUpperCase()} • RETURN ${current.declaredDuration} DAY${current.declaredDuration===1?'':'S'}`,270,340,8.1,'#d9bd79','center',900);
+    // tabs
+    rects.tabs.forEach((r,i)=>{const locked=(i===1&&!d.permit)||(i===3&&!d.guild);Draw.rr(r.x,r.y,r.w,r.h,9,i===tab?'#e1c58d':'#3a2516',i===tab?'#a6773e':'#73502d',1.5);Draw.text(locked?'LOCKED':tabNames[i],r.x+r.w/2,r.y+17,9,i===tab?'#2b1a0f':'#ddc69e','center',900)});
+    ctx.save();ctx.translate(arrival*90,0);drawDocument();ctx.restore();drawParty();drawControls();
+  }
+  function drawDocument(){
+    const d=DAYS[state.day-1],x=18,y=393,w=504,h=226;Draw.rr(x,y,w,h,14,'#ead7a9','#80572e',2);ctx.globalAlpha=.18;for(let yy=y+18;yy<y+h;yy+=26){ctx.fillStyle='#7d5c35';ctx.fillRect(x+14,yy,w-28,1)}ctx.globalAlpha=1;
+    if(tab===0){docTitle('IDENTITY LEDGER','Guild Entry Record');drawSeal(474,422,'ID');field('NAME',current.name,40,465);field('SPECIES',current.species,40,506);field('CLASS',current.className,40,547);field('LEVEL',String(current.level),280,506);field('TRAIT',current.trait,280,547);if(current.returning)field('LAST RUN',current.lastDungeon?`${current.lastDungeon}${current.lastClean?' • CLEAN':' • BLOODY'}`:'RETURNING VETERAN',40,588,'#5d6532');if(d.wanted){field('WANTED CHECK',current.wanted?'MATCH FOUND':'CLEAR',280,588,current.wanted?'#8c302a':'#3e6b47')}else field('STATUS',current.legacyRelic?`RELIC: ${current.legacyRelic}`:'NO HOLD',280,588,current.legacyRelic?'#785b85':'#3e6b47');}
+    else if(tab===1){if(!d.permit){lockedDoc('DUNGEON PERMITS BEGIN ON DAY 2');return}docTitle('DUNGEON PERMIT','Stamped by the Lower Gate Office');if(!current.permitProvided){Draw.text('NOT PROVIDED',270,505,24,'#8b352c','center',1000,'Georgia');Draw.text('Use COMPARE to cite the missing permit, then ask the applicant.',270,545,9.5,'#6d4e31','center',750,'Georgia');return}drawSeal(474,422,'P');field('NAME',current.permitName,40,470,found(current,'permitName')?'#7a2f27':null);field('PERMIT NO.',`GK-${String(current.portraitSeed%9000+1000)}`,300,470);field('ROYAL WRIT',current.royalWrit?'GOLD-SEAL WAIVER':'NONE',300,522,current.royalWrit?'#8a651f':null);field('AUTHORIZED',current.permitDungeon,40,522,found(current,'permitDungeon')?'#7a2f27':null);field('VALID THROUGH',`DAY ${current.permitExpiry}`,40,574,found(current,'permitExpiry')?'#7a2f27':null);if(current.identityVerified)field('SIGIL CHECK','ALIAS VERIFIED',300,574,'#3e6b47');else if(current.sigilChecked)field('SIGIL CHECK','MISMATCH',300,574,'#8c302a');}
+    else if(tab===2){docTitle('EQUIPMENT DECLARATION',d.packRule?'Declaration + gate scale':'Inspected visually. Mostly.');drawGearIcon(467,422,current.weapon.tag);field('WEAPON',`${current.weapon.name} / ${current.weapon.tag.toUpperCase()}`,40,468);field('ARMOR',`${current.armor.name} / DEF +${current.armor.def}`,40,508);const res=[current.fireRes?'Fire Resist':null,current.poisonRes?'Poison Resist':null,current.arcaneRes?'Arcane Resist':null,current.curseRes?'Curse Resist':null].filter(Boolean).join(', ')||'None';field('RESISTANCES',res,40,548);field('CONSUMABLES',`${current.antidote?'Antidote • ':''}${current.healingPotions} Healing Potion${current.healingPotions===1?'':'s'}`,40,586);if(d.packRule){field('DECLARED / SCALE',`${current.packDeclared} stones / ${current.packActual} stones`,300,508,found(current,'packWeight')?'#7a2f27':null);field('PACK SEARCH',current.searched?(current.contraband||'CLEAR'):'NOT SEARCHED',300,586,current.searched&&current.contraband?'#7a2f27':null);}}
+    else {if(!d.guild){lockedDoc('GUILD CREDENTIALS BEGIN ON DAY 3');return}docTitle('GUILD & QUEST RECORDS',d.cert?'Badge • Quest • Arcane':'Badge • Quest Contract');if(current.guildProvided){drawGuildSeal(474,422,current.guildSealValid);field('BADGE CLASS',current.guildClass,40,466);field('CERTIFIED LEVEL',String(current.guildLevel),285,466,found(current,'guildLevel')?'#7a2f27':null)}else{field('GUILD BADGE','NOT PROVIDED',40,466,'#8c302a')}
+      if(d.questRule){if(current.contractProvided){field('QUEST CONTRACT',current.contractPurpose,40,512,found(current,'questPurpose')?'#7a2f27':null);field('RETURN BY',`${current.contractDuration} DAY${current.contractDuration===1?'':'S'}`,300,512,found(current,'questDuration')?'#7a2f27':null)}else field('QUEST CONTRACT','NOT PROVIDED',40,512,'#8c302a');field('APPLICANT SAYS',`${current.declaredPurpose} • ${current.declaredDuration} day${current.declaredDuration===1?'':'s'}`,40,554,(found(current,'questPurpose')||found(current,'questDuration'))?'#7a2f27':null)}
+      if(d.cert&&current.className==='Mage'){field('ARCANE CERT',`Registered ${current.certClass}`,40,594,found(current,'certClass')?'#7a2f27':null);field('VALID THROUGH',`DAY ${current.certExpiry}`,300,594,found(current,'certExpiry')?'#7a2f27':null)}else if(d.cert)field('ARCANE CERT','Not required for class',40,594);}
+  }
+  function docTitle(a,b){Draw.text(a,40,419,15,'#3b2817','left',900,'Georgia');Draw.text(b,40,438,9,'#745537','left',700,'Georgia')}
+  function field(label,val,x,y,color=null){Draw.text(label,x,y-10,8,'#8a6843','left',900);Draw.text(short(val,35),x,y+7,12,color||'#342315','left',800,'Georgia')}
+  function lockedDoc(t){Draw.text(t,270,492,13,'#6d5034','center',900,'Georgia');Draw.text('No paperwork here yet. Enjoy it while it lasts.',270,529,10,'#8a6a47','center',700,'Georgia')}
+  function drawSeal(x,y,t){Draw.circle(x,y,21,'#8f3f32','#6c2f28',3);Draw.circle(x,y,14,null,'#d09983',1);Draw.text(t,x,y,10,'#f2c9ae','center',900)}
+  function drawGuildSeal(x,y,valid){if(valid){drawSeal(x,y,'G');return}Draw.rr(x-19,y-19,38,38,3,'#416287','#273d58',3);Draw.text('G?',x,y,10,'#d5e5f0','center',900)}
+  function drawGearIcon(x,y,tag){ctx.save();ctx.translate(x,y);ctx.rotate(-.55);ctx.fillStyle='#5b4128';ctx.fillRect(-3,-23,6,46);ctx.fillStyle=tag==='magic'?'#6d4c8c':tag==='holy'?'#b38a36':'#7c7d72';ctx.beginPath();ctx.moveTo(-7,-25);ctx.lineTo(0,-38);ctx.lineTo(7,-25);ctx.lineTo(4,5);ctx.lineTo(-4,5);ctx.closePath();ctx.fill();ctx.restore()}
+  function drawParty(){
+    Draw.text('APPROVED PARTY — 3 ENTER TOGETHER',20,639,10,'#e0c184','left',900);for(let i=0;i<3;i++){const x=18+i*169,y=653;Draw.rr(x,y,158,116,12,'#24160f','#6d4a2a',1.5);const a=state.party[i];if(!a){Draw.circle(x+36,y+42,22,'#3d2a1b','#6b4d31',2);Draw.text('EMPTY',x+95,y+38,11,'#806747','center',900);Draw.text(`SLOT ${i+1}`,x+95,y+58,9,'#6f593f','center',800)}else{drawMiniPortrait(a,x+36,y+40);Draw.text(short(a.name,19),x+67,y+20,10,'#f0d8a6','left',900);Draw.text(`${a.className} L${a.level}`,x+67,y+39,9,'#c8ad7f','left',800);const c=CLASS[a.className]||CLASS.Knight;Draw.text(c.role,x+67,y+58,8,'#8fb481','left',900);Draw.text(`W: ${short(a.weapon.name,17)}`,x+12,y+88,8,'#bfa987','left',700);Draw.text(a.fireRes?'Fire resist':a.poisonRes?'Poison resist':a.healingPotions?'Has healing':'No special prep',x+12,y+104,8,'#9b8769','left',650)}}
+    const forecastCandidate=mode==='desk'?current:null,f=partyForecast(state.party,forecastCandidate);Draw.text(forecastCandidate&&state.party.length<3?'IF APPROVED — PARTY FORECAST (NOT LAW)':'CURRENT PARTY READINESS',270,780,8.6,'#d7bd82','center',900);const bars=[['COMBAT',f.ratios.combat,18,794],['DEFENSE',f.ratios.defense,282,794],['HEALING',f.ratios.healing,18,815],['UTILITY',f.ratios.utility,282,815]];for(const [label,ratio,x,y] of bars){Draw.text(label,x,y,7.5,'#9e8968','left',900);Draw.rr(x+55,y-6,175,12,6,'#241a12','#5f472d',1);Draw.rr(x+57,y-4,171*SGK.clamp(ratio/1.2,0,1),8,4,ratio>=.92?'#668557':ratio>=.72?'#9a7942':'#8e4d3f');Draw.text(`${Math.round(ratio*100)}%`,x+234,y,7.2,ratio>=.92?'#a9c690':'#d8a087','right',900)}const note=f.priorityReady?`BONUS READY: ${DAYS[state.day-1].priorityPurpose}`:f.needs.length?`NEEDS: ${f.needs.slice(0,3).join(' • ')}`:f.synergy||'READY ACROSS THE BOARD';Draw.text(short(note,70),270,837,8,f.priorityReady?'#f0cc68':f.needs.length?'#d99a82':'#a9c690','center',900);
+  }
+  function drawControls(){
+    if(current.detainUnlocked){Draw.rr(190,817,160,22,8,'#69401f','#b77b38',1);Draw.text('DETENTION READY',270,828,8,'#ffe1a5','center',900)}Draw.rr(rects.reject.x,rects.reject.y,rects.reject.w,rects.reject.h,15,'#6f281f','#c27062',3);Draw.text('REJECT',97,872,21,'#ffe6d8','center',1000);Draw.text('R',97,906,10,'#d6a292','center',900);Draw.rr(rects.compare.x,rects.compare.y,rects.compare.w,rects.compare.h,15,'#3c2c1a','#a47d43',2);Draw.text('COMPARE',270,872,16,'#f6dfae','center',1000);Draw.text('C',270,906,10,'#bda578','center',900);Draw.rr(rects.approve.x,rects.approve.y,rects.approve.w,rects.approve.h,15,'#335d39','#7fba75',3);Draw.text('APPROVE',443,872,19,'#ecffe5','center',1000);Draw.text('A',443,906,10,'#b7d9ad','center',900);
+  }
+  function drawStamp(){if(!stamp)return;const approved=stamp.approved,detained=stamp.detained;ctx.save();ctx.translate(detained?270:approved?432:105,548);ctx.rotate(stamp.rot);ctx.scale(stamp.scale,stamp.scale);ctx.globalAlpha=Math.min(1,stamp.t*8);ctx.strokeStyle=detained?'#9a672b':approved?'#3b6e40':'#8d352d';ctx.lineWidth=5;ctx.strokeRect(-70,-28,140,56);Draw.text(detained?'DETAINED':approved?'APPROVED':'REJECTED',0,0,18,detained?'#9a672b':approved?'#3b6e40':'#8d352d','center',1000);ctx.restore();ctx.globalAlpha=1;if(current.reaction)Draw.rr(72,327,396,34,12,'#fff4d8','#8d7048',1),Draw.text(short(current.reaction,52),270,344,10,'#39281b','center',800,'Georgia')}
+
+
+  function drawCompare(){
+    ctx.fillStyle='#0d0805e8';ctx.fillRect(0,0,540,960);Draw.rr(20,105,500,830,18,'#2a1a10','#9e7748',2);Draw.text(`COMPARE — ${tabNames[tab]}`,270,135,20,'#f3dfb0','center',900,'Georgia');const pace=hasUpgrade('compareLens')?'COMPARE LENS: CLOCK ALMOST PAUSED':'FOCUS VIEW: CLOCK RUNS AT HALF SPEED';Draw.text(pace,270,164,9.5,'#c6ae84','center',800);compareRows.forEach((r,i)=>{const y=215+i*86;if(y>690)return;const seen=found(current,r.key);Draw.rr(34,y,472,70,11,seen&&r.bad?'#e1c18b':'#dfc797',seen&&r.bad?'#a34f3b':'#7d5933',seen&&r.bad?2:1.5);Draw.text(r.label,48,y+15,8.6,seen&&r.bad?'#8b332a':'#70502e','left',900);Draw.text(short(r.left,28),48,y+43,10.5,'#2f2015','left',800,'Georgia');Draw.text('VS',270,y+43,8,'#97744d','center',900);Draw.text(short(r.right,27),492,y+43,10.5,'#2f2015','right',800,'Georgia')});if(compareResult&&compareTimer>0){Draw.rr(55,722,430,56,11,'#5f4527','#b48a4d',1.5);Draw.text(short(compareResult,70),270,750,9.5,'#fff0c4','center',900)}const action=compareActionKind();Draw.rr(rects.compareAction.x,rects.compareAction.y,rects.compareAction.w,rects.compareAction.h,12,action.enabled?'#5a4225':'#30251b',action.enabled?'#a97d43':'#5a4936',1.5);Draw.text(action.label,149,848,10.2,action.enabled?'#f7dfaa':'#786c5a','center',900);Draw.rr(rects.compareDetain.x,rects.compareDetain.y,rects.compareDetain.w,rects.compareDetain.h,12,current.detainUnlocked?'#6f2f25':'#30251b',current.detainUnlocked?'#c16a55':'#5a4936',1.5);Draw.text('DETAIN',391,848,11,current.detainUnlocked?'#ffe1d6':'#786c5a','center',900);Draw.rr(rects.compareBack.x,rects.compareBack.y,rects.compareBack.w,rects.compareBack.h,12,'#57381f','#a77c46',2);Draw.text('BACK TO DESK',270,910,11,'#f9e5b9','center',900);
+  }
+  function drawRulebook(){
+    const d=DAYS[state.day-1],prev=state.day>1?DAYS[state.day-2]:null,regs=activeRegs(d);ctx.fillStyle='#0d0805e8';ctx.fillRect(0,0,540,960);Draw.rr(28,88,484,790,18,'#e3ce9d','#815a34',2);Draw.text(`GATEKEEPER RULEBOOK — DAY ${state.day}`,270,120,17,'#3a2818','center',900,'Georgia');Draw.text(`${d.name} • ${formatTime(state.shiftLeft)} REMAINS`,270,147,11,state.shiftLeft<20?'#9a4035':'#765432','center',900);Draw.text(hasUpgrade('ruleStand')?'RULEBOOK STAND — CLOCK PAUSED':'REFERENCE MODE — CLOCK AT QUARTER SPEED',270,168,8.6,'#85683d','center',900);Draw.text('TODAY’S REGULATIONS',52,196,11,'#7e3e31','left',900);regs.forEach((r,i)=>{const emergency=r===emergencyRule(),fresh=emergency||!prev||!prev.regs.includes(r);Draw.circle(57,222+i*27,4,emergency?'#d66d36':fresh?'#c48a2d':'#8f4336');Draw.text(`${emergency?'ALERT — ':fresh?'NEW — ':''}${r}`,70,222+i*27,9.7,emergency?'#8f3a2c':'#3d2a19','left',emergency?900:800,'Georgia')});let y=242+regs.length*27;Draw.text('DESK PROCEDURE',52,y,11,'#7e3e31','left',900);['COMPARE ONLY THE OPEN TAB — NO GIANT CHECKLIST','PARTY FORECAST IS SURVIVAL ADVICE — NEVER A LEGAL RULING','MISSING PAPERS CAN BE REQUESTED AFTER A DISCREPANCY','ROYAL WRITS WAIVE ONLY EXPIRY / DESTINATION'].forEach((r,i)=>Draw.text(`• ${r}`,64,y+25+i*22,9.2,'#4d3824','left',750,'Georgia'));y+=110;if(d.priorityPurpose){Draw.text('GUILD PRIORITY (BONUS, NOT LAW)',52,y,11,'#8a672b','left',900);Draw.text(`• ${d.priorityPurpose} contract in successful party: +${d.priorityBonus} G + 2 REP`,64,y+25,9.2,'#4d3824','left',800,'Georgia');y+=48;}Draw.text('SURVIVAL NOTES (NOT ALL ARE LAW)',52,y,11,'#556f3e','left',900);d.advice.forEach((r,i)=>Draw.text(`• ${r}`,64,y+27+i*24,9.7,'#4d3824','left',750,'Georgia'));if(state.upgrades.length){y+=88;Draw.text('INSTALLED DESK AIDS',52,y,11,'#72572d','left',900);state.upgrades.slice(0,3).forEach((id,i)=>Draw.text(`• ${UPGRADES[id].name}`,64,y+26+i*22,9.2,'#4d3824','left',800,'Georgia'))}Draw.rr(rects.bookBack.x,rects.bookBack.y,rects.bookBack.w,rects.bookBack.h,13,'#54371f','#8f6639',2);Draw.text('CLOSE RULEBOOK',270,884,12,'#f7e1b0','center',900);
+  }
+
+  function drawExpedition(){
+    const d=DAYS[state.day-1],e=expedition;ctx.fillStyle='#140d09';ctx.fillRect(0,0,540,960);drawGateScene(expTimer);
+    Draw.rr(20,88,500,748,18,'#1f160ff0','#80603a',2);Draw.text('EXPEDITION IN PROGRESS',270,116,19,'#f0d79c','center',900,'Georgia');Draw.text(d.name,270,143,11,'#ba9865','center',900);
+    e.party.forEach((a,i)=>{const x=82+i*188;drawMiniPortrait(a,x,201);Draw.text(short(a.name,16),x,243,9,'#ead5aa','center',900);Draw.text(`${a.className} L${a.level}`,x,258,8,'#ac9675','center',700)});
+    Draw.text('PARTY CHECKS',48,300,10,'#c99d4e','left',900);
+    e.checks.forEach((c,i)=>{const y=329+i*51;Draw.text(c.label,48,y,9,'#d8c5a0','left',900);Draw.rr(133,y-9,276,18,8,'#302419','#61492d',1);const q=SGK.clamp(c.ratio/1.25,0,1);Draw.rr(136,y-6,270*q,12,6,c.ratio>=.92?'#668557':'#995043');Draw.text(`${Math.round(c.value)} / ${c.target}`,450,y,9,c.ratio>=.92?'#a7c28f':'#e09a87','right',900);if(expTimer>1+i*.35)Draw.text(c.ratio>=.92?'READY':'WEAK',489,y,8,c.ratio>=.92?'#9dbc81':'#e27965','right',900)});
+    const shown=Math.min(e.events.length,Math.max(0,Math.floor((expTimer-1.5)/.45)+1));for(let i=0;i<shown;i++){const ev=e.events[i],y=556+i*31;Draw.circle(52,y,5,ev.good?'#79975f':'#a64b3f');Draw.text(short(ev.text,62),67,y,10,ev.good?'#c8d5b5':'#e2aa98','left',700,'Georgia')}
+    if(expTimer>3.45){Draw.rr(42,700,456,112,15,e.success?'#283a23':'#4b211c',e.success?'#779b61':'#a95a4c',2);Draw.text(e.success?'EXPEDITION RETURNS':'EXPEDITION FAILS',270,727,19,e.success?'#dff2c7':'#ffd0c6','center',1000);Draw.text(`${e.survivors.length} SURVIVED • ${e.dead.length} LOST • ${e.loot} GROSS LOOT`,270,750,11,'#f0d8aa','center',900);Draw.text(e.success?`COMMISSION +${e.commission} G${e.priorityPayout?` • PRIORITY +${e.priorityPayout} G`:''}`:'NO COMMISSION PAID',270,769,9,e.success?'#e7c46c':'#d98d7d','center',900);if(e.success&&(e.cleanBonus||e.relicBonus))Draw.text(`${e.cleanBonus?`FLAWLESS +${e.cleanBonus} G`:''}${e.cleanBonus&&e.relicBonus?' • ':''}${e.relicBonus?`${e.relic} +${e.relicBonus} G`:''}`,270,787,8.3,'#d9b9f0','center',900);const featY=(e.cleanBonus||e.relicBonus)?803:789;if(e.feats?.length)Draw.text(short(`FEATS: ${e.feats.join(' • ')}`,76),270,featY,8,'#b8d09d','center',900);e.dead.forEach((a,i)=>Draw.text(`${a.name} — DIED: ${e.deathReasons.get(a.id)||'Unknown'}`,270,featY+16+i*16,8.5,'#dd8a79','center',800,'Georgia'));}
+    if(e.done&&expTimer>3.8){Draw.rr(170,850,200,62,14,'#5c3a20','#a87942',2);Draw.text('CONTINUE',270,881,14,'#f9e4b6','center',900)}
+  }
+  function drawGateScene(t){ctx.fillStyle='#100a06';ctx.fillRect(180,5,180,88);ctx.fillStyle='#5e4022';for(let x=196;x<350;x+=24){const open=SGK.clamp(t/1,0,1);ctx.fillRect(x-(x<270?open*45:-open*45),12,7,74)}}
+
+  function drawSummary(){
+    ctx.fillStyle='#120b07';ctx.fillRect(0,0,540,960);Draw.rr(28,70,484,786,18,'#e3cc98','#80562f',2);Draw.text(`DAY ${state.day} COMPLETE`,270,108,24,'#352214','center',900,'Georgia');Draw.text(DAYS[state.day-1].name,270,137,11,'#7a5735','center',900);const s=summary;const rows=[['Cases processed',`${s.processed} / ${DAYS[state.day-1].targetCases} target`],['Approved / Rejected',`${s.approved} / ${s.rejected}`],['Correct decisions',s.correct],['Clean-seal awards',s.cleanSeals],['Warnings / Fines',`${s.warnings} / ${s.fines} G`],['Returned with fixes',s.resubmissions],['Detained',s.detained],['Parties / Survivors',`${s.parties} / ${s.survived}`],['Flawless parties',s.perfectParties],['Adventurers lost',s.lost],['Relic appraisal',`+${s.relicBonus} G`],['Night expenses',`-${s.expenses} G`],['Net gold change',`${s.goldDelta>=0?'+':''}${s.goldDelta} G`],['Reputation change',`${s.repDelta>=0?'+':''}${s.repDelta}`]];rows.forEach((r,i)=>{const y=174+i*29;Draw.text(r[0],62,y,10.2,'#62462c','left',750,'Georgia');Draw.text(String(r[1]),470,y,11.5,(r[0].includes('Fines')||r[0].includes('lost'))&&String(r[1])!=='0'?'#8e3e34':'#342315','right',900);Draw.line(62,y+16,470,y+16,'#9d80571f',1)});Draw.rr(52,604,436,158,13,'#5b3b22','#8e693d',1.5);Draw.text('NIGHT LEDGER',270,625,9,'#d3aa5b','center',900);Draw.text(`Gatehouse lease • Ink & candles • Meals: ${s.expenses} G`,270,648,9.6,'#ead6aa','center',800,'Georgia');Draw.text(`Priority bonuses +${s.priorityBonus} G • Sealed favors +${s.secretBonus} G`,270,670,9.4,'#d7bd86','center',800,'Georgia');Draw.text('EVENING HEADLINE',270,694,9,'#d3aa5b','center',900);Draw.text(short(state.lastHeadline,55),270,720,12.3,'#fff0c5','center',900,'Georgia');Draw.text(`Treasury: ${state.gold} G     Guild Reputation: ${state.rep}%`,270,746,10,'#dcc395','center',800);Draw.rr(155,856,230,60,14,'#56371e','#9b6f3d',2);Draw.text(state.day>=5?'FINAL REVIEW':'DESK UPGRADE',270,886,14,'#fbe8bb','center',900);
+  }
+
+  function drawPortrait(a,cx,cy,arr=0){const rng=SGK.mulberry32(a.portraitSeed),scale=1-arr*.18;ctx.save();ctx.translate(cx,cy+Math.sin(applicantBob+a.portraitSeed)*1.5-arr*16);ctx.scale(scale,scale);const skin=pickR(rng,['#d7a67f','#a87355','#6e8f59','#c58b66','#8d7057','#e0b894']);const hair=pickR(rng,['#2c1d16','#8b542e','#c7a05a','#6e3427','#d1c3a0','#241a19']);const face=a.species==='Dwarf'?40:a.species==='Goblin'?32:36;Draw.circle(0,4,face,skin,'#2d1d14',3);if(a.species==='Elf'){ctx.fillStyle=skin;ctx.beginPath();ctx.moveTo(-31,-5);ctx.lineTo(-55,-19);ctx.lineTo(-28,12);ctx.fill();ctx.beginPath();ctx.moveTo(31,-5);ctx.lineTo(55,-19);ctx.lineTo(28,12);ctx.fill()}if(a.species==='Goblin'){ctx.fillStyle=skin;ctx.beginPath();ctx.moveTo(-28,0);ctx.lineTo(-54,-9);ctx.lineTo(-29,18);ctx.fill();ctx.beginPath();ctx.moveTo(28,0);ctx.lineTo(54,-9);ctx.lineTo(29,18);ctx.fill()}
+    // hair / hats
+    if(a.className==='Mage'||a.className==='Necromancer'){ctx.fillStyle=a.className==='Necromancer'?'#342342':'#4c4779';ctx.beginPath();ctx.moveTo(-34,-25);ctx.lineTo(6,-70);ctx.lineTo(30,-23);ctx.closePath();ctx.fill();ctx.fillRect(-38,-26,76,9)}
+    else if(a.className==='Rogue'){ctx.fillStyle='#3a332c';ctx.beginPath();ctx.arc(0,0,44,Math.PI,Math.PI*2);ctx.lineTo(36,14);ctx.lineTo(-36,14);ctx.closePath();ctx.fill()}
+    else if(a.className==='Knight'||a.className==='Paladin'){ctx.fillStyle='#83857d';ctx.beginPath();ctx.arc(0,-4,43,Math.PI,Math.PI*2);ctx.fill();ctx.fillRect(-43,-7,86,14);ctx.fillStyle='#25231f';for(let x=-22;x<=22;x+=11)ctx.fillRect(x,-8,4,18)}
+    else{ctx.fillStyle=hair;ctx.beginPath();ctx.arc(0,-10,37,Math.PI,Math.PI*2);ctx.lineTo(35,3);ctx.quadraticCurveTo(0,-5,-35,3);ctx.closePath();ctx.fill()}
+    const eyeY=7,blink=Math.sin(applicantBob*1.9+(a.portraitSeed%31))>.965;if(blink){Draw.line(-18,eyeY,-8,eyeY,'#1e1814',3);Draw.line(8,eyeY,18,eyeY,'#1e1814',3)}else{Draw.circle(-13,eyeY,4,'#1e1814');Draw.circle(13,eyeY,4,'#1e1814')}if(a.trait==='Fearless'){Draw.line(-21,-2,-7,1,'#452f22',3);Draw.line(7,1,21,-2,'#452f22',3)}
+    ctx.strokeStyle='#5b3826';ctx.lineWidth=2;ctx.beginPath();ctx.arc(0,20,10,a.trait==='Hotheaded'?0:0.15*Math.PI,a.trait==='Hotheaded'?Math.PI:0.85*Math.PI);ctx.stroke();
+    if(a.species==='Dwarf'||rng()>.64){ctx.fillStyle=hair;ctx.beginPath();ctx.moveTo(-22,24);ctx.quadraticCurveTo(0,70,22,24);ctx.quadraticCurveTo(0,40,-22,24);ctx.fill()}
+    if(rng()>.72){ctx.strokeStyle='#7f4738';ctx.lineWidth=3;ctx.beginPath();ctx.moveTo(18,-8);ctx.lineTo(4,26);ctx.stroke()}
+    // shoulders / class color
+    const cc={Knight:'#6d7374',Cleric:'#b7a76b',Rogue:'#3f4b3a',Ranger:'#587248',Mage:'#5d4d7b',Barbarian:'#7b4134',Paladin:'#b69b5f',Scholar:'#6b5841',Engineer:'#7c6238',Necromancer:'#422e4f'}[a.className]||'#66523f';ctx.fillStyle=cc;ctx.beginPath();ctx.ellipse(0,66,58,28,0,0,Math.PI*2);ctx.fill();ctx.restore()}
+  function drawMiniPortrait(a,x,y){ctx.save();ctx.translate(x,y);ctx.scale(.42,.42);drawPortrait(a,0,0,0);ctx.restore()}
+  function pickR(r,a){return a[Math.floor(r()*a.length)]}
+  function short(s,n){s=String(s);return s.length>n?s.slice(0,n-1)+'…':s}
+
+  function enter(){resetRun()}
+  function dev(cmd){
+    if(!state||state.ended)return;
+    if(cmd==='fraud'){current=makeApplicant({name:'Bram Stone',className:'Rogue',level:Math.max(3,DAYS[state.day-1].minLevel),forceLegal:false,invalidType:state.day>=2?'nameMismatch':'level',quote:'One extra letter should not matter.'});mode='desk';tab=state.day>=2?1:0;SGK.UI.toast('CAPTURE CASE LOADED')}
+    if(cmd==='cleric'){if(state.day<2)state.day=5;state.shiftLeft=DAYS[4].shiftSeconds;current=makeApplicant({name:'Sister Pella',className:'Cleric',level:7,forceLegal:false,invalidType:'expired',quote:'The license expired. My healing did not.'});current.fireRes=true;current.special='STRATEGIC TEMPTATION';mode='desk';tab=1;SGK.UI.toast('STRATEGIC ILLEGAL CASE LOADED')}
+    if(cmd==='contraband'){state.day=5;state.shiftLeft=effectiveShiftSeconds(DAYS[4]);current=makeApplicant({name:'Nimble Nan',className:'Rogue',level:6,forceLegal:false,invalidType:'contraband',quote:'My backpack always hums like that.'});mode='desk';tab=2;SGK.UI.toast('SEARCHABLE CONTRABAND CASE LOADED')}
+    if(cmd==='alias'){state.day=4;state.shiftLeft=effectiveShiftSeconds(DAYS[3]);current=makeApplicant({name:'Gribble Nix',className:'Rogue',level:5,forceLegal:false,invalidType:'alias',quote:'I shortened my name for dramatic reasons.'});mode='desk';tab=1;SGK.UI.toast('SIGIL / ALIAS CASE LOADED')}
+    if(cmd==='missing'){state.day=Math.max(3,state.day);state.shiftLeft=effectiveShiftSeconds(DAYS[state.day-1]);current=makeApplicant({name:'Fenwick Bolt',className:'Engineer',level:5,forceLegal:false,invalidType:'missingContract',quote:'I definitely brought the important paper.'});current.forgottenContract=true;mode='desk';tab=3;SGK.UI.toast('MISSING-DOCUMENT CASE LOADED')}
+    if(cmd==='quest'){state.day=Math.max(3,state.day);state.shiftLeft=effectiveShiftSeconds(DAYS[state.day-1]);current=makeApplicant({name:'Lysa Quickstep',className:'Ranger',level:5,forceLegal:false,invalidType:'questPurpose',quote:'I am here for one extremely specific reason.'});current.canCorrectStatement=true;mode='desk';tab=3;SGK.UI.toast('QUEST STATEMENT CASE LOADED')}
+    if(cmd==='writ'){state.day=4;state.shiftLeft=effectiveShiftSeconds(DAYS[3]);current=makeApplicant({name:'Lady Ember Vale',className:'Ranger',level:5,forceLegal:false,invalidType:'expired',quote:'The gold seal outranks the red ink.'});current.royalWrit=true;{const c=legalCheck(current,DAYS[3]);current.legal=c.ok;current.illegalReasons=c.reasons;}mode='desk';tab=1;SGK.UI.toast('ROYAL WRIT EXCEPTION LOADED')}
+    if(cmd==='circle'){state.day=4;state.shiftLeft=effectiveShiftSeconds(DAYS[3]);state.story.circleRequest={target:'Rook Underhill',action:'APPROVE',reward:35,resolved:false,fulfilled:false,text:'Approve Rook Underhill.'};current=makeApplicant({name:'Rook Underhill',className:'Rogue',level:6,forceLegal:false,invalidType:'wanted',quote:'Wanted posters are basically fan art.'});current.special='WANTED • SEALED NOTE TARGET';mode='desk';tab=0;SGK.UI.toast('SEALED REQUEST TARGET LOADED')}
+    if(cmd==='returner'){state.day=Math.max(2,state.day);state.shiftLeft=effectiveShiftSeconds(DAYS[state.day-1]);current=makeApplicant({name:'Fenwick Bolt',className:'Engineer',level:Math.max(4,DAYS[state.day-1].minLevel),forceLegal:true,quote:'I have returned with aggressively valid paperwork.'});current.resubmission=true;current.special='RETURNED — PAPERS CORRECTED';mode='desk';tab=1;SGK.UI.toast('CORRECTED-PAPER RETURN LOADED')}
+    if(cmd==='emergency'){state.day=state.day<4?4:state.day;state.shiftLeft=effectiveShiftSeconds(DAYS[state.day-1]);state.pendingEmergency=state.day===5?{type:'firePrep',title:'LAVA SURGE',text:'For the rest of today, every entrant needs FIRE RESISTANCE or at least 2 HEALING POTIONS.'}:{type:'holyEntry',title:'CRYPT SEAL FRACTURED',text:'For the rest of today, every entrant needs HOLY / SILVER gear or a HOLY CLASS.'};showEmergencyNotice()}
+    if(cmd==='party'){state.party=[makeApplicant({className:'Knight',level:6,forceLegal:true}),makeApplicant({className:'Cleric',level:6,forceLegal:true}),makeApplicant({className:'Rogue',level:6,forceLegal:true})];startExpedition(false)}
+    if(cmd==='danger'){state.party=[makeApplicant({className:'Barbarian',level:DAYS[state.day-1].minLevel,forceLegal:true}),makeApplicant({className:'Barbarian',level:DAYS[state.day-1].minLevel,forceLegal:true}),makeApplicant({className:'Rogue',level:DAYS[state.day-1].minLevel,forceLegal:true})];startExpedition(true)}
+    if(cmd==='relic'){const lv=Math.max(6,DAYS[state.day-1].minLevel+2);state.party=[makeApplicant({className:'Rogue',level:lv,forceLegal:true}),makeApplicant({className:'Ranger',level:lv,forceLegal:true}),makeApplicant({className:'Cleric',level:lv,forceLegal:true})];state.party.forEach(a=>{a.utilityBonus=(a.utilityBonus||0)+4;a.fireRes=true;a.poisonRes=true});startExpedition(false,true)}
+    if(cmd==='streak'){state.streak=3;state.bestStreak=Math.max(state.bestStreak,3);SGK.UI.toast('CLEAN SEAL STREAK SET TO 3 — NEXT CORRECT RULING PAYS',1800)}
+    if(cmd==='nextday'){if(state.day<5){advanceDay()}else completeRun()}
+  }
+  return{enter,update,draw,dev,get state(){return state},get debug(){return{mode,current,compareRows,compareResult,book,summary,expedition}}};
+})();
+
+// UI bindings
+const soundBtn=document.getElementById('soundBtn');
+function refreshSound(){soundBtn.textContent=SGK.Audio.enabled?'SOUND ON':'SOUND OFF'}refreshSound();
+soundBtn.onclick=()=>{SGK.Audio.unlock();SGK.Audio.setEnabled(!SGK.Audio.enabled);refreshSound();SGK.Audio.click()};
+document.getElementById('devBtn').onclick=()=>{SGK.Audio.unlock();SGK.Audio.click();SGK.UI.toggleDev()};
+document.getElementById('devPanel').onclick=e=>{const cmd=e.target?.dataset?.dev;if(!cmd)return;SGK.Audio.unlock();SGK.Audio.click();if(cmd==='close')SGK.UI.toggleDev(false);else if(cmd==='slow'){slow=!slow;SGK.setTimeScale(slow?.32:1);SGK.UI.toast(slow?'SLOW MOTION ON':'SLOW MOTION OFF')}else if(cmd==='telemetry'){tele=!tele;SGK.UI.telemetry(tele)}else if(cmd==='reset'){SGK.Save.reset();SGK.Telemetry.reset();SGK.UI.toast('LOCAL RECORDS RESET')}else Gatekeeper.dev(cmd)};
+let slow=false,tele=false;
+
+SGK.UI.modal('PROTOTYPE #12','PROJECT GATEKEEPER',`You run the desk outside a dangerous fantasy dungeon.\n\n1. Inspect the adventurer before the shift clock runs out.\n2. Compare facts to TODAY'S REGULATIONS.\n3. Question discrepancies; serious fraud can be detained.\n4. APPROVE or REJECT — approved adventurers fill a 3-person party.\n5. The party must actually survive the dungeon.\n6. Process enough cases to pay the gatehouse bills.\n7. Special writs and sealed requests can create lawful exceptions or dangerous temptations.\n8. Rejected applicants may return with corrected papers; later shifts can change rules mid-day.
+9. The PARTY FORECAST shows survival needs and how the current applicant would affect them — it never tells you whether their papers are legal.
+10. Correct-decision streaks earn Clean Seal commendations; flawless expeditions and relic finds pay extra.\n\nLegal does not always mean smart. Fast does not always mean correct.`,[{label:'OPEN THE GATE',onClick:()=>{SGK.Audio.unlock();SGK.start(Gatekeeper)}}]);
+</script>
+</body>
+</html>

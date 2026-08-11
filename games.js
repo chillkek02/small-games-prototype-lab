@@ -52,7 +52,7 @@ window.SMALL_GAMES = [
     "slug": "dungeon-drop",
     "folder": "05-dungeon-drop",
     "title": "Dungeon Drop",
-    "version": "v0.8",
+    "version": "v1.2",
     "genre": "Physics Roguelike \u00b7 Combos",
     "hook": "Build the dungeon, then bounce adventurers through your traps.",
     "accent": "#f28d52",
@@ -118,12 +118,53 @@ window.SMALL_GAMES = [
     "accent": "#70eaff",
     "symbol": "\u25ce",
     "status": "PROTOTYPE"
+  },
+  {
+    "id": 11,
+    "slug": "cauldron",
+    "folder": "11-cauldron",
+    "title": "Project Cauldron",
+    "version": "v7",
+    "genre": "Physics Merge \u00b7 Shop Strategy",
+    "hook": "Merge ingredients into bigger tiers, but customers want exact ingredients—bottle them now or gamble by merging higher.",
+    "accent": "#b68cff",
+    "symbol": "\u2697",
+    "status": "PROTOTYPE"
+  },
+  {
+    "id": 12,
+    "slug": "gatekeeper",
+    "folder": "12-gatekeeper",
+    "title": "Project Gatekeeper",
+    "version": "v7",
+    "genre": "Inspection \u00b7 Party Strategy",
+    "hook": "Inspect fantasy adventurers, then decide whether their paperwork—and their party—can survive the dungeon.",
+    "accent": "#e7bd6c",
+    "symbol": "\u2696",
+    "status": "PROTOTYPE"
+  },
+  {
+    "id": 13,
+    "slug": "ringkeep",
+    "folder": "13-ringkeep",
+    "title": "Ringkeep",
+    "version": "v10",
+    "genre": "Kingdom Defense \u00b7 Strategy",
+    "hook": "Build on rotating fortress rings and reconfigure your defenses before each siege.",
+    "accent": "#d7a650",
+    "symbol": "\u25ce",
+    "status": "PROTOTYPE"
+  },
+  {
+    "id": 14,
+    "slug": "devourer",
+    "folder": "14-devourer",
+    "title": "Project Devourer",
+    "version": "v4",
+    "genre": "Incremental \u00b7 Buildcraft",
+    "hook": "Grow a lab creature whose organs are the upgrade tree—rearrange mutations, molt, and break containment.",
+    "accent": "#81de72",
+    "symbol": "\u2623",
+    "status": "PROTOTYPE"
   }
 ];
-
-if (typeof document !== 'undefined') {
-  const heroCopy = document.querySelector('.hero p');
-  if (heroCopy && heroCopy.textContent.includes('Nine fast experiments')) {
-    heroCopy.textContent = 'Ten fast experiments. Play anything that catches your eye, then submit a rating for the whole team to review.';
-  }
-}
