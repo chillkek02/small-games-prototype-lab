@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+<meta name="theme-color" content="#0b0810" />
+<title>Project Crown Eater v6</title>
+<style>
+:root{
+  --bg:#0b0810;--panel:#17121e;--panel2:#22192c;--line:#4b3d5e;
+  --ink:#f7f1df;--muted:#b7aebd;--gold:#f3c75d;--red:#e0525f;--cyan:#5be2eb;
+  --purple:#b879ff;--ivory:#ddd4bd;--char:#342d39;--good:#7ce1a8;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --safe-left:env(safe-area-inset-left,0px);--safe-right:env(safe-area-inset-right,0px);
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#050408;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;touch-action:none;overscroll-behavior:none;user-select:none}
+button,input{font:inherit}
+#app{position:fixed;inset:0;overflow:hidden;padding:var(--safe-top) var(--safe-right) var(--safe-bottom) var(--safe-left);background:radial-gradient(circle at 50% 25%,#271932 0,#0d0912 55%,#050408 100%)}
+#shell{--fit:1;position:absolute;left:50%;top:50%;width:540px;height:960px;overflow:hidden;background:#0b0810;transform:translate(-50%,-50%) scale(var(--fit));transform-origin:center;box-shadow:0 0 0 1px #3b2b48,0 30px 100px #000c}
+canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
+#toast{position:absolute;z-index:80;left:50%;top:10%;transform:translate(-50%,-8px);max-width:80%;padding:9px 14px;border-radius:999px;background:#100b18ee;border:1px solid #6b5880;color:#fff5dd;font-weight:900;font-size:12px;letter-spacing:.03em;opacity:0;pointer-events:none;transition:.16s ease;text-align:center;white-space:pre-wrap}
+#toast.show{opacity:1;transform:translate(-50%,0)}
+#modal{position:absolute;inset:0;z-index:100;background:#050308e8;display:none;align-items:center;justify-content:center;padding:18px;overflow:hidden}
+#modal.show{display:flex}
+#modalCard{width:100%;max-width:590px;max-height:92%;overflow:auto;background:linear-gradient(180deg,#21182b,#120d18);border:1px solid #69557c;border-radius:19px;padding:18px;box-shadow:0 30px 90px #000d}
+#modalCard h2{margin:0 0 7px;font-size:24px;letter-spacing:.03em;color:#fff5df}
+#modalText{white-space:pre-line;color:#c7bdc9;line-height:1.45;font-size:13px;margin:0}
+#modalActions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;margin-top:14px}
+.modalBtn{appearance:none;border:1px solid #6b5680;background:linear-gradient(180deg,#32233f,#20172a);color:#fff6e5;border-radius:12px;padding:11px 10px;font-weight:900;min-height:46px;box-shadow:0 7px 18px #0004;white-space:pre-line}
+.modalBtn:active{transform:translateY(1px);background:#3b294b}
+.modalBtn.gold{border-color:#8c7440;background:linear-gradient(180deg,#584620,#342912);color:#ffe69c}
+.modalBtn.danger{border-color:#84404a;background:linear-gradient(180deg,#4a2028,#2c1218)}
+.modalBtn.full{grid-column:1/-1}
+#devPanel{position:absolute;z-index:95;right:10px;top:10px;width:230px;max-height:calc(100% - 20px);overflow:auto;padding:9px;background:#09060df2;border:1px solid #755a8d;border-radius:13px;box-shadow:0 20px 55px #000c;display:none}
+#devPanel.show{display:block}
+#devPanel h3{margin:2px 4px 7px;font-size:11px;color:#f3c75d;letter-spacing:.09em}
+#devPanel button{width:100%;appearance:none;border:1px solid #554467;background:#1d1426;color:#efe7f2;border-radius:9px;padding:7px 8px;margin:3px 0;text-align:left;font-size:10px;font-weight:800}
+#telemetry{position:absolute;z-index:90;left:9px;bottom:9px;display:none;pointer-events:none;background:#08060bdc;border:1px solid #5b496b;border-radius:10px;padding:8px;color:#d8cfe0;font:10px/1.45 ui-monospace,SFMono-Regular,Menlo,monospace;white-space:pre}
+#telemetry.show{display:block}
+@media (min-width:700px){#shell{border-radius:16px}}
+@media (max-width:420px){#modalActions{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<!-- v6: Fate Rewind, deterministic Court Forecast, Crown Mine chain reactions, Ravenous bonus-Fang cascades. -->
+<div id="app"><div id="shell" data-layout="portrait">
+  <canvas id="game" width="540" height="960" aria-label="Project Crown Eater game"></canvas>
+  <div id="toast"></div>
+  <div id="telemetry"></div>
+  <div id="devPanel"><h3>DEVELOPER / CAPTURE</h3></div>
+  <div id="modal"><div id="modalCard"><h2 id="modalTitle"></h2><p id="modalText"></p><div id="modalActions"></div></div></div>
+</div></div>
+<script>
+'use strict';
+/* Project Crown Eater v6 — self-contained HTML/CSS/JS prototype.
+   Built around Small Games Kit v0.2 standards: dual-layout display, localization,
+   localStorage, procedural audio, particles/juice, modal/toast UI, telemetry and capture tools. */
+
+const APP_VERSION='Project_Crown_Eater_v6.html';
+const STORAGE='crown_eater_v1_';
+const BOARD=8;
+const app=document.getElementById('app'),shell=document.getElementById('shell'),canvas=document.getElementById('game'),ctx=canvas.getContext('2d');
+let W=540,H=960;
+const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const rand=(a=0,b=1)=>a+Math.random()*(b-a);
+const irand=(a,b)=>Math.floor(rand(a,b+1));
+const choose=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=[...a];for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const key=(x,y)=>`${x},${y}`;
+const inside=(x,y)=>x>=0&&y>=0&&x<BOARD&&y<BOARD;
+const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
+
+const Save={
+ get(k,f=null){try{const r=localStorage.getItem(STORAGE+k);return r===null?f:JSON.parse(r)}catch{return f}},
+ set(k,v){try{localStorage.setItem(STORAGE+k,JSON.stringify(v))}catch{}},
+ reset(){try{Object.keys(localStorage).filter(k=>k.startsWith(STORAGE)).forEach(k=>localStorage.removeItem(k))}catch{}}
+};
+
+const STRINGS={
+ en:{
+  title:'PROJECT CROWN EATER',hook:'EAT THEIR MOVES.',play:'PLAY',how:'HOW TO PLAY',settings:'SETTINGS',language:'LANGUAGE',records:'RECORDS',
+  chooseLang:'CHOOSE LANGUAGE / ELIGE IDIOMA',english:'ENGLISH',spanish:'ESPAÑOL',close:'CLOSE',back:'BACK',restart:'RESTART RUN',cancel:'CANCEL',confirm:'CONFIRM',endChain:'END CHAIN',
+  encounter:'ENCOUNTER',hp:'HP',shield:'SHIELD',turn:'TURN',move:'MOVE',devour:'DEVOUR',push:'PUSH',safe:'SAFE',danger:'DANGER',blocked:'BLOCKED',royalGuard:'ROYAL GUARD',guardsRemain:'ROYAL GUARDS REMAIN',
+  redHelp:'BRIGHT RED = ATTACKS NOW. PIECE NUMBER = ACTIONS UNTIL STRIKE.',stepHelp:'SELECT STEP, THEN A TILE.',devourPawn:'DEVOUR THE PAWN.',newMutation:'NEW MUTATION DISCOVERED',chain:'CHAIN DEVOUR',doubleDevour:'DOUBLE DEVOUR',tripleDevour:'TRIPLE DEVOUR',
+  chooseUpgrade:'CHOOSE 1 OF 3 MUTATIONS',replaceTitle:'MOVEMENT LOADOUT FULL',replaceText:'Choose a movement to replace with {move}.',victory:'LONG LIVE THE EATER',defeat:'THE HUNGER ENDS',
+  winSub:'THE WHITE KING HAS BEEN DEVOURED.',loseSub:'THE COURT TORE THE EATER APART.',again:'PLAY AGAIN',menu:'TITLE SCREEN',
+  selected:'SELECTED',preview:'PREVIEW',willTake:'YOU WILL TAKE {n} DAMAGE',noDamage:'NO DAMAGE EXPECTED',crackArmor:'CRACK ARMOR — YOU STAY PUT',kingLocked:'THE KING IS PROTECTED',pushPreview:'PUSH → {tile}',hazardKill:'HAZARD KILL',collision:'COLLISION',
+  howText:`1. You get 2 FANGS before the Court resolves.
+2. Select one movement mutation. The board shows BOTH its movement and its attack options.
+3. Tap an empty highlighted tile to MOVE. Tap a guarded enemy to STRIKE. Tap a gold EXPOSED enemy to DEVOUR.
+4. STRIKE spends your MAW. MOVE or DEVOUR reloads it — build attack/move combos instead of standing still.
+5. Enemy attacks LOCK at the start of the Court round. Red tiles show where committed attacks will land.
+6. Push an attacker after it locks on to REDIRECT its attack. Court pieces can hit each other. The COURT FORECAST shows who gets hit if you end now.
+7. STRIKE cracks GUARD. At 0 Guard a piece becomes EXPOSED and can be Devoured by reaching its tile.
+8. Every mutation changes BOTH movement and combat: Knight staggers, Rook pushes, Royal tears through Guard, and more.
+9. Court Clocks show future pressure. CHECK pieces can react immediately if you enter their locked pattern.
+10. Push enemies into hazards, collisions, reinforcements, Crown Mines, and crossfires. Complete each board OBJECTIVE and reach the White King.
+
+TIPS
+• Tap the same highlighted tile twice to commit quickly; CONFIRM remains available when you want to inspect the preview.
+• STRIKE → DEVOUR is your basic two-Fang kill combo.
+• MOVE → STRIKE lets you reposition into a better attack angle.
+• A dangerous enemy may be more valuable alive for one moment if its committed attack can kill another piece.
+• REWIND can reset the current round once per board, so test ambitious solutions.
+• Damage 2+ enemies with one player action to trigger RAVENOUS and gain one bonus Fang that round.
+• Different four-mutation loadouts create different movement AND combat solutions.`,
+  settingsText:'AUTO follows your screen. PORTRAIT uses the touch-first phone layout. LANDSCAPE uses a true PC layout with side panels.',display:'DISPLAY',auto:'AUTO',portrait:'PORTRAIT',landscape:'LANDSCAPE',sfx:'SFX',mute:'MUTE',unmuted:'SOUND ON',shake:'SCREEN SHAKE',on:'ON',off:'OFF',
+  recordsText:'RUNS {runs}\nFINISHED {done}\nKING KILLS {kills}\nTOTAL DEVOURS {devours}\nLONGEST CHAIN {chain}\nSOUL ECHOES USED {echoes}\nDECREES FULFILLED {decrees}\nREINFORCEMENTS BLOCKED {blocks}\nPUSHES {pushes}\nCOLLISION KILLS {collisions}\nHAZARD KILLS {hazards}\nCOURT BETRAYAL KILLS {friendly}\nBURDENS ACCEPTED {burdens}\nFURTHEST ENCOUNTER {furthest}\nFASTEST VICTORY {fastest}\nMOST USED {most}',
+  intentAttack:'ATTACK',intentBuff:'BUFF',intentSummon:'SUMMON',intentCurse:'CURSE',intentCharge:'CHARGE',intentHunt:'HUNT',intentPromote:'PROMOTE',
+  intentAttackDesc:'Threatened red tiles will be hit after you commit.',intentBuffDesc:'Strengthens surviving Royal Guards.',intentSummonDesc:'Summons a Pawn after your action.',intentCurseDesc:'Threatens diagonally and marks a cursed tile.',intentChargeDesc:'Threatens straight lines and advances aggressively.',intentHuntDesc:'Threatens an L shape and leaps closer.',
+  tutorialKnight:'KNIGHTS ATTACK IN AN L SHAPE.',tutorialBishop:'BISHOPS THREATEN DIAGONALS.',tutorialRook:'ROOKS THREATEN STRAIGHT LINES.',tutorialQueen:'THE QUEEN THREATENS LINES IN EVERY DIRECTION.',bossRule:'DEVOUR BOTH ROYAL GUARDS. WHEN EXPOSED, THE KING GAINS CHECK.',
+  healBetween:'THE EATER RECOVERS 1 HP.',repeatFeast:'FAMILIAR FLESH — RECOVERED',recharged:'MUTATION RECHARGED',armorCracked:'ARMOR CRACKED',hardShell:'HARD SHELL BLOCKED A HIT',patience:'PREDATOR\'S PATIENCE — SHIELD +1',
+  noLegal:'NO LEGAL DESTINATIONS',chainNone:'NO CHAIN TARGET REMAINS',mutationEquipped:'{move} EQUIPPED',movementKnown:'MOVEMENT ALREADY KNOWN',
+  runSummary:'TIME {time}\nDEVOURS {devours}\nLONGEST CHAIN {chain}\nDAMAGE TAKEN {damage}\nMOVEMENTS DISCOVERED {moves}\nBURDENS {burdens}',eater:'THE EATER',mutations:'MUTATIONS',upgrades:'UPGRADES',wall:'WALL',abyss:'ABYSS',spikes:'SPIKES',smash:'SMASH',mostUsed:'MOST USED',
+  courtClock:'COURT CLOCK',actsNow:'STRIKES NOW',actsIn:'STRIKES IN {n}',futureThreat:'FUTURE THREAT',courtStrike:'COURT STRIKE ×{n}',betrayal:'BETRAYAL',burdens:'BURDENS',feastBurden:'CHOOSE YOUR FEAST — ACCEPT ITS BURDEN',feast:'FEAST',burden:'BURDEN',promoted:'PAWN PROMOTED',intentPromoteDesc:'This Pawn will transform instead of attacking.',clocksHelp:'Numbers on pieces show how many actions remain before they strike.',redirectionHelp:'Push an enemy onto another piece’s red attack tiles to make the court hit itself.',burdenAdded:'THE COURT GROWS STRONGER: {name}',healDenied:'THE COURT DENIES YOUR REST.',fatalTitle:'DEATH OMEN',fatalText:'This move will deal {n} damage and kill the Eater. Commit anyway?',commitAnyway:'ACCEPT DEATH',order:'ORDER {n}',echoes:'SOUL ECHOES',echoCaptured:'SOUL ECHO CAPTURED',echoUsed:'SOUL ECHO CONSUMED',reinforcements:'REINFORCEMENTS',reinforceIn:'EMERGES IN {n}',reinforceBlock:'BLOCK REINFORCEMENT — TAKE 1 DAMAGE',reinforceEnemy:'REINFORCEMENT IMPACT',check:'CHECK',checkDesc:'This marked piece reacts immediately if you end a move in its locked pattern.',reactiveThreat:'CHECK ×{n}',decree:'ROYAL DECREE',favor:'CROWN FAVOR',decreeDone:'DECREE FULFILLED — CROWN FAVOR +1',decreeFail:'DECREE FAILED',rerollFeast:'SPEND 1 FAVOR — REROLL BOTH PATHS',fangs:'FANGS',moveMode:'MOVE',strikeMode:'STRIKE',endRound:'END ROUND',guard:'GUARD',exposed:'EXPOSED',guardBreak:'GUARD BROKEN',stagger:'STAGGERED',objective:'OBJECTIVE',objectiveDone:'OBJECTIVE COMPLETE',exit:'EXIT',exitOpen:'EXIT OPEN',pendingThreat:'COURT DAMAGE IF YOU END HERE: {n}',oneFang:'1 FANG REMAINS',twoFangs:'2 FANGS — COMBO YOUR ACTIONS',combatTutorial:'YOU HAVE 2 FANGS. STRIKE THE PAWN TO BREAK GUARD, THEN MOVE ONTO IT TO DEVOUR.',strikeHelp:'STRIKE uses the combat form of your selected mutation.',exposeFirst:'BREAK ITS GUARD FIRST',markedPrey:'MARKED PREY',surviveExit:'SURVIVE {n} ROUNDS, THEN REACH THE EXIT',rounds:'ROUNDS',collapseWarning:'THE FLOOR WILL COLLAPSE',cracked:'CRACKED FLOOR',biteDevour:'EXECUTION DEVOUR',guardDamage:'CRACK {n} GUARD',pushStrike:'PUSH 1 TILE',missionHunt:'DEVOUR THE MARKED PIECE',missionBreak:'DESTROY THE MARKED PIECES',missionFeast:'DEVOUR {n} PIECES',missionClear:'CLEAR THE COURT',missionKing:'DEVOUR THE WHITE KING',
+  mawReady:'MAW READY',mawSpent:'MAW SPENT',mawReload:'MOVE OR DEVOUR TO RELOAD',quickCommand:'QUICK COMMAND',quickHelp:'EMPTY = MOVE · GUARDED = STRIKE · GOLD = DEVOUR',lockedIntent:'ATTACK LOCKED',lockedHelp:'This attack direction is committed until the Court resolves. Push the attacker to redirect it.',crossfire:'CROSSFIRE',crossfirePreview:'CROSSFIRE ×{n}',tapAgain:'TAP AGAIN TO COMMIT',mawCannotStrike:'MAW SPENT — MOVE OR DEVOUR FIRST',intentLocked:'LOCKED',courtResolve:'COURT RESOLVES',
+  rewind:'REWIND',rewindReady:'REWIND 1/1',rewindSpent:'REWIND USED',rewindToast:'FATE REGURGITATED — ROUND RESET',forecast:'COURT FORECAST',forecastSafe:'YOU SAFE',forecastHit:'YOU −{n}',forecastCourt:'COURT HITS {n}',forecastNone:'NO COURT IMPACTS',forecastExpose:'OPEN',forecastKill:'KO',forecastMine:'MINE',mine:'CROWN MINE',mineDesc:'Court attacks and pushed enemies detonate it. Adjacent mines chain.',mineBlast:'CROWN MINE',ravenous:'RAVENOUS',bonusFang:'RAVENOUS — BONUS FANG',rewindHelp:'Once per board, rewind to the start of the current Court round.',forecastHelp:'Forecast badges show the deterministic result if you end the round now.',
+ },
+ es:{
+  title:'PROJECT CROWN EATER',hook:'DEVORA SUS MOVIMIENTOS.',play:'JUGAR',how:'CÓMO JUGAR',settings:'AJUSTES',language:'IDIOMA',records:'REGISTROS',
+  chooseLang:'CHOOSE LANGUAGE / ELIGE IDIOMA',english:'ENGLISH',spanish:'ESPAÑOL',close:'CERRAR',back:'VOLVER',restart:'REINICIAR PARTIDA',cancel:'CANCELAR',confirm:'CONFIRMAR',endChain:'TERMINAR CADENA',
+  encounter:'ENCUENTRO',hp:'VIDA',shield:'ESCUDO',turn:'TURNO',move:'MOVER',devour:'DEVORAR',push:'EMPUJAR',safe:'SEGURO',danger:'PELIGRO',blocked:'BLOQUEADO',royalGuard:'GUARDIA REAL',guardsRemain:'QUEDAN GUARDIAS REALES',
+  redHelp:'ROJO INTENSO = ATACA AHORA. EL NÚMERO INDICA ACCIONES HASTA EL GOLPE.',stepHelp:'ELIGE PASO Y LUEGO UNA CASILLA.',devourPawn:'DEVORA EL PEÓN.',newMutation:'NUEVA MUTACIÓN DESCUBIERTA',chain:'CADENA DE DEVORAR',doubleDevour:'DOBLE DEVORAR',tripleDevour:'TRIPLE DEVORAR',
+  chooseUpgrade:'ELIGE 1 DE 3 MUTACIONES',replaceTitle:'CARGA DE MOVIMIENTOS LLENA',replaceText:'Elige un movimiento para reemplazar por {move}.',victory:'LARGA VIDA AL DEVORADOR',defeat:'EL HAMBRE TERMINA',
+  winSub:'EL REY BLANCO HA SIDO DEVORADO.',loseSub:'LA CORTE DESTROZÓ AL DEVORADOR.',again:'JUGAR OTRA VEZ',menu:'PANTALLA INICIAL',
+  selected:'SELECCIONADO',preview:'VISTA PREVIA',willTake:'RECIBIRÁS {n} DE DAÑO',noDamage:'NO SE ESPERA DAÑO',crackArmor:'ROMPER ARMADURA — NO TE MUEVES',kingLocked:'EL REY ESTÁ PROTEGIDO',pushPreview:'EMPUJAR → {tile}',hazardKill:'BAJA POR PELIGRO',collision:'COLISIÓN',
+  howText:`1. Tienes 2 COLMILLOS antes de que se resuelva la Corte.
+2. Elige una mutación de movimiento. El tablero muestra A LA VEZ sus opciones de movimiento y ataque.
+3. Toca una casilla vacía resaltada para MOVERTE. Toca un enemigo con Guardia para GOLPEAR. Toca un enemigo dorado EXPUESTO para DEVORAR.
+4. GOLPEAR gasta tus FAUCES. MOVERTE o DEVORAR las recarga: combina ataque y movimiento.
+5. Los ataques enemigos se FIJAN al inicio de la ronda. Las casillas rojas muestran dónde caerán esos ataques comprometidos.
+6. Empuja a un atacante después de fijar su ataque para REDIRIGIRLO. Las piezas de la Corte pueden golpearse entre sí. El PRONÓSTICO muestra quién recibirá el golpe si terminas ahora.
+7. GOLPEAR rompe la GUARDIA. Con 0 Guardia la pieza queda EXPUESTA y puedes Devorarla al llegar a su casilla.
+8. Cada mutación cambia movimiento Y combate: Caballo aturde, Torre empuja, Real destroza Guardia y más.
+9. Los Relojes de Corte muestran la presión futura. Las piezas JAQUE pueden reaccionar de inmediato si entras en su patrón fijado.
+10. Empuja enemigos hacia peligros, colisiones, refuerzos, Minas de Corona y fuego cruzado. Cumple el OBJETIVO y llega al Rey Blanco.
+
+CONSEJOS
+• Toca dos veces la misma casilla resaltada para ejecutar rápido; CONFIRMAR sigue disponible para revisar la vista previa.
+• GOLPEAR → DEVORAR es tu combo básico de dos Colmillos.
+• MOVER → GOLPEAR te permite buscar un mejor ángulo.
+• A veces conviene dejar vivo un enemigo peligroso un instante para usar su ataque comprometido contra otra pieza.
+• REBOBINAR reinicia la ronda actual una vez por tablero: prueba soluciones ambiciosas.
+• Daña a 2+ enemigos con una acción para activar VORAZ y ganar un Colmillo extra esa ronda.
+• Cada carga de cuatro mutaciones crea soluciones distintas de movimiento Y combate.`,
+  settingsText:'AUTO sigue tu pantalla. VERTICAL usa el diseño táctil para teléfono. HORIZONTAL usa un diseño real de PC con paneles laterales.',display:'PANTALLA',auto:'AUTO',portrait:'VERTICAL',landscape:'HORIZONTAL',sfx:'EFECTOS',mute:'SILENCIO',unmuted:'SONIDO ACTIVO',shake:'VIBRACIÓN',on:'SÍ',off:'NO',
+  recordsText:'PARTIDAS {runs}\nFINALIZADAS {done}\nREYES DEVORADOS {kills}\nDEVORADOS TOTALES {devours}\nCADENA MÁS LARGA {chain}\nECOS USADOS {echoes}\nDECRETOS CUMPLIDOS {decrees}\nREFUERZOS BLOQUEADOS {blocks}\nEMPUJES {pushes}\nBAJAS POR COLISIÓN {collisions}\nBAJAS POR PELIGRO {hazards}\nBAJAS POR TRAICIÓN {friendly}\nCARGAS ACEPTADAS {burdens}\nENCUENTRO MÁXIMO {furthest}\nVICTORIA MÁS RÁPIDA {fastest}\nMÁS USADO {most}',
+  intentAttack:'ATAQUE',intentBuff:'MEJORA',intentSummon:'INVOCAR',intentCurse:'MALDICIÓN',intentCharge:'CARGA',intentHunt:'CAZA',intentPromote:'ASCENDER',
+  intentAttackDesc:'Las casillas rojas serán golpeadas después de confirmar.',intentBuffDesc:'Fortalece a los Guardias Reales vivos.',intentSummonDesc:'Invoca un Peón después de tu acción.',intentCurseDesc:'Amenaza diagonales y marca una casilla maldita.',intentChargeDesc:'Amenaza líneas rectas y avanza con fuerza.',intentHuntDesc:'Amenaza en forma de L y salta más cerca.',
+  tutorialKnight:'LOS CABALLOS ATACAN EN FORMA DE L.',tutorialBishop:'LOS ALFILES AMENAZAN EN DIAGONAL.',tutorialRook:'LAS TORRES AMENAZAN EN LÍNEA RECTA.',tutorialQueen:'LA REINA AMENAZA LÍNEAS EN TODAS DIRECCIONES.',bossRule:'DEVORA A LOS DOS GUARDIAS REALES. AL QUEDAR EXPUESTO, EL REY GANA JAQUE.',
+  healBetween:'EL DEVORADOR RECUPERA 1 DE VIDA.',repeatFeast:'CARNE CONOCIDA — RECUPERADO',recharged:'MUTACIÓN RECARGADA',armorCracked:'ARMADURA ROTA',hardShell:'CAPARAZÓN DURO BLOQUEÓ UN GOLPE',patience:'PACIENCIA DEPREDADORA — ESCUDO +1',
+  noLegal:'NO HAY DESTINOS VÁLIDOS',chainNone:'NO QUEDAN OBJETIVOS EN CADENA',mutationEquipped:'{move} EQUIPADO',movementKnown:'MOVIMIENTO YA CONOCIDO',
+  runSummary:'TIEMPO {time}\nDEVORADOS {devours}\nCADENA MÁS LARGA {chain}\nDAÑO RECIBIDO {damage}\nMOVIMIENTOS DESCUBIERTOS {moves}\nCARGAS {burdens}',eater:'EL DEVORADOR',mutations:'MUTACIONES',upgrades:'MEJORAS',wall:'MURO',abyss:'ABISMO',spikes:'PINCHOS',smash:'DESTROZADO',mostUsed:'MÁS USADO',
+  courtClock:'RELOJ DE LA CORTE',actsNow:'ATACA AHORA',actsIn:'ATACA EN {n}',futureThreat:'AMENAZA FUTURA',courtStrike:'GOLPE DE LA CORTE ×{n}',betrayal:'TRAICIÓN',burdens:'CARGAS',feastBurden:'ELIGE TU FESTÍN — ACEPTA SU CARGA',feast:'FESTÍN',burden:'CARGA',promoted:'PEÓN ASCENDIDO',intentPromoteDesc:'Este Peón se transformará en vez de atacar.',clocksHelp:'Los números sobre las piezas muestran cuántas acciones faltan para que ataquen.',redirectionHelp:'Empuja a un enemigo a las casillas rojas de otra pieza para que la corte se golpee sola.',burdenAdded:'LA CORTE SE FORTALECE: {name}',healDenied:'LA CORTE TE NIEGA EL DESCANSO.',fatalTitle:'PRESAGIO DE MUERTE',fatalText:'Este movimiento infligirá {n} de daño y matará al Devorador. ¿Confirmar?',commitAnyway:'ACEPTAR MUERTE',order:'ORDEN {n}',echoes:'ECOS DE ALMA',echoCaptured:'ECO DE ALMA CAPTURADO',echoUsed:'ECO DE ALMA CONSUMIDO',reinforcements:'REFUERZOS',reinforceIn:'APARECE EN {n}',reinforceBlock:'BLOQUEAR REFUERZO — RECIBES 1 DE DAÑO',reinforceEnemy:'IMPACTO DE REFUERZO',check:'JAQUE',checkDesc:'Esta pieza marcada reacciona de inmediato si terminas un movimiento dentro de su patrón de ataque.',reactiveThreat:'JAQUE ×{n}',decree:'DECRETO REAL',favor:'FAVOR DE LA CORONA',decreeDone:'DECRETO CUMPLIDO — FAVOR +1',decreeFail:'DECRETO FALLIDO',rerollFeast:'GASTAR 1 FAVOR — VOLVER A TIRAR',fangs:'COLMILLOS',moveMode:'MOVER',strikeMode:'GOLPEAR',endRound:'TERMINAR RONDA',guard:'GUARDIA',exposed:'EXPUESTO',guardBreak:'GUARDIA ROTA',stagger:'ATURDIDO',objective:'OBJETIVO',objectiveDone:'OBJETIVO COMPLETADO',exit:'SALIDA',exitOpen:'SALIDA ABIERTA',pendingThreat:'DAÑO DE LA CORTE SI TERMINAS AQUÍ: {n}',oneFang:'QUEDA 1 COLMILLO',twoFangs:'2 COLMILLOS — ENCADENA TUS ACCIONES',combatTutorial:'TIENES 2 COLMILLOS. GOLPEA AL PEÓN PARA ROMPER SU GUARDIA Y LUEGO MUÉVETE SOBRE ÉL PARA DEVORARLO.',strikeHelp:'GOLPEAR usa la forma de combate de tu mutación seleccionada.',exposeFirst:'ROMPE SU GUARDIA PRIMERO',markedPrey:'PRESA MARCADA',surviveExit:'SOBREVIVE {n} RONDAS Y LUEGO LLEGA A LA SALIDA',rounds:'RONDAS',collapseWarning:'EL SUELO VA A COLAPSAR',cracked:'SUELO AGRIETADO',biteDevour:'DEVORAR DE EJECUCIÓN',guardDamage:'ROMPE {n} DE GUARDIA',pushStrike:'EMPUJA 1 CASILLA',missionHunt:'DEVORA LA PIEZA MARCADA',missionBreak:'DESTRUYE LAS PIEZAS MARCADAS',missionFeast:'DEVORA {n} PIEZAS',missionClear:'LIMPIA LA CORTE',missionKing:'DEVORA AL REY BLANCO',
+  mawReady:'FAUCES LISTAS',mawSpent:'FAUCES GASTADAS',mawReload:'MUÉVETE O DEVORA PARA RECARGAR',quickCommand:'COMANDO RÁPIDO',quickHelp:'VACÍA = MOVER · GUARDIA = GOLPEAR · DORADA = DEVORAR',lockedIntent:'ATAQUE FIJADO',lockedHelp:'La dirección de este ataque queda comprometida hasta que se resuelva la Corte. Empuja al atacante para redirigirlo.',crossfire:'FUEGO CRUZADO',crossfirePreview:'FUEGO CRUZADO ×{n}',tapAgain:'TOCA OTRA VEZ PARA EJECUTAR',mawCannotStrike:'FAUCES GASTADAS — MUÉVETE O DEVORA PRIMERO',intentLocked:'FIJADO',courtResolve:'SE RESUELVE LA CORTE',
+  rewind:'REBOBINAR',rewindReady:'REBOBINAR 1/1',rewindSpent:'REBOBINADO USADO',rewindToast:'DESTINO REGURGITADO — RONDA REINICIADA',forecast:'PRONÓSTICO DE LA CORTE',forecastSafe:'ESTÁS A SALVO',forecastHit:'TÚ −{n}',forecastCourt:'LA CORTE GOLPEA {n}',forecastNone:'SIN IMPACTOS DE LA CORTE',forecastExpose:'ABRE',forecastKill:'KO',forecastMine:'MINA',mine:'MINA DE CORONA',mineDesc:'Los ataques de la Corte y enemigos empujados la detonan. Minas adyacentes encadenan.',mineBlast:'MINA DE CORONA',ravenous:'VORAZ',bonusFang:'VORAZ — COLMILLO EXTRA',rewindHelp:'Una vez por tablero, rebobina al inicio de la ronda actual.',forecastHelp:'Las marcas de pronóstico muestran el resultado determinista si terminas la ronda ahora.',
+ }
+};
