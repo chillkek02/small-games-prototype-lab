@@ -5,10 +5,10 @@ window.SMALL_GAMES = [
     "folder": "01-grave-swarm",
     "title": "Grave Swarm",
     "version": "v0.21",
-    "genre": "Survivors-like \u00b7 Army Growth",
+    "genre": "Survivors-like · Army Growth",
     "hook": "Every enemy you kill rises and joins your undead army.",
     "accent": "#9b78ff",
-    "symbol": "\u2620",
+    "symbol": "☠",
     "status": "DEMO"
   },
   {
@@ -17,10 +17,10 @@ window.SMALL_GAMES = [
     "folder": "02-starbore",
     "title": "Starbore",
     "version": "v1.0",
-    "genre": "Space Mining \u00b7 Progression",
+    "genre": "Space Mining · Progression",
     "hook": "Mine strange planets, chase jackpots, and upgrade your rig and ship.",
     "accent": "#63d7f0",
-    "symbol": "\u2726",
+    "symbol": "✦",
     "status": "DEMO"
   },
   {
@@ -29,10 +29,10 @@ window.SMALL_GAMES = [
     "folder": "03-patchwork",
     "title": "Project Patchwork",
     "version": "v9",
-    "genre": "Auto-battler \u00b7 Buildcraft",
+    "genre": "Auto-battler · Buildcraft",
     "hook": "Stitch bizarre body parts into a monster and watch the build fight.",
     "accent": "#ff8fc6",
-    "symbol": "\u271a",
+    "symbol": "✚",
     "status": "DEMO"
   },
   {
@@ -41,10 +41,10 @@ window.SMALL_GAMES = [
     "folder": "04-mimic",
     "title": "Project Mimic",
     "version": "v0.7",
-    "genre": "Push Your Luck \u00b7 Deduction",
+    "genre": "Push Your Luck · Deduction",
     "hook": "Open one more chest, manipulate the odds, or bank before it bites.",
     "accent": "#ffca59",
-    "symbol": "\u25c8",
+    "symbol": "◈",
     "status": "DEMO"
   },
   {
@@ -53,10 +53,10 @@ window.SMALL_GAMES = [
     "folder": "05-dungeon-drop",
     "title": "Dungeon Drop",
     "version": "v1.2",
-    "genre": "Physics Roguelike \u00b7 Combos",
+    "genre": "Physics Roguelike · Combos",
     "hook": "Build the dungeon, then bounce adventurers through your traps.",
     "accent": "#f28d52",
-    "symbol": "\u25bc",
+    "symbol": "▼",
     "status": "DEMO"
   },
   {
@@ -65,10 +65,10 @@ window.SMALL_GAMES = [
     "folder": "06-wildcards",
     "title": "Project Wildcards",
     "version": "v008",
-    "genre": "Ecosystem \u00b7 Management",
+    "genre": "Ecosystem · Management",
     "hook": "Build a living ecosystem and stop it from eating itself.",
     "accent": "#77df91",
-    "symbol": "\u274b",
+    "symbol": "❋",
     "status": "DEMO"
   },
   {
@@ -77,10 +77,10 @@ window.SMALL_GAMES = [
     "folder": "07-scrap-run",
     "title": "Scrap Run",
     "version": "v3",
-    "genre": "Arcade \u00b7 Extraction",
+    "genre": "Arcade · Extraction",
     "hook": "Go deeper for better salvage, then survive the same route home.",
     "accent": "#f1ba4e",
-    "symbol": "\u2b22",
+    "symbol": "⬢",
     "status": "DEMO"
   },
   {
@@ -89,10 +89,10 @@ window.SMALL_GAMES = [
     "folder": "08-last-line",
     "title": "Last Line",
     "version": "v0.3",
-    "genre": "Transit \u00b7 Evacuation",
+    "genre": "Transit · Evacuation",
     "hook": "Keep the network moving while a disaster consumes the city.",
     "accent": "#55d8ff",
-    "symbol": "\u2301",
+    "symbol": "⌁",
     "status": "DEMO"
   },
   {
@@ -101,10 +101,10 @@ window.SMALL_GAMES = [
     "folder": "09-grid-siege",
     "title": "Grid Siege",
     "version": "v2",
-    "genre": "Block Puzzle \u00b7 Defense",
+    "genre": "Block Puzzle · Defense",
     "hook": "Rows fire east and west. Columns fire north and south.",
     "accent": "#ef7777",
-    "symbol": "\u25a6",
+    "symbol": "▦",
     "status": "PROTOTYPE"
   },
   {
@@ -113,10 +113,10 @@ window.SMALL_GAMES = [
     "folder": "10-dead-orbit",
     "title": "Dead Orbit",
     "version": "v8",
-    "genre": "Engine Builder \u00b7 Survival",
+    "genre": "Engine Builder · Survival",
     "hook": "Build a dying spaceship into an impossible machine before the crew runs out of air.",
     "accent": "#70eaff",
-    "symbol": "\u25ce",
+    "symbol": "◎",
     "status": "PROTOTYPE"
   },
   {
@@ -125,10 +125,10 @@ window.SMALL_GAMES = [
     "folder": "11-cauldron",
     "title": "Project Cauldron",
     "version": "v7",
-    "genre": "Physics Merge \u00b7 Shop Strategy",
+    "genre": "Physics Merge · Shop Strategy",
     "hook": "Merge ingredients into bigger tiers, but customers want exact ingredients—bottle them now or gamble by merging higher.",
     "accent": "#b68cff",
-    "symbol": "\u2697",
+    "symbol": "⚗",
     "status": "PROTOTYPE"
   },
   {
@@ -137,10 +137,10 @@ window.SMALL_GAMES = [
     "folder": "12-gatekeeper",
     "title": "Project Gatekeeper",
     "version": "v7",
-    "genre": "Inspection \u00b7 Party Strategy",
+    "genre": "Inspection · Party Strategy",
     "hook": "Inspect fantasy adventurers, then decide whether their paperwork—and their party—can survive the dungeon.",
     "accent": "#e7bd6c",
-    "symbol": "\u2696",
+    "symbol": "⚖",
     "status": "PROTOTYPE"
   },
   {
@@ -149,10 +149,10 @@ window.SMALL_GAMES = [
     "folder": "13-ringkeep",
     "title": "Ringkeep",
     "version": "v11",
-    "genre": "Streamlined Kingdom Builder \u00b7 Active Tower Defense",
+    "genre": "Streamlined Kingdom Builder · Active Tower Defense",
     "hook": "Build a kingdom on three rotating fortress rings. Rotating a ring moves every attached building, letting you reposition defenses while potentially exposing your economy.",
     "accent": "#d7a650",
-    "symbol": "\u25ce",
+    "symbol": "◎",
     "status": "PLAYTEST READY"
   },
   {
@@ -161,10 +161,22 @@ window.SMALL_GAMES = [
     "folder": "14-devourer",
     "title": "Project Devourer",
     "version": "v4",
-    "genre": "Incremental \u00b7 Buildcraft",
+    "genre": "Incremental · Buildcraft",
     "hook": "Grow a lab creature whose organs are the upgrade tree—rearrange mutations, molt, and break containment.",
     "accent": "#81de72",
-    "symbol": "\u2623",
+    "symbol": "☣",
+    "status": "PROTOTYPE"
+  },
+  {
+    "id": 18,
+    "slug": "flux-foundry",
+    "folder": "18-flux-foundry",
+    "title": "Flux Foundry",
+    "version": "v4",
+    "genre": "Automation Puzzle · Factory",
+    "hook": "Build a tiny factory that must keep producing after reality flips.",
+    "accent": "#9b78ff",
+    "symbol": "⇄",
     "status": "PROTOTYPE"
   }
 ];
