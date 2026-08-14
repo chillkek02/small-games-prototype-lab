@@ -1,88 +1,24 @@
 <!doctype html>
 <html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#081118">
-<meta name="robots" content="noindex,nofollow,noarchive">
-<title>Prototype Lab Reviews</title>
-<style>
-:root{--bg:#071017;--bg2:#0c1921;--panel:#10232d;--ink:#eef8f5;--muted:#8fa9aa;--line:#274550;--gold:#ffd15a;--good:#72dfa7;--danger:#ff7676;--safeTop:env(safe-area-inset-top,0px);--safeBottom:env(safe-area-inset-bottom,0px)}
-*{box-sizing:border-box}html{background:var(--bg)}body{margin:0;min-height:100dvh;color:var(--ink);font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;background:radial-gradient(circle at 10% 0%,#193d49 0,transparent 30rem),radial-gradient(circle at 90% 6%,#302444 0,transparent 28rem),linear-gradient(180deg,var(--bg2),var(--bg))}button,input,select{font:inherit}.wrap{width:min(1180px,100%);margin:auto;padding:calc(22px + var(--safeTop)) 16px calc(38px + var(--safeBottom))}.panel{border:1px solid #31505d;border-radius:22px;background:linear-gradient(155deg,#142c36,#0e1d25 62%);box-shadow:0 18px 56px #0007}.login{width:min(440px,100%);margin:9dvh auto;padding:28px}.eyebrow{font-size:11px;letter-spacing:.15em;color:#8edee4;font-weight:1000}.login h1,.top h1{margin:10px 0 8px;letter-spacing:-.04em}.muted{color:var(--muted);line-height:1.5;font-size:13px}.field{display:grid;gap:6px;margin-top:14px}.field label{font-size:10px;color:#9eb5b6;font-weight:1000;letter-spacing:.07em}.field input,.filter{border:1px solid #35525e;border-radius:11px;background:#091820;color:var(--ink);padding:11px}.btn{border:1px solid #456673;border-radius:12px;padding:10px 13px;color:var(--ink);background:#122b36;font-weight:900;cursor:pointer;box-shadow:0 4px 0 #061017}.btn.primary{background:linear-gradient(180deg,#ffe078,#e8b33e);border-color:#ffeaa8;color:#221803}.btn:hover{filter:brightness(1.1)}.btn:disabled{opacity:.55;cursor:not-allowed}.notice{display:none;margin-top:14px;border:1px solid #385663;border-radius:11px;padding:10px;font-size:12px;line-height:1.35}.notice.show{display:block}.notice.warn{border-color:#8f4d4d;background:#311819;color:#ffc2c2}.notice.good{border-color:#438066;background:#0d2a21;color:#a9efc8}.top{padding:clamp(20px,4vw,34px);display:flex;align-items:end;justify-content:space-between;gap:16px}.top h1{font-size:clamp(30px,6vw,52px);line-height:.95}.actions{display:flex;gap:8px;flex-wrap:wrap}.summary{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin:16px 0}.stat{padding:15px}.stat b{display:block;font-size:25px}.stat span{color:var(--muted);font-size:11px;font-weight:900;letter-spacing:.06em}.section{margin-top:16px;padding:18px}.section-head{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}.section h2{margin:0;font-size:20px}.ranking{display:grid;gap:9px;margin-top:14px}.rank{width:100%;display:grid;grid-template-columns:auto minmax(150px,1fr) repeat(5,minmax(70px,auto));gap:12px;align-items:center;text-align:left;border:1px solid #2e4d58;border-radius:14px;padding:13px;background:#0b1b23;color:var(--ink);cursor:pointer}.rank:hover,.rank.selected{border-color:#d9b758;background:#172b30}.rank strong{display:block}.rank small{display:block;color:var(--muted);margin-top:3px}.metric{text-align:right;font:900 13px/1 ui-monospace,monospace}.metric small{font:700 9px/1 Inter,sans-serif;margin-top:4px}.reviews-head{display:flex;align-items:end;justify-content:space-between;gap:10px;flex-wrap:wrap}.filter-wrap{display:flex;gap:7px;align-items:center}.filter-wrap label{font-size:10px;color:var(--muted);font-weight:900;letter-spacing:.06em}.filter{padding:8px}.reviews{display:grid;gap:10px;margin-top:14px}.review{border:1px solid #2e4d58;border-radius:14px;padding:14px;background:#0b1b23}.review-top{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap}.review h3{margin:0;font-size:15px}.review time,.build{color:var(--muted);font-size:11px}.scores{display:flex;gap:7px;flex-wrap:wrap;margin:10px 0}.score{border:1px solid #385865;border-radius:999px;padding:5px 8px;color:#d5e8e5;font-size:11px;font-weight:900}.comments{display:grid;gap:7px;margin-top:8px}.comment{color:#c9d9d8;font-size:13px;line-height:1.4}.comment b{display:block;color:#87a5a7;font-size:9px;letter-spacing:.07em;margin-bottom:2px}.empty{border:1px dashed #385663;border-radius:12px;padding:14px;color:var(--muted)}[hidden]{display:none!important}@media(max-width:850px){.summary{grid-template-columns:repeat(2,minmax(0,1fr))}.rank{grid-template-columns:auto 1fr repeat(2,minmax(70px,auto))}.rank .metric:nth-last-child(-n+3){display:none}}@media(max-width:560px){.wrap{padding-left:10px;padding-right:10px}.login{margin:3dvh auto;padding:21px}.top{border-radius:18px}.summary{gap:8px}.stat{padding:12px}.rank{grid-template-columns:auto 1fr}.rank .metric{display:none}.rank .metric:first-of-type{display:block}.actions{width:100%}.actions .btn{flex:1}.filter-wrap{width:100%;justify-content:space-between}.filter{flex:1;max-width:190px}}
-</style>
-</head>
-<body>
-<main class="wrap">
-  <section class="panel login" id="loginScreen">
-    <div class="eyebrow">SMALL GAMES PROTOTYPE LAB</div>
-    <h1>Review dashboard</h1>
-    <p class="muted">Sign in to view centralized playtest reviews.</p>
-    <form id="loginForm">
-      <div class="field"><label for="email">EMAIL</label><input id="email" type="email" autocomplete="email" required></div>
-      <div class="field"><label for="password">PASSWORD</label><input id="password" type="password" autocomplete="current-password" required></div>
-      <div class="actions" style="margin-top:18px"><button class="btn primary" id="loginBtn" type="submit">SIGN IN</button></div>
-    </form>
-    <div class="notice" id="loginNotice" role="status" aria-live="polite"></div>
-  </section>
-
-  <section id="dashboard" hidden>
-    <header class="panel top">
-      <div><div class="eyebrow">PRIVATE ADMIN VIEW</div><h1>PLAYTEST REVIEWS</h1><p class="muted" id="adminIdentity"></p></div>
-      <div class="actions"><button class="btn" id="refreshBtn">REFRESH DATA</button><button class="btn" id="exportBtn">EXPORT CSV</button><button class="btn" id="copySummaryBtn">COPY SUMMARY</button><button class="btn" id="signOutBtn">SIGN OUT</button></div>
-    </header>
-    <section class="summary" aria-label="Review summary">
-      <article class="panel stat"><b id="totalReviews">0</b><span>TOTAL REVIEWS</span></article>
-      <article class="panel stat"><b id="uniqueTesters">0</b><span>UNIQUE TESTERS</span></article>
-      <article class="panel stat"><b id="prototypesReviewed">0</b><span>PROTOTYPES REVIEWED</span></article>
-      <article class="panel stat"><b id="latestReview">—</b><span>LATEST REVIEW</span></article>
-    </section>
-    <section class="panel section">
-      <div class="section-head"><h2>Prototype ranking</h2><div class="filter-wrap"><label for="sortBy">SORT BY</label><select id="sortBy" class="filter"><option value="overall">Overall</option><option value="fun">Fun</option><option value="replay">Play Again</option><option value="clarity">Clarity</option><option value="count">Review Count</option><option value="number">Prototype Number</option></select></div></div>
-      <div id="ranking" class="ranking"></div>
-    </section>
-    <section class="panel section">
-      <div class="reviews-head"><div><h2 id="reviewsTitle">Individual reviews</h2><p class="muted" id="reviewsSub">Select a prototype above to inspect its reviews.</p></div><div class="filter-wrap"><label for="versionFilter">BUILD</label><select id="versionFilter" class="filter"><option value="">All builds</option></select></div></div>
-      <div id="reviews" class="reviews"><div class="empty">No prototype selected.</div></div>
-    </section>
-  </section>
-</main>
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="supabase-config.js"></script>
-<script src="games.js"></script>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#081118"><meta name="robots" content="noindex,nofollow,noarchive"><title>Prototype Lab Reviews</title>
+<style>html,body{margin:0;width:100%;height:100%;background:#071017;color:#eef8f5;font:800 14px system-ui,-apple-system,"Segoe UI",sans-serif}#boot{height:100%;display:grid;place-items:center;text-align:center;padding:24px;box-sizing:border-box}small{display:block;color:#8fa9aa;margin-top:8px}</style></head>
+<body><div id="boot">LOADING REVIEW DASHBOARD…<small>Fetching latest catalog</small></div>
 <script>
-(() => {
-'use strict';
-const config=window.SMALL_GAMES_SUPABASE;
-const games=window.SMALL_GAMES||[];
-const bySlug=new Map(games.map(game=>[game.slug,game]));
-const loginScreen=document.getElementById('loginScreen');
-const dashboard=document.getElementById('dashboard');
-const loginNotice=document.getElementById('loginNotice');
-let client=null, reviews=[], selectedSlug='', activeUser=null;
-function setNotice(element,text,tone='warn'){element.textContent=text;element.className=`notice show ${tone}`;}
-function clearNotice(element){element.textContent='';element.className='notice';}
-function esc(value=''){return String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]))}
-function average(rows,key){return rows.length?rows.reduce((sum,row)=>sum+Number(row[key]||0),0)/rows.length:0;}
-function dateText(value,withTime=false){if(!value)return '—';const date=new Date(value);return Number.isNaN(date.valueOf())?'—':date.toLocaleString(undefined,withTime?{dateStyle:'medium',timeStyle:'short'}:{dateStyle:'medium'});}
-try{if(!config||!window.supabase)throw new Error('The Supabase browser client could not load.');client=window.supabase.createClient(config.url,config.publishableKey,{auth:{persistSession:true,autoRefreshToken:true}});}catch(error){setNotice(loginNotice,error.message);}
-function currentRows(){return games.map(game=>{const gameReviews=reviews.filter(review=>review.prototype_slug===game.slug);const versions=[...new Set(gameReviews.map(review=>review.build_version).filter(Boolean))];const fun=average(gameReviews,'fun_score'),replay=average(gameReviews,'replay_score'),clarity=average(gameReviews,'clarity_score');return {game,reviews:gameReviews,versions,fun,replay,clarity,overall:gameReviews.length?(fun+replay+clarity)/3:0};});}
-function sortRows(rows){const key=document.getElementById('sortBy').value;return [...rows].sort((left,right)=>{if(key==='number')return left.game.id-right.game.id;if(key==='count')return right.reviews.length-left.reviews.length||left.game.id-right.game.id;return right[key]-left[key]||right.reviews.length-left.reviews.length||left.game.id-right.game.id;});}
-function renderSummary(){document.getElementById('totalReviews').textContent=reviews.length;document.getElementById('uniqueTesters').textContent=new Set(reviews.map(review=>String(review.tester_name||'').trim()).filter(Boolean)).size;document.getElementById('prototypesReviewed').textContent=new Set(reviews.map(review=>review.prototype_slug).filter(Boolean)).size;const latest=reviews.reduce((newest,row)=>!newest||new Date(row.created_at)>new Date(newest.created_at)?row:newest,null);document.getElementById('latestReview').textContent=latest?dateText(latest.created_at):'—';}
-function renderRanking(){const ranking=document.getElementById('ranking');ranking.innerHTML=sortRows(currentRows()).map(row=>{const reviewed=row.versions.length?row.versions.join(', '):'no reviews yet';return `<button class="rank ${row.game.slug===selectedSlug?'selected':''}" data-slug="${esc(row.game.slug)}"><span class="number">#${String(row.game.id).padStart(2,'0')}</span><span><strong>${esc(row.game.title)}</strong><small>Current ${esc(row.game.version||'—')} · Reviewed: ${esc(reviewed)}</small></span><span class="metric">${row.reviews.length}<small>REVIEWS</small></span><span class="metric">${row.overall.toFixed(1)}<small>OVERALL</small></span><span class="metric">${row.fun.toFixed(1)}<small>FUN</small></span><span class="metric">${row.replay.toFixed(1)}<small>PLAY</small></span><span class="metric">${row.clarity.toFixed(1)}<small>CLARITY</small></span></button>`;}).join('');ranking.querySelectorAll('[data-slug]').forEach(button=>button.onclick=()=>{selectedSlug=button.dataset.slug;document.getElementById('versionFilter').value='';renderRanking();renderReviews();});}
-function renderReviews(){const container=document.getElementById('reviews');const game=bySlug.get(selectedSlug);const filter=document.getElementById('versionFilter');if(!game){document.getElementById('reviewsTitle').textContent='Individual reviews';document.getElementById('reviewsSub').textContent='Select a prototype above to inspect its reviews.';filter.innerHTML='<option value="">All builds</option>';container.innerHTML='<div class="empty">No prototype selected.</div>';return;}
-  const gameReviews=reviews.filter(review=>review.prototype_slug===selectedSlug);const versions=[...new Set(gameReviews.map(review=>review.build_version).filter(Boolean))];const prior=filter.value;filter.innerHTML=`<option value="">All builds</option>${versions.map(version=>`<option value="${esc(version)}">${esc(version)}</option>`).join('')}`;filter.value=versions.includes(prior)?prior:'';const visible=filter.value?gameReviews.filter(review=>review.build_version===filter.value):gameReviews;document.getElementById('reviewsTitle').textContent=`#${String(game.id).padStart(2,'0')} ${game.title}`;document.getElementById('reviewsSub').textContent=`Current build: ${game.version||'—'} · ${visible.length} review${visible.length===1?'':'s'} shown.`;container.innerHTML=visible.length?visible.map(review=>`<article class="review"><div class="review-top"><div><h3>${esc(review.tester_name||'Unnamed tester')}</h3><span class="build">Build ${esc(review.build_version||'—')}</span></div><time datetime="${esc(review.created_at||'')}">${esc(dateText(review.created_at,true))}</time></div><div class="scores"><span class="score">FUN ${Number(review.fun_score||0)}/5</span><span class="score">PLAY AGAIN ${Number(review.replay_score||0)}/5</span><span class="score">CLARITY ${Number(review.clarity_score||0)}/5</span></div><div class="comments"><div class="comment"><b>BEST PART</b>${esc(review.best_part||'—')}</div><div class="comment"><b>WORST / MOST CONFUSING PART</b>${esc(review.worst_part||'—')}</div><div class="comment"><b>BUGS / OTHER NOTES</b>${esc(review.notes||'—')}</div></div></article>`).join(''):'<div class="empty">No reviews for this build selection yet.</div>';}
-function render(){renderSummary();renderRanking();renderReviews();}
-async function loadReviews(){if(!client||!activeUser)return;document.getElementById('refreshBtn').disabled=true;document.getElementById('refreshBtn').textContent='REFRESHING…';try{const {data,error}=await client.from('prototype_reviews').select('*').order('created_at',{ascending:false});if(error)throw error;reviews=Array.isArray(data)?data:[];render();}catch(error){console.error('Could not load reviews.',error);alert(`Could not load reviews: ${error.message||'Unknown error'}`);}finally{document.getElementById('refreshBtn').disabled=false;document.getElementById('refreshBtn').textContent='REFRESH DATA';}}
-async function authorize(user){if(!user||user.id!==config.adminUid){if(client)await client.auth.signOut();dashboard.hidden=true;loginScreen.hidden=false;setNotice(loginNotice,'ACCESS DENIED. This account is not authorized for the review dashboard.');return false;}activeUser=user;loginScreen.hidden=true;dashboard.hidden=false;document.getElementById('adminIdentity').textContent=user.email||'Authorized administrator';await loadReviews();return true;}
-document.getElementById('loginForm').addEventListener('submit',async event=>{event.preventDefault();clearNotice(loginNotice);if(!client){setNotice(loginNotice,'Review service is unavailable. Try again when the Supabase client loads.');return;}const button=document.getElementById('loginBtn');button.disabled=true;button.textContent='SIGNING IN…';try{const {data,error}=await client.auth.signInWithPassword({email:document.getElementById('email').value.trim(),password:document.getElementById('password').value});if(error)throw error;await authorize(data.user);}catch(error){setNotice(loginNotice,error.message||'Unable to sign in.');}finally{button.disabled=false;button.textContent='SIGN IN';}});
-document.getElementById('refreshBtn').onclick=loadReviews;document.getElementById('sortBy').onchange=renderRanking;document.getElementById('versionFilter').onchange=renderReviews;document.getElementById('signOutBtn').onclick=async()=>{if(client)await client.auth.signOut();reviews=[];selectedSlug='';activeUser=null;dashboard.hidden=true;loginScreen.hidden=false;document.getElementById('password').value='';clearNotice(loginNotice);};
-function csvCell(value){return `"${String(value??'').replace(/"/g,'""')}"`;}
-document.getElementById('exportBtn').onclick=()=>{const columns=['id','created_at','prototype_number','prototype_slug','prototype_title','build_version','tester_name','fun_score','replay_score','clarity_score','best_part','worst_part','notes'];const csv=[columns.join(','),...reviews.map(review=>columns.map(column=>csvCell(review[column])).join(','))].join('\r\n');const blob=new Blob([csv],{type:'text/csv;charset=utf-8'});const link=document.createElement('a');link.href=URL.createObjectURL(blob);link.download='prototype-reviews.csv';link.click();setTimeout(()=>URL.revokeObjectURL(link.href),1000);};
-function makeSummary(){const lines=['SMALL GAMES PROTOTYPE LAB — PLAYTEST REVIEW SUMMARY',`Generated: ${new Date().toLocaleString()}`,`Total reviews: ${reviews.length}`,`Unique testers: ${new Set(reviews.map(review=>review.tester_name).filter(Boolean)).size}`,'','PROTOTYPE RANKINGS'];sortRows(currentRows()).forEach(row=>{lines.push(`#${row.game.id} ${row.game.title} (current ${row.game.version||'—'})`);lines.push(`Reviews: ${row.reviews.length} | Overall: ${row.overall.toFixed(2)} | Fun: ${row.fun.toFixed(2)} | Play Again: ${row.replay.toFixed(2)} | Clarity: ${row.clarity.toFixed(2)}`);if(!row.reviews.length){lines.push('No reviews yet.');}else{row.reviews.forEach(review=>{lines.push(`- ${review.tester_name||'Unnamed'} · ${review.build_version||'—'} · ${dateText(review.created_at,true)}`);lines.push(`  Best: ${review.best_part||'—'}`);lines.push(`  Worst/Confusing: ${review.worst_part||'—'}`);lines.push(`  Bugs/Notes: ${review.notes||'—'}`);});}lines.push('');});return lines.join('\n');}
-document.getElementById('copySummaryBtn').onclick=async()=>{const text=makeSummary();try{await navigator.clipboard.writeText(text);alert('Review summary copied.');}catch(error){const area=document.createElement('textarea');area.value=text;document.body.appendChild(area);area.select();document.execCommand('copy');area.remove();alert('Review summary copied.');}};
-(async()=>{if(!client)return;try{const {data:{session}}=await client.auth.getSession();if(session)await authorize(session.user);}catch(error){console.warn('Could not restore admin session.',error);}})();
+(async()=>{
+  const cb=Date.now();
+  try{
+    const r=await fetch(`admin-shell.html?cb=${cb}`,{cache:'no-store'});
+    if(!r.ok)throw new Error(`Admin shell ${r.status}`);
+    let s=await r.text();
+    const close='</scr'+'ipt>';
+    const needle='<script src="games.js">'+close;
+    const replacement='<script src="games.js?cb='+cb+'">'+close;
+    if(!s.includes(needle))throw new Error('Catalog script marker not found');
+    s=s.replace(needle,replacement);
+    document.open();document.write(s);document.close();
+  }catch(e){
+    console.error(e);
+    document.getElementById('boot').innerHTML='REVIEW DASHBOARD COULD NOT LOAD<small>'+String(e&&e.message||e)+'</small>';
+  }
 })();
-</script>
-</body>
-</html>
+</script></body></html>

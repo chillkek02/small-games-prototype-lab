@@ -168,6 +168,42 @@ window.SMALL_GAMES = [
     "status": "PROTOTYPE"
   },
   {
+    "id": 15,
+    "slug": "scrapdice",
+    "folder": "15-scrapdice",
+    "title": "Project Scrapdice",
+    "version": "v10",
+    "genre": "Dice Roguelike · Squad Buildcraft",
+    "hook": "Build each robot’s die, read enemy intents, and sequence the roll to survive the scrapyard.",
+    "accent": "#ffd45a",
+    "symbol": "⚄",
+    "status": "PROTOTYPE"
+  },
+  {
+    "id": 16,
+    "slug": "crown-eater",
+    "folder": "16-crown-eater",
+    "title": "Project Crown Eater",
+    "version": "v6",
+    "genre": "Tactical Roguelike · Movement Buildcraft",
+    "hook": "Devour court pieces to steal their movement, then redirect the board against itself.",
+    "accent": "#f3c75d",
+    "symbol": "♛",
+    "status": "PROTOTYPE"
+  },
+  {
+    "id": 17,
+    "slug": "polarity",
+    "folder": "17-polarity",
+    "title": "Project Polarity",
+    "version": "v1",
+    "genre": "Arena Roguelite · Bullet Capture",
+    "hook": "Catch the bullet hell in a magnetic orbit, then fire the enemy’s ammunition back.",
+    "accent": "#63e9ff",
+    "symbol": "∩",
+    "status": "PROTOTYPE"
+  },
+  {
     "id": 18,
     "slug": "flux-foundry",
     "folder": "18-flux-foundry",
