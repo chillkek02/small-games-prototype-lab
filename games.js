@@ -178,5 +178,17 @@ window.SMALL_GAMES = [
     "accent": "#9b78ff",
     "symbol": "⇄",
     "status": "PROTOTYPE"
+  },
+  {
+    "id": 19,
+    "slug": "server-of-one",
+    "folder": "19-server-of-one",
+    "title": "Project Server of One",
+    "version": "v7",
+    "genre": "Single-Player MMORPG · Server Simulation",
+    "hook": "Play one adventurer in an MMORPG where every other player, party, guild, economy, and server story is simulated.",
+    "accent": "#e8c66a",
+    "symbol": "◉",
+    "status": "PROTOTYPE"
   }
 ];

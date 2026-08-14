@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#17211d">
+<title>Project Server of One v7</title>
+<style>
+html,body{margin:0;width:100%;height:100%;background:#111815;color:#f2f0dc;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+body{display:grid;place-items:center}
+#load{width:min(520px,calc(100% - 32px));padding:20px;border:1px solid #5b745f;border-radius:14px;background:#17231e;text-align:center;box-shadow:0 12px 40px #0008}
+b{color:#e8c66a}.bar{height:8px;margin-top:14px;border:1px solid #53695a;border-radius:8px;overflow:hidden;background:#0d1612}.bar i{display:block;height:100%;width:0;background:#e8c66a;transition:width .12s}
+small{display:block;margin-top:10px;color:#aeb9ac}
+</style>
+</head>
+<body>
+<div id="load"><b>PROJECT SERVER OF ONE</b><br>Loading World 7…<div class="bar"><i id="p"></i></div><small id="s">Preparing simulated server</small></div>
+<script>
+(async()=>{
+  const parts=["payload-01.txt", "payload-02.txt", "payload-03.txt", "payload-04.txt", "payload-05.txt", "payload-06.txt", "payload-07.txt", "payload-08.txt", "payload-09.txt", "payload-10.txt"];
+  const status=document.getElementById('s'),bar=document.getElementById('p');
+  try{
+    if(typeof DecompressionStream!=='function') throw new Error('This browser does not support DecompressionStream.');
+    let payload='';
+    for(let i=0;i<parts.length;i++){
+      const r=await fetch(parts[i],{cache:'no-store'});
+      if(!r.ok) throw new Error(parts[i]+' '+r.status);
+      payload+=await r.text();
+      bar.style.width=Math.round((i+1)/parts.length*88)+'%';
+      status.textContent='Loading server data '+(i+1)+'/'+parts.length;
+    }
+    const binary=atob(payload);
+    const bytes=new Uint8Array(binary.length);
+    for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+    status.textContent='Entering World 7…';
+    bar.style.width='94%';
+    const stream=new Blob([bytes]).stream().pipeThrough(new DecompressionStream('gzip'));
+    const html=await new Response(stream).text();
+    bar.style.width='100%';
+    document.open();
+    document.write(html);
+    document.close();
+  }catch(err){
+    status.textContent='Could not load the prototype. Refresh and try again.';
+    console.error(err);
+  }
+})();
+</script>
+</body>
+</html>
