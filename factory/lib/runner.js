@@ -93,19 +93,12 @@ function buildRepairPrompt(job, qa, mode = 'standard') {
 
 async function runProcess(command, args, { cwd, input = '', timeoutMs = 20 * 60 * 1000, onLine = () => {} } = {}) {
   return new Promise((resolve, reject) => {
-    const child = spawn(command, args, {
-      cwd,
-      env: process.env,
-      windowsHide: true,
-      shell: process.platform === 'win32'
-    });
-
+    const child = spawn(command, args, { cwd, env: process.env, windowsHide: true, shell: process.platform === 'win32' });
     let stdout = '';
     let stderr = '';
     let settled = false;
     let carryOut = '';
     let carryErr = '';
-
     const emitLines = (chunk, isErr) => {
       const joined = (isErr ? carryErr : carryOut) + chunk.toString();
       const parts = joined.split(/\r?\n/);
@@ -113,32 +106,15 @@ async function runProcess(command, args, { cwd, input = '', timeoutMs = 20 * 60 
       if (isErr) carryErr = carry; else carryOut = carry;
       for (const line of parts) if (line.trim()) onLine(line.trim(), isErr);
     };
-
-    child.stdout?.on('data', chunk => {
-      stdout += chunk.toString();
-      if (stdout.length > 120000) stdout = stdout.slice(-120000);
-      emitLines(chunk, false);
-    });
-    child.stderr?.on('data', chunk => {
-      stderr += chunk.toString();
-      if (stderr.length > 120000) stderr = stderr.slice(-120000);
-      emitLines(chunk, true);
-    });
-
+    child.stdout?.on('data', chunk => { stdout += chunk.toString(); if (stdout.length > 120000) stdout = stdout.slice(-120000); emitLines(chunk, false); });
+    child.stderr?.on('data', chunk => { stderr += chunk.toString(); if (stderr.length > 120000) stderr = stderr.slice(-120000); emitLines(chunk, true); });
     const timer = setTimeout(() => {
       if (settled) return;
       child.kill();
       settled = true;
       reject(new Error(`Process timed out after ${Math.round(timeoutMs / 60000)} minutes`));
     }, timeoutMs);
-
-    child.on('error', error => {
-      if (settled) return;
-      settled = true;
-      clearTimeout(timer);
-      reject(error);
-    });
-
+    child.on('error', error => { if (settled) return; settled = true; clearTimeout(timer); reject(error); });
     child.on('close', code => {
       if (settled) return;
       settled = true;
@@ -147,23 +123,14 @@ async function runProcess(command, args, { cwd, input = '', timeoutMs = 20 * 60 
       if (carryErr.trim()) onLine(carryErr.trim(), true);
       resolve({ code, stdout, stderr });
     });
-
-    if (child.stdin) {
-      child.stdin.write(input);
-      child.stdin.end();
-    }
+    if (child.stdin) { child.stdin.write(input); child.stdin.end(); }
   });
 }
 
 async function walkTextFiles(root, relative = '') {
   const dir = path.join(root, relative);
   let entries = [];
-  try {
-    entries = await fs.readdir(dir, { withFileTypes: true });
-  } catch {
-    return [];
-  }
-
+  try { entries = await fs.readdir(dir, { withFileTypes: true }); } catch { return []; }
   const files = [];
   for (const entry of entries) {
     if (entry.isDirectory()) {
@@ -174,12 +141,7 @@ async function walkTextFiles(root, relative = '') {
     if (!entry.isFile() || !TEXT_EXTENSIONS.has(path.extname(entry.name).toLowerCase())) continue;
     const rel = path.join(relative, entry.name);
     const full = path.join(root, rel);
-    try {
-      const stat = await fs.stat(full);
-      if (stat.size <= MAX_TEXT_FILE_BYTES) files.push(rel);
-    } catch {
-      // Ignore files that disappear during discovery.
-    }
+    try { const stat = await fs.stat(full); if (stat.size <= MAX_TEXT_FILE_BYTES) files.push(rel); } catch {}
   }
   return files;
 }
@@ -188,11 +150,7 @@ async function snapshotTextSource(gameDir) {
   const files = await walkTextFiles(gameDir);
   const snapshot = new Map();
   for (const relative of files) {
-    try {
-      snapshot.set(relative, await fs.readFile(path.join(gameDir, relative), 'utf8'));
-    } catch {
-      // Ignore unreadable source files.
-    }
+    try { snapshot.set(relative, await fs.readFile(path.join(gameDir, relative), 'utf8')); } catch {}
   }
   return snapshot;
 }
@@ -215,11 +173,7 @@ async function replaceUtf8BytesOnce(filePath, from, to) {
   const replacement = Buffer.from(to, 'utf8');
   const first = raw.indexOf(needle);
   if (first < 0 || raw.indexOf(needle, first + needle.length) >= 0) return false;
-  const updated = Buffer.concat([
-    raw.subarray(0, first),
-    replacement,
-    raw.subarray(first + needle.length)
-  ]);
+  const updated = Buffer.concat([raw.subarray(0, first), replacement, raw.subarray(first + needle.length)]);
   await fs.writeFile(filePath, updated);
   return true;
 }
@@ -227,30 +181,18 @@ async function replaceUtf8BytesOnce(filePath, from, to) {
 async function tryDirectEdit(gameDir, instruction) {
   const replacement = parseDirectReplacement(instruction);
   if (!replacement) return { ok: false, reason: 'request is not an exact quoted replacement' };
-
   const files = await walkTextFiles(gameDir);
   const matches = [];
   for (const relative of files) {
     let content;
-    try {
-      content = await fs.readFile(path.join(gameDir, relative), 'utf8');
-    } catch {
-      continue;
-    }
+    try { content = await fs.readFile(path.join(gameDir, relative), 'utf8'); } catch { continue; }
     const count = countOccurrences(content, replacement.from);
     if (count) matches.push({ relative, count });
   }
-
   const totalMatches = matches.reduce((sum, match) => sum + match.count, 0);
   if (totalMatches !== 1 || matches.length !== 1) {
-    return {
-      ok: false,
-      reason: totalMatches === 0
-        ? `exact value was not found: ${JSON.stringify(replacement.from)}`
-        : `exact value appears ${totalMatches} times; refusing an ambiguous zero-token edit`
-    };
+    return { ok: false, reason: totalMatches === 0 ? `exact value was not found: ${JSON.stringify(replacement.from)}` : `exact value appears ${totalMatches} times; refusing an ambiguous zero-token edit` };
   }
-
   const match = matches[0];
   const filePath = path.join(gameDir, match.relative);
   const replaced = await replaceUtf8BytesOnce(filePath, replacement.from, replacement.to);
@@ -258,10 +200,7 @@ async function tryDirectEdit(gameDir, instruction) {
   return { ok: true, relative: match.relative, from: replacement.from, to: replacement.to };
 }
 
-function normalizeText(text = '') {
-  return String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-}
-
+function normalizeText(text = '') { return String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n'); }
 function splitLines(text = '') {
   const normalized = normalizeText(text);
   if (!normalized) return [];
@@ -269,55 +208,35 @@ function splitLines(text = '') {
   if (normalized.endsWith('\n')) lines.pop();
   return lines;
 }
-
-function lineCount(text) {
-  return splitLines(text).length;
-}
+function lineCount(text) { return splitLines(text).length; }
 
 function diffLineCounts(oldText, newText) {
   if (oldText === newText) return { added: 0, deleted: 0 };
-
   const oldLines = splitLines(oldText);
   const newLines = splitLines(newText);
   let prefix = 0;
   const maxPrefix = Math.min(oldLines.length, newLines.length);
   while (prefix < maxPrefix && oldLines[prefix] === newLines[prefix]) prefix += 1;
-
   let oldEnd = oldLines.length - 1;
   let newEnd = newLines.length - 1;
-  while (oldEnd >= prefix && newEnd >= prefix && oldLines[oldEnd] === newLines[newEnd]) {
-    oldEnd -= 1;
-    newEnd -= 1;
-  }
-
+  while (oldEnd >= prefix && newEnd >= prefix && oldLines[oldEnd] === newLines[newEnd]) { oldEnd -= 1; newEnd -= 1; }
   const oldMid = oldLines.slice(prefix, oldEnd + 1);
   const newMid = newLines.slice(prefix, newEnd + 1);
   if (!oldMid.length) return { added: newMid.length, deleted: 0 };
   if (!newMid.length) return { added: 0, deleted: oldMid.length };
-
-  if (oldMid.length * newMid.length > MAX_LCS_CELLS) {
-    return { added: newMid.length, deleted: oldMid.length };
-  }
-
+  if (oldMid.length * newMid.length > MAX_LCS_CELLS) return { added: newMid.length, deleted: oldMid.length };
   const dp = new Uint32Array(newMid.length + 1);
   for (const oldLine of oldMid) {
     let diagonal = 0;
     for (let j = 1; j <= newMid.length; j += 1) {
       const previousRow = dp[j];
-      if (oldLine === newMid[j - 1]) {
-        dp[j] = diagonal + 1;
-      } else if (dp[j - 1] > dp[j]) {
-        dp[j] = dp[j - 1];
-      }
+      if (oldLine === newMid[j - 1]) dp[j] = diagonal + 1;
+      else if (dp[j - 1] > dp[j]) dp[j] = dp[j - 1];
       diagonal = previousRow;
     }
   }
-
   const common = dp[newMid.length];
-  return {
-    added: newMid.length - common,
-    deleted: oldMid.length - common
-  };
+  return { added: newMid.length - common, deleted: oldMid.length - common };
 }
 
 async function runScopedDiffStat({ before, gameDir, gameRelativePath }) {
@@ -326,11 +245,9 @@ async function runScopedDiffStat({ before, gameDir, gameRelativePath }) {
     const allPaths = new Set([...before.keys(), ...after.keys()]);
     const changed = [...allPaths].filter(relative => before.get(relative) !== after.get(relative)).sort();
     if (!changed.length) return 'No source-file changes in this run.';
-
     const rows = [];
     let totalAdd = 0;
     let totalDel = 0;
-
     for (const relative of changed) {
       const oldText = before.get(relative);
       const newText = after.get(relative);
@@ -338,34 +255,23 @@ async function runScopedDiffStat({ before, gameDir, gameRelativePath }) {
       if (oldText === undefined) counts = { added: lineCount(newText), deleted: 0 };
       else if (newText === undefined) counts = { added: 0, deleted: lineCount(oldText) };
       else counts = diffLineCounts(oldText, newText);
-
       totalAdd += counts.added;
       totalDel += counts.deleted;
       rows.push(`${path.join(gameRelativePath, relative)} | +${counts.added} -${counts.deleted}`);
     }
-
     rows.push(`${changed.length} file${changed.length === 1 ? '' : 's'} changed, ${totalAdd} insertion${totalAdd === 1 ? '' : 's'}(+), ${totalDel} deletion${totalDel === 1 ? '' : 's'}(-)`);
     return rows.join('\n');
-  } catch {
-    return 'Run-scoped diff unavailable.';
-  }
+  } catch { return 'Run-scoped diff unavailable.'; }
 }
 
 async function runCodex({ cwd, prompt, onLine, mode = 'standard' }) {
-  const args = [
-    'exec',
-    '--ephemeral',
-    '--sandbox', 'workspace-write',
-    '-c', 'approval_policy=never'
-  ];
-
+  const args = ['exec', '--ephemeral', '--sandbox', 'workspace-write', '-c', 'approval_policy=never'];
   if (mode === 'quick') {
     args.push('-c', 'model_reasoning_effort=low', '-c', 'model_verbosity=low');
     onLine('Quick Edit mode: Terra · low reasoning · low verbosity · Factory QA handles testing', false);
   } else {
     onLine('Standard mode: configured Codex model/reasoning · workspace-write sandbox · Factory QA', false);
   }
-
   args.push('--color', 'never', '-C', cwd, '-');
   const result = await runProcess(CODEX_COMMAND, args, { cwd, input: prompt, onLine });
   if (result.code !== 0) {
@@ -377,72 +283,62 @@ async function runCodex({ cwd, prompt, onLine, mode = 'standard' }) {
 
 async function runNewGameVisualAutomation({ job, store, gameDir, gameUrl, artifactDir, qa, log }) {
   if (job.kind !== 'new-game' || !qa?.passed) return { qa, visualFloor: null, visualPolishApplied: false };
-
   const { runVisualFloorGate, buildAutomaticVisualPolishPrompt } = await import('./visual-gate.js');
   const { runQa } = await import('./qa.js');
   const { createSnapshot, restoreSnapshot } = await import('./snapshots.js');
 
-  await store.patch(job.id, { stage: 'Visual quality floor' });
-  await log('Technical QA passed; running strict first-prototype visual quality floor');
+  await store.patch(job.id, { stage: 'First-prototype quality gates' });
+  await log('Technical QA passed; checking Visual + Retention/Replay + Ad Readiness gates');
   let gate = await runVisualFloorGate({ gameDir, artifactDir });
   await store.patch(job.id, { visualFloor: gate });
 
   if (!gate.audited) {
-    await log(`Visual quality audit could not be verified: ${gate.error || 'unknown audit error'}`);
+    await log(`First-prototype quality audit could not be verified: ${gate.error || 'unknown audit error'}`);
     return { qa, visualFloor: gate, visualPolishApplied: false };
   }
 
-  await log(`Visual floor: ${gate.status} · ${gate.score}/100${gate.hardFails?.length ? ` · hard fails: ${gate.hardFails.join(', ')}` : ''}`);
-  if (gate.passed || MAX_VISUAL_POLISH_PASSES === 0) {
-    return { qa, visualFloor: gate, visualPolishApplied: false };
-  }
+  await log(`Quality gates: ${gate.status} · combined ${gate.score}/100 · visual ${gate.visualScore ?? '—'} · retention ${gate.retentionScore ?? '—'} · ads ${gate.adReadinessScore ?? 'N/A'}${gate.hardFails?.length ? ` · visual hard fails: ${gate.hardFails.join(', ')}` : ''}`);
+  if (gate.passed || MAX_VISUAL_POLISH_PASSES === 0) return { qa, visualFloor: gate, visualPolishApplied: false };
 
   let visualPolishApplied = false;
   for (let pass = 1; pass <= MAX_VISUAL_POLISH_PASSES && !gate.passed; pass += 1) {
     const beforeGate = gate;
-    const beforeQa = qa;
     const safety = await createSnapshot({
       stateDir: store.stateDir,
       game: job.game,
       gameDir,
-      label: `Before automatic visual polish ${pass} (${beforeGate.score}/100)`,
-      kind: 'pre-visual-polish',
+      label: `Before automatic quality polish ${pass} (${beforeGate.score}/100)`,
+      kind: 'pre-quality-polish',
       jobId: job.id
     });
 
     await store.patch(job.id, {
-      stage: `Automatic visual polish ${pass}`,
+      stage: `Automatic quality polish ${pass}`,
       attempt: Math.max(Number((await store.get(job.id))?.attempt || 1) + 1, 2),
       mode: 'standard',
       tokensUsed: null,
-      visualPolishPass: pass,
-      visualPolishSnapshotId: safety.id
+      qualityPolishPass: pass,
+      qualityPolishSnapshotId: safety.id
     });
-    await log(`Visual floor is below 70; starting automatic presentation polish ${pass}/${MAX_VISUAL_POLISH_PASSES}`);
-    await runCodex({
-      cwd: gameDir,
-      prompt: buildAutomaticVisualPolishPrompt({ game: job.game, gate: beforeGate }),
-      mode: 'standard',
-      onLine: line => void log(line)
-    });
+    await log(`One or more first-prototype gates failed; starting automatic quality polish ${pass}/${MAX_VISUAL_POLISH_PASSES}`);
+    await runCodex({ cwd: gameDir, prompt: buildAutomaticVisualPolishPrompt({ game: job.game, gate: beforeGate }), mode: 'standard', onLine: line => void log(line) });
     visualPolishApplied = true;
 
-    await store.patch(job.id, { stage: `QA after visual polish ${pass}` });
-    await log('Re-running desktop/phone technical QA after visual polish');
+    await store.patch(job.id, { stage: `QA after quality polish ${pass}` });
+    await log('Re-running desktop/phone technical QA after automatic quality polish');
     const candidateQa = await runQa({ url: gameUrl, artifactDir });
-
     if (!candidateQa.passed) {
-      await log(`Automatic visual polish introduced ${candidateQa.issues.length} technical QA issue(s); restoring the safer pre-polish version`);
+      await log(`Automatic quality polish introduced ${candidateQa.issues.length} technical QA issue(s); restoring the safer pre-polish version`);
       await restoreSnapshot({ stateDir: store.stateDir, game: job.game, gameDir, snapshotId: safety.id });
       qa = await runQa({ url: gameUrl, artifactDir });
       gate = beforeGate;
       break;
     }
 
-    await store.patch(job.id, { stage: `Visual recheck ${pass}` });
+    await store.patch(job.id, { stage: `Quality gate recheck ${pass}` });
     const candidateGate = await runVisualFloorGate({ gameDir, artifactDir });
     if (!candidateGate.audited) {
-      await log('Post-polish visual audit could not be verified; restoring the known pre-polish version');
+      await log('Post-polish quality audit could not be verified; restoring the known pre-polish version');
       await restoreSnapshot({ stateDir: store.stateDir, game: job.game, gameDir, snapshotId: safety.id });
       qa = await runQa({ url: gameUrl, artifactDir });
       gate = beforeGate;
@@ -450,7 +346,7 @@ async function runNewGameVisualAutomation({ job, store, gameDir, gameUrl, artifa
     }
 
     if ((candidateGate.score ?? 0) < (beforeGate.score ?? 0)) {
-      await log(`Visual polish regressed the floor from ${beforeGate.score}/100 to ${candidateGate.score}/100; restoring the better pre-polish version`);
+      await log(`Automatic quality polish regressed the combined gate from ${beforeGate.score}/100 to ${candidateGate.score}/100; restoring the better pre-polish version`);
       await restoreSnapshot({ stateDir: store.stateDir, game: job.game, gameDir, snapshotId: safety.id });
       qa = await runQa({ url: gameUrl, artifactDir });
       gate = beforeGate;
@@ -459,7 +355,7 @@ async function runNewGameVisualAutomation({ job, store, gameDir, gameUrl, artifa
 
     qa = candidateQa;
     gate = candidateGate;
-    await log(`Visual polish recheck: ${gate.status} · ${gate.score}/100${gate.hardFails?.length ? ` · hard fails: ${gate.hardFails.join(', ')}` : ''}`);
+    await log(`Quality recheck: ${gate.status} · combined ${gate.score}/100 · visual ${gate.visualScore ?? '—'} · retention ${gate.retentionScore ?? '—'} · ads ${gate.adReadinessScore ?? 'N/A'}`);
   }
 
   await store.patch(job.id, { qa, visualFloor: gate, visualPolishApplied });
@@ -470,9 +366,7 @@ export async function probeCodex(repoRoot) {
   try {
     const result = await runProcess(CODEX_COMMAND, ['--version'], { cwd: repoRoot, timeoutMs: 5000 });
     return { ready: result.code === 0, version: (result.stdout || result.stderr).trim() };
-  } catch (error) {
-    return { ready: false, version: '', error: error.message };
-  }
+  } catch (error) { return { ready: false, version: '', error: error.message }; }
 }
 
 export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, gameUrl }) {
@@ -513,9 +407,7 @@ export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, 
       const { runQa } = await import('./qa.js');
       qa = await runQa({ url: gameUrl, artifactDir });
       await store.patch(job.id, { qa });
-
       if (qa.passed || repair === MAX_REPAIR_PASSES) break;
-
       const repairMode = mode === 'standard' ? 'standard' : 'quick';
       await store.patch(job.id, {
         stage: repairMode === 'quick' ? `Codex quick repair ${repair + 1}` : `Codex repair pass ${repair + 1}`,
@@ -531,43 +423,32 @@ export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, 
     const visualResult = await runNewGameVisualAutomation({ job, store, gameDir, gameUrl, artifactDir, qa, log });
     qa = visualResult.qa;
     const visualFloor = visualResult.visualFloor;
-
     const diffStat = await runScopedDiffStat({ before, gameDir, gameRelativePath });
-    const visualAccepted = job.kind !== 'new-game' || Boolean(visualFloor?.passed);
-    if (qa?.passed && visualAccepted) {
-      await log(job.kind === 'new-game' ? 'Build passed technical QA and the visual quality floor' : 'Build passed automated QA');
+    const qualityAccepted = job.kind !== 'new-game' || Boolean(visualFloor?.passed);
+
+    if (qa?.passed && qualityAccepted) {
+      await log(job.kind === 'new-game' ? 'Build passed technical QA and all first-prototype quality gates' : 'Build passed automated QA');
       await store.patch(job.id, {
-        status: 'passed',
-        stage: 'Passed',
-        finishedAt: new Date().toISOString(),
-        diffStat,
-        qa,
-        visualFloor,
+        status: 'passed', stage: 'Passed', finishedAt: new Date().toISOString(), diffStat, qa, visualFloor,
         visualPolishApplied: visualResult.visualPolishApplied
       });
     } else {
       if (qa?.passed && job.kind === 'new-game') {
-        await log(`Technical QA passed, but the visual quality floor is still ${visualFloor?.status || 'unverified'}${visualFloor?.score != null ? ` at ${visualFloor.score}/100` : ''}; marking Needs Review instead of Passed`);
+        await log(`Technical QA passed, but first-prototype quality gates are still ${visualFloor?.status || 'unverified'}${visualFloor?.score != null ? ` at ${visualFloor.score}/100 combined` : ''}; marking Needs Review instead of Passed`);
       } else {
         await log('Build completed but automated QA still reports failures');
       }
       await store.patch(job.id, {
         status: 'needs-review',
-        stage: qa?.passed && job.kind === 'new-game' ? 'Visual needs polish' : 'Needs review',
-        finishedAt: new Date().toISOString(),
-        diffStat,
-        qa,
-        visualFloor,
+        stage: qa?.passed && job.kind === 'new-game' ? 'First-prototype needs work' : 'Needs review',
+        finishedAt: new Date().toISOString(), diffStat, qa, visualFloor,
         visualPolishApplied: visualResult.visualPolishApplied
       });
     }
   } catch (error) {
     await log(`ERROR: ${error.message}`);
     await store.patch(job.id, {
-      status: 'failed',
-      stage: 'Failed',
-      finishedAt: new Date().toISOString(),
-      error: error.message,
+      status: 'failed', stage: 'Failed', finishedAt: new Date().toISOString(), error: error.message,
       diffStat: await runScopedDiffStat({ before, gameDir, gameRelativePath })
     });
   }
