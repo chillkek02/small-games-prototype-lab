@@ -89,7 +89,6 @@ async function startFactory() {
   process.env.GAME_FACTORY_STATE_DIR = path.join(app.getPath('userData'), 'factory-state');
   process.env.GAME_FACTORY_PORT = String(PORT);
   process.env.GAME_FACTORY_HOST = '127.0.0.1';
-  process.env.PLAYWRIGHT_BROWSERS_PATH = '0';
 
   const serverUrl = pathToFileURL(path.join(__dirname, '..', 'server.js')).href;
   const { startFactoryServer } = await import(serverUrl);
@@ -105,21 +104,57 @@ function runCommand(command, args, timeout = 15000) {
   });
 }
 
+function tailscaleCandidates() {
+  const candidates = [process.env.GAME_FACTORY_TAILSCALE_COMMAND, 'tailscale'];
+  for (const base of [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA]) {
+    if (base) candidates.push(path.join(base, 'Tailscale', 'tailscale.exe'));
+  }
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+async function resolveTailscaleCommand() {
+  for (const candidate of tailscaleCandidates()) {
+    const looksLikePath = path.isAbsolute(candidate) || candidate.includes('\\') || candidate.includes('/');
+    if (looksLikePath && !fs.existsSync(candidate)) continue;
+    try {
+      const version = await runCommand(candidate, ['version'], 5000);
+      return {
+        command: candidate,
+        version: String(version.stdout || version.stderr || '').split(/\r?\n/)[0].trim()
+      };
+    } catch {
+      // Try the next normal Windows installation location.
+    }
+  }
+  return null;
+}
+
 async function tailscaleStatus() {
+  const resolved = await resolveTailscaleCommand();
+  if (!resolved) {
+    return { installed: false, ready: false, error: 'Tailscale was not found.' };
+  }
+
   try {
-    const version = await runCommand('tailscale', ['version'], 5000);
-    const status = await runCommand('tailscale', ['status', '--json'], 8000);
+    const status = await runCommand(resolved.command, ['status', '--json'], 8000);
     const parsed = JSON.parse(status.stdout || '{}');
     const dnsName = String(parsed?.Self?.DNSName || '').replace(/\.$/, '');
     return {
       installed: true,
       ready: Boolean(dnsName),
-      version: String(version.stdout || '').split(/\r?\n/)[0].trim(),
+      version: resolved.version,
       dnsName,
-      url: dnsName ? `https://${dnsName}` : null
+      url: dnsName ? `https://${dnsName}` : null,
+      command: resolved.command
     };
   } catch (error) {
-    return { installed: false, ready: false, error: error.message };
+    return {
+      installed: true,
+      ready: false,
+      version: resolved.version,
+      command: resolved.command,
+      error: error.message
+    };
   }
 }
 
@@ -129,7 +164,7 @@ async function enablePhoneRemote() {
     return {
       ok: false,
       code: 'TAILSCALE_MISSING',
-      message: 'Tailscale is not installed or is not available in PATH.'
+      message: 'Tailscale is not installed. Install it on this PC, sign in, then try again.'
     };
   }
   if (!before.ready) {
@@ -142,7 +177,7 @@ async function enablePhoneRemote() {
 
   const target = `http://127.0.0.1:${PORT}`;
   try {
-    const result = await runCommand('tailscale', ['serve', '--bg', target], 20000);
+    const result = await runCommand(before.command, ['serve', '--bg', target], 20000);
     const after = await tailscaleStatus();
     return {
       ok: true,
