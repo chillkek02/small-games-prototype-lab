@@ -1,0 +1,17 @@
+{
+  "name": "gutpopper-game-factory",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Local AI game-production dashboard for the Small Games Prototype Lab.",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "playwright": "latest"
+  }
+}
