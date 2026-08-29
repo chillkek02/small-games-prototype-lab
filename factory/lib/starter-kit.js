@@ -1,7 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 
-const CORE_VERSION = '1.1.0';
+const CORE_VERSION = '1.2.0';
 
 function coreCss() {
   return `:root{
@@ -66,20 +66,21 @@ function createInput(target=document){
 }
 
 function feedbackLayer(){let layer=document.querySelector('.gp-feedback-layer');if(!layer){layer=document.createElement('div');layer.className='gp-feedback-layer';document.body.append(layer)}return layer}
-function burst(x,y,{count=10,size=10,distance=62,duration=520,colors=['#fff','#ffd95a','#75f2ff']}={}){
-  const layer=feedbackLayer();
-  for(let i=0;i<count;i++){const p=document.createElement('i');p.className='gp-particle';p.style.width=p.style.height=size+'px';p.style.left=(x-size/2)+'px';p.style.top=(y-size/2)+'px';p.style.color=colors[i%colors.length];layer.append(p);const a=(Math.PI*2*i/count)+(Math.random()-.5)*.55;const d=distance*(.55+Math.random()*.55);p.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:'translate('+Math.cos(a)*d+'px,'+Math.sin(a)*d+'px) scale(.15)',opacity:0}],{duration:duration*(.8+Math.random()*.35),easing:'cubic-bezier(.12,.7,.25,1)',fill:'forwards'}).finished.finally(()=>p.remove())}
-}
+function burst(x,y,{count=10,size=10,distance=62,duration=520,colors=['#fff','#ffd95a','#75f2ff']}={}){const layer=feedbackLayer();for(let i=0;i<count;i++){const p=document.createElement('i');p.className='gp-particle';p.style.width=p.style.height=size+'px';p.style.left=(x-size/2)+'px';p.style.top=(y-size/2)+'px';p.style.color=colors[i%colors.length];layer.append(p);const a=(Math.PI*2*i/count)+(Math.random()-.5)*.55;const d=distance*(.55+Math.random()*.55);p.animate([{transform:'translate(0,0) scale(1)',opacity:1},{transform:'translate('+Math.cos(a)*d+'px,'+Math.sin(a)*d+'px) scale(.15)',opacity:0}],{duration:duration*(.8+Math.random()*.35),easing:'cubic-bezier(.12,.7,.25,1)',fill:'forwards'}).finished.finally(()=>p.remove())}}
 function shake(element=document.body,{strength=7,duration=180}={}){if(!element?.animate)return;const frames=[{transform:'translate(0,0)'},{transform:'translate('+strength+'px,'+(-strength*.45)+'px)'},{transform:'translate('+(-strength*.75)+'px,'+(strength*.4)+'px)'},{transform:'translate(0,0)'}];element.animate(frames,{duration,easing:'ease-out'})}
 
 const poki={
   ready:false,
+  adActive:false,
+  adHooks:{pause:null,resume:null},
+  setAdHooks({pause=null,resume=null}={}){this.adHooks={pause:typeof pause==='function'?pause:null,resume:typeof resume==='function'?resume:null};return this},
   async init(){if(!POKI_TARGET||!window.PokiSDK)return false;try{await window.PokiSDK.init();this.ready=true;return true}catch{return false}},
   loadingFinished(){try{window.PokiSDK?.gameLoadingFinished?.()}catch{}},
   gameplayStart(){try{window.PokiSDK?.gameplayStart?.()}catch{}},
   gameplayStop(){try{window.PokiSDK?.gameplayStop?.()}catch{}},
-  async commercialBreak(){if(!this.ready||!window.PokiSDK?.commercialBreak)return false;try{await window.PokiSDK.commercialBreak();return true}catch{return false}},
-  async rewardedBreak(){if(!this.ready||!window.PokiSDK?.rewardedBreak)return false;try{return Boolean(await window.PokiSDK.rewardedBreak())}catch{return false}}
+  async _withAd(fn){if(this.adActive)return false;this.adActive=true;try{await this.adHooks.pause?.();return await fn()}catch{return false}finally{try{await this.adHooks.resume?.()}catch{}this.adActive=false}},
+  async commercialBreak(){if(!this.ready||!window.PokiSDK?.commercialBreak)return false;return this._withAd(async()=>{await window.PokiSDK.commercialBreak();return true})},
+  async rewardedBreak(){if(!this.ready||!window.PokiSDK?.rewardedBreak)return false;return this._withAd(async()=>Boolean(await window.PokiSDK.rewardedBreak()))}
 };
 
 const session={startedAt:performance.now(),events:[],mark(name,data={}){this.events.push({name,t:Math.round(performance.now()-this.startedAt),...data});if(this.events.length>200)this.events.shift()},summary(){return {durationMs:Math.round(performance.now()-this.startedAt),events:[...this.events]}}};
@@ -93,17 +94,18 @@ window.dispatchEvent(new CustomEvent('gutpopper-core-ready',{detail:{version:VER
 
 function manifest({ engine, target }) {
   return {
-    name: 'Gutpopper Production Core',
-    version: CORE_VERSION,
+    name:'Gutpopper Production Core',
+    version:CORE_VERSION,
     engine,
     target,
-    features: [
+    features:[
       'mobile browser gesture suppression',
       'safe-area responsive CSS primitives',
       'desktop/phone viewport detection and resize observer helper',
       'keyboard + normalized pointer/touch input helper',
       'local save/load helpers',
       'Poki lifecycle/ad wrappers with safe local fallback',
+      'standard Poki ad pause/resume hooks and ad-active guard',
       'lightweight particles, vibration, and screen-shake helpers',
       'local session event markers with no external tracking'
     ]
@@ -112,7 +114,7 @@ function manifest({ engine, target }) {
 
 export async function writeProductionStarterKit({ gameDir, engine, target }) {
   const starterDir = path.join(gameDir, 'starter');
-  await fsp.mkdir(starterDir, { recursive: true });
+  await fsp.mkdir(starterDir, { recursive:true });
   const data = manifest({ engine, target });
   await Promise.all([
     fsp.writeFile(path.join(starterDir, 'production-core.css'), coreCss(), 'utf8'),
@@ -126,6 +128,7 @@ export function starterKitInstruction() {
   return `PRODUCTION STARTER KIT — ALREADY INSTALLED
 - Keep and use ./starter/production-core.css and ./starter/production-core.js instead of rebuilding generic browser plumbing.
 - window.GutpopperCore provides: load/save/clearSave, clamp/lerp, viewport(), watchViewport(), createInput(), Poki lifecycle/ad wrappers, burst(), shake(), vibrate(), and local session markers.
+- For Poki games, register GutpopperCore.poki.setAdHooks({pause,resume}) once so pause disables gameplay input/audio and resume restores them. commercialBreak()/rewardedBreak() then use those hooks automatically and expose poki.adActive while an ad is in progress.
 - Use .gp-shell/.gp-stage and the starter CSS safe-area/touch primitives where useful, but adapt the visual styling to this game's chosen art direction.
 - RESPONSIVE REQUIREMENT: phone and desktop are two layouts of the same game, not one portrait layout scaled into a larger window.
 - At 390x844, use a touch-first portrait/mobile composition when appropriate.
