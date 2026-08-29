@@ -117,6 +117,21 @@ async function markDispatchFailure(jobId, error) {
   }
 }
 
+async function recoverInterruptedJobs() {
+  const jobs = await store.list(100);
+  const interrupted = jobs.filter(job => job.status === 'queued' || job.status === 'running');
+  for (const job of interrupted) {
+    await store.appendLog(job.id, 'Factory restarted before this job reached a terminal state.');
+    await store.patch(job.id, {
+      status: 'failed',
+      stage: 'Interrupted by restart',
+      finishedAt: new Date().toISOString(),
+      error: 'Factory restarted while this job was active. Start a new run to retry it.'
+    });
+  }
+  if (interrupted.length) console.log(`Recovered ${interrupted.length} interrupted factory job(s).`);
+}
+
 async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/status') {
     const [codex, jobs] = await Promise.all([probeCodex(REPO_ROOT), store.list(5)]);
@@ -228,6 +243,7 @@ async function handler(req, res) {
 
 export async function startFactoryServer() {
   await store.init();
+  await recoverInterruptedJobs();
   const server = http.createServer((req, res) => {
     handler(req, res).catch(error => {
       console.error(error);
