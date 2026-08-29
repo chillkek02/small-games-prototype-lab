@@ -15,8 +15,14 @@ if errorlevel 1 (
   exit /b 1
 )
 
-if not exist "node_modules\electron" (
-  echo First-time desktop setup: installing dependencies...
+set NEED_INSTALL=0
+if not exist "node_modules\electron" set NEED_INSTALL=1
+if not exist "node_modules\phaser\dist\phaser.min.js" set NEED_INSTALL=1
+if not exist "node_modules\phaser4\dist\phaser.min.js" set NEED_INSTALL=1
+if not exist "node_modules\three\build\three.module.min.js" set NEED_INSTALL=1
+
+if "%NEED_INSTALL%"=="1" (
+  echo Installing/updating Factory engines and dependencies...
   call npm install
   if errorlevel 1 goto :fail
 )
