@@ -152,6 +152,85 @@ function setScore(id, value) {
   el.classList.toggle('bad', value != null && value < 60);
 }
 
+function ensureVisualFloorUi() {
+  const scores = document.querySelector('.quality-scores');
+  if (scores && !document.querySelector('#qualityVisualFloor')) {
+    const card = document.createElement('div');
+    card.className = 'quality-score visual-floor-score';
+    card.innerHTML = '<span>Visual Floor</span><strong id="qualityVisualFloor">—</strong>';
+    scores.append(card);
+  }
+  const grid = document.querySelector('.quality-grid');
+  if (grid && !document.querySelector('#qualityVisualFloorNotes')) {
+    const section = document.createElement('section');
+    section.className = 'quality-section quality-floor-section';
+    section.innerHTML = '<h3>Visual quality floor</h3><pre id="qualityVisualFloorNotes">Strict prototype-quality rubric will appear here.</pre>';
+    grid.append(section);
+  }
+}
+
+function setVisualFloor(floor) {
+  ensureVisualFloorUi();
+  const el = document.querySelector('#qualityVisualFloor');
+  if (!el) return;
+  if (!floor) {
+    el.textContent = '—';
+    el.className = '';
+    return;
+  }
+  const label = floor.status === 'PASS' ? 'PASS' : floor.status === 'NEEDS_POLISH' ? 'POLISH' : 'FAIL';
+  el.textContent = `${label} · ${floor.score}/100`;
+  el.className = floor.status === 'PASS' ? 'good' : floor.status === 'NEEDS_POLISH' ? 'warn' : 'bad';
+}
+
+const FLOOR_LABELS = {
+  artDirection: 'Art direction / cohesion',
+  uiTypography: 'UI / typography',
+  composition: 'Composition / responsive layout',
+  worldRichness: 'World / asset richness',
+  gameFeel: 'Game feel / feedback',
+  readability: 'Readability / silhouettes',
+  finish: 'Professional finish / personality'
+};
+
+const HARD_FAIL_LABELS = {
+  placeholder_primitive_dominance: 'Raw placeholder primitives dominate major visuals',
+  raw_default_ui: 'Raw/default/programmer-style UI',
+  dead_space_desktop: 'Large low-value dead space on desktop',
+  phone_layout_on_desktop: 'Phone/portrait layout pasted into desktop',
+  broken_readability: 'Important gameplay/UI readability is broken',
+  missing_or_broken_presentation: 'Visible missing/broken/unfinished presentation',
+  no_feedback: 'Core actions lack meaningful visual feedback',
+  incoherent_style: 'Visual style is incoherent'
+};
+
+function visualFloorText(audit) {
+  const floor = audit.visualFloor;
+  if (!floor) return 'Visual quality floor was not available.';
+  const lines = [
+    `STATUS: ${floor.status}`,
+    `Weighted score: ${floor.score}/100`,
+    `First-prototype minimum: ${floor.minimumPrototypeScore}/100`,
+    `Publish-candidate target: ${floor.publishCandidateScore}/100`,
+    floor.summary ? `Summary: ${floor.summary}` : '',
+    '',
+    'CATEGORY SCORES'
+  ].filter(Boolean);
+  for (const [id, label] of Object.entries(FLOOR_LABELS)) {
+    lines.push(`${label}: ${floor.categories?.[id] ?? '—'}/100`);
+  }
+  lines.push('', 'HARD FAILS');
+  if (floor.hardFails?.length) {
+    for (const id of floor.hardFails) lines.push(`• ${HARD_FAIL_LABELS[id] || id}`);
+  } else {
+    lines.push('• None detected.');
+  }
+  if (!floor.passed) {
+    lines.push('', 'This game does not meet the Gutpopper minimum visual bar for a first playable prototype.');
+  }
+  return lines.join('\n');
+}
+
 function formatBytes(bytes = 0) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`;
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -223,15 +302,20 @@ function readinessText(audit) {
 
 function renderAudit(audit) {
   lastAudit = audit;
+  ensureVisualFloorUi();
   setScore('#qualityOverall', audit.overallScore);
   setScore('#qualityTechnical', audit.technicalScore);
   setScore('#qualityInteraction', audit.playtestScore ?? audit.interactionScore);
   setScore('#qualityVisual', audit.visualScore);
   setScore('#qualityPerformance', audit.performanceScore);
   setScore('#qualityPoki', audit.pokiScore);
+  setVisualFloor(audit.visualFloor);
 
   const report = document.querySelector('#qualityReport');
   if (report) report.textContent = audit.visualReport || 'No visual report returned.';
+
+  const floorNotes = document.querySelector('#qualityVisualFloorNotes');
+  if (floorNotes) floorNotes.textContent = visualFloorText(audit);
 
   const readiness = document.querySelector('#qualityReadinessNotes');
   if (readiness) readiness.textContent = readinessText(audit);
@@ -258,26 +342,31 @@ function renderAudit(audit) {
     technical.textContent = `${playtestText(audit)}\n\nTECHNICAL QA\n${qaText}`;
   }
 
-  setStatus(`Audit complete · ${new Date(audit.finishedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
+  const floorLabel = audit.visualFloor?.status === 'PASS' ? 'visual floor passed' : audit.visualFloor?.status === 'NEEDS_POLISH' ? 'visual polish required' : 'VISUAL FAIL';
+  setStatus(`Audit complete · ${floorLabel} · ${new Date(audit.finishedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
   if (applyButton) applyButton.disabled = false;
   if (rerunButton) rerunButton.disabled = false;
 }
 
 function resetAuditView(game) {
+  ensureVisualFloorUi();
   setScore('#qualityOverall', null);
   setScore('#qualityTechnical', null);
   setScore('#qualityInteraction', null);
   setScore('#qualityVisual', null);
   setScore('#qualityPerformance', null);
   setScore('#qualityPoki', null);
+  setVisualFloor(null);
   const report = document.querySelector('#qualityReport');
   const gallery = document.querySelector('#qualityGallery');
   const technical = document.querySelector('#qualityTechnicalNotes');
   const readiness = document.querySelector('#qualityReadinessNotes');
+  const floorNotes = document.querySelector('#qualityVisualFloorNotes');
   if (report) report.textContent = 'Visual Director is waiting for QA and AI playtest screenshots…';
   if (gallery) gallery.innerHTML = '';
   if (technical) technical.textContent = 'AI Playtester will inspect the game, infer controls/objective, then run desktop and phone sessions…';
   if (readiness) readiness.textContent = 'Measuring cold load, payload size, requests, frame pacing, Poki events, and ad-block resilience…';
+  if (floorNotes) floorNotes.textContent = 'Scoring art direction, UI/typography, composition, world richness, game feel, readability, and professional finish…';
   const title = document.querySelector('#qualityTitle');
   if (title) title.textContent = `Game Doctor · ${game}`;
   if (applyButton) applyButton.disabled = true;
@@ -290,7 +379,7 @@ async function runDoctor() {
   overlay?.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   resetAuditView(game);
-  setStatus('Running Performance/Poki gate → Desktop/Phone QA → AI Playtester → Visual Director…');
+  setStatus('Running Performance/Poki gate → Desktop/Phone QA → AI Playtester → strict Visual Quality Floor…');
   doctorButton.disabled = true;
   try {
     const response = await fetch(`/api/games/${encodeURIComponent(game)}/doctor`, { method: 'POST' });
@@ -314,7 +403,10 @@ function closeQuality() {
 
 function sendFixesToDirector() {
   if (!lastAudit || !instruction) return;
-  const request = `Improve this game using the latest Game Doctor audit. Prioritize the highest-value player-facing, AI-playtest, and Poki/web-performance fixes. Preserve working gameplay, controls, Poki hooks, and existing features. Fix desktop and phone issues together. Do not trade away core fun merely to improve a synthetic score.\n\nGAME DOCTOR SCORE: ${lastAudit.overallScore}/100\nTECHNICAL: ${lastAudit.technicalScore}/100\nAI PLAYTEST: ${lastAudit.playtestScore ?? lastAudit.interactionScore ?? 'unavailable'}/100\nVISUAL: ${lastAudit.visualScore ?? 'unavailable'}/100\nPERFORMANCE: ${lastAudit.performanceScore ?? 'unavailable'}/100\nPOKI READINESS: ${lastAudit.pokiScore ?? 'unavailable'}/100\n\nAI PLAYTEST PLAN\nObjective: ${lastAudit.playtest?.plan?.objective || 'unknown'}\nControls: ${lastAudit.playtest?.plan?.summary || 'unknown'}\nConfidence: ${lastAudit.playtest?.plan?.confidence || 'unknown'}\n\nAI PLAYTEST FINDINGS\n${(lastAudit.playtest?.notes || []).join('\n') || 'None.'}\n\nVISUAL DIRECTOR REPORT\n${lastAudit.visualReport}\n\nPERFORMANCE FINDINGS\n${(lastAudit.readiness?.performanceNotes || []).join('\n') || 'None.'}\n\nPOKI FINDINGS\n${(lastAudit.readiness?.pokiNotes || []).join('\n') || 'None.'}\n\nAUTOMATED ISSUES\n${(lastAudit.qa?.issues || []).join('\n') || 'None.'}`;
+  const floor = lastAudit.visualFloor || {};
+  const hardFails = (floor.hardFails || []).map(id => HARD_FAIL_LABELS[id] || id).join('\n') || 'None.';
+  const categoryScores = Object.entries(FLOOR_LABELS).map(([id, label]) => `${label}: ${floor.categories?.[id] ?? '—'}/100`).join('\n');
+  const request = `Improve this game using the latest Game Doctor audit. Prioritize the highest-value player-facing, visual-floor, AI-playtest, and Poki/web-performance fixes. Preserve working gameplay, controls, Poki hooks, and existing features. Fix desktop and phone issues together. Do not trade away core fun merely to improve a synthetic score.\n\nGAME DOCTOR SCORE: ${lastAudit.overallScore}/100\nTECHNICAL: ${lastAudit.technicalScore}/100\nAI PLAYTEST: ${lastAudit.playtestScore ?? lastAudit.interactionScore ?? 'unavailable'}/100\nVISUAL: ${lastAudit.visualScore ?? 'unavailable'}/100\nVISUAL FLOOR: ${floor.status || 'unknown'} · ${floor.score ?? '—'}/100 (minimum ${floor.minimumPrototypeScore ?? 70})\nPERFORMANCE: ${lastAudit.performanceScore ?? 'unavailable'}/100\nPOKI READINESS: ${lastAudit.pokiScore ?? 'unavailable'}/100\n\nVISUAL FLOOR CATEGORY SCORES\n${categoryScores}\n\nVISUAL HARD FAILS\n${hardFails}\n\nAI PLAYTEST PLAN\nObjective: ${lastAudit.playtest?.plan?.objective || 'unknown'}\nControls: ${lastAudit.playtest?.plan?.summary || 'unknown'}\nConfidence: ${lastAudit.playtest?.plan?.confidence || 'unknown'}\n\nAI PLAYTEST FINDINGS\n${(lastAudit.playtest?.notes || []).join('\n') || 'None.'}\n\nVISUAL DIRECTOR REPORT\n${lastAudit.visualReport}\n\nPERFORMANCE FINDINGS\n${(lastAudit.readiness?.performanceNotes || []).join('\n') || 'None.'}\n\nPOKI FINDINGS\n${(lastAudit.readiness?.pokiNotes || []).join('\n') || 'None.'}\n\nAUTOMATED ISSUES\n${(lastAudit.qa?.issues || []).join('\n') || 'None.'}`;
   instruction.value = request;
   instruction.dispatchEvent(new Event('input', { bubbles: true }));
   closeQuality();
@@ -328,9 +420,7 @@ rerunButton?.addEventListener('click', runDoctor);
 applyButton?.addEventListener('click', sendFixesToDirector);
 overlay?.addEventListener('click', event => { if (event.target === overlay) closeQuality(); });
 
-const playtestLabel = document.querySelector('#qualityInteraction')?.parentElement?.querySelector('span');
-if (playtestLabel) playtestLabel.textContent = 'AI Playtest';
-
 if (openGame) new MutationObserver(syncButton).observe(openGame, { attributes: true, attributeFilter: ['href', 'class'] });
+ensureVisualFloorUi();
 ensureSnapshotControls();
 syncButton();
