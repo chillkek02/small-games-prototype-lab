@@ -11,9 +11,10 @@
     "start": "node server.js",
     "dev": "node --watch server.js",
     "desktop": "electron .",
+    "check": "node --check server.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check public/app.js && node --check public/sw.js && node --check scripts/install-playwright.cjs",
     "prepare:chromium": "node scripts/install-playwright.cjs",
-    "package:win": "npm run prepare:chromium && electron-forge package --platform=win32 --arch=x64",
-    "make:win": "npm run prepare:chromium && electron-forge make --platform=win32 --arch=x64"
+    "package:win": "npm run check && npm run prepare:chromium && electron-forge package --platform=win32 --arch=x64",
+    "make:win": "npm run check && npm run prepare:chromium && electron-forge make --platform=win32 --arch=x64"
   },
   "engines": {
     "node": ">=20"
