@@ -14,15 +14,17 @@ V0.1 deliberately focuses on one complete production loop instead of trying to s
 
 Codex is instructed not to commit or push. The factory edits the existing local working tree so you can review the changes before publishing.
 
-## Fastest setup on the current Prototype Lab machine
+## Safest setup on the current Prototype Lab machine
 
-Open PowerShell in the repository and run:
+If the Prototype Lab has uncommitted game changes, do **not** switch branches just to install the factory. Copy only the new factory tooling into your current working tree:
 
 ```powershell
 cd "C:\Users\chill\OneDrive\Documents\GitHub\small-games-prototype-lab"
 git fetch origin
-git switch game-factory-v1
+git restore --source=origin/game-factory-v1 -- factory "Start Game Factory.bat"
 ```
+
+That command does not replace anything under `games/` and does not change your current branch.
 
 After that, double-click **Start Game Factory.bat** in the repository root. On the first launch it installs the factory's npm dependencies and Chromium automatically, starts the local server, and opens the dashboard.
 
@@ -32,7 +34,7 @@ The dashboard runs at:
 
 ## Manual setup
 
-If you prefer to run it manually:
+If you prefer to run it manually after copying the factory files:
 
 ```powershell
 cd "C:\Users\chill\OneDrive\Documents\GitHub\small-games-prototype-lab\factory"
