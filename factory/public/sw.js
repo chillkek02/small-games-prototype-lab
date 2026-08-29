@@ -1,14 +1,12 @@
-const CACHE = 'gutpopper-factory-shell-v0.12.1-game-delete';
+const CACHE = 'gutpopper-factory-shell-v0.13-studio-loop';
 const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/app.js', '/device-preview.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
 });
-
 self.addEventListener('activate', event => {
   event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim()));
 });
-
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
