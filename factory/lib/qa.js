@@ -3,6 +3,21 @@ import { chromium } from 'playwright';
 
 const START_PATTERN = /^(play|start|begin|go|launch|continue|new game|start game)$/i;
 
+async function launchQaBrowser() {
+  if (process.platform === 'win32') {
+    try {
+      return await chromium.launch({ channel: 'msedge', headless: true });
+    } catch (edgeError) {
+      try {
+        return await chromium.launch({ headless: true });
+      } catch {
+        throw new Error(`Automated QA could not start Microsoft Edge. Update/reinstall Edge and retry. ${edgeError.message}`);
+      }
+    }
+  }
+  return chromium.launch({ headless: true });
+}
+
 async function exercisePage(page) {
   const candidates = page.locator('button, [role="button"], input[type="button"], input[type="submit"]');
   const count = Math.min(await candidates.count(), 30);
@@ -98,7 +113,7 @@ async function inspectViewport(browser, { name, width, height, url, screenshotPa
 }
 
 export async function runQa({ url, artifactDir }) {
-  const browser = await chromium.launch({ headless: true });
+  const browser = await launchQaBrowser();
   try {
     const desktop = await inspectViewport(browser, {
       name: 'Desktop',
@@ -120,6 +135,7 @@ export async function runQa({ url, artifactDir }) {
     return {
       passed: views.every(view => view.passed),
       checkedAt: new Date().toISOString(),
+      browser: process.platform === 'win32' ? 'Microsoft Edge' : 'Playwright Chromium',
       views,
       issues: views.flatMap(view => view.issues)
     };
