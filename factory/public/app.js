@@ -1,5 +1,5 @@
 const $=selector=>document.querySelector(selector);
-const state={games:[],selectedGame:null,activeJobId:null,lastJobStatus:null,creatorOptions:null,opportunityReport:null};
+const state={games:[],selectedGame:null,activeJobId:null,lastJobStatus:null,creatorOptions:null,opportunityReport:null,themePages:{},themeSelections:{}};
 const desktopBridge=window.factoryDesktop||null;
 function escapeHtml(value=''){return String(value).replace(/[&<>'"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;'}[ch]))}
 async function api(url,options){const response=await fetch(url,options),data=await response.json().catch(()=>({}));if(!response.ok)throw new Error(data.error||`HTTP ${response.status}`);return data}
@@ -40,22 +40,40 @@ async function openStudio(mode='scout'){$('#studioOverlay').classList.remove('hi
 function closeStudio(){$('#studioOverlay').classList.add('hidden');document.body.style.overflow=''}
 function recommendedForForm(){const slug=$('#selectedOpportunity').value,opp=state.opportunityReport?.opportunities?.find(i=>i.slug===slug),concept=$('#newGameConcept').value.toLowerCase();let engine=opp?.engine||'three',art=opp?.art||'toy3d';if(!opp){if(/drive|car|truck|tow|vehicle|road|delivery|clean|vacuum|wash|repair|restore|job|rescue|fire|crowd|shop|tycoon|store|restaurant|demol|city|town|world|3d/.test(concept)){engine='three';art='toy3d'}else if(/puzzle|sort|belt|conveyor|grid|match|card|word/.test(concept)){engine='phaser3';art='isometric'}else if(/pixel|retro/.test(concept)){engine='phaser3';art='pixel'}else if(/platform|shooter|sports|runner|arcade|arena/.test(concept)){engine='phaser3';art='vector'}}if($('#engineSelect').value&&$('#engineSelect').value!=='auto')engine=$('#engineSelect').value;if($('#artSelect').value&&$('#artSelect').value!=='auto')art=$('#artSelect').value;return{engine,art}}
 function updateRecommendation(){if(!state.creatorOptions)return;const{engine,art}=recommendedForForm();$('#recommendationText').textContent=`${optionLabel(state.creatorOptions.engines,engine)} + ${optionLabel(state.creatorOptions.artStyles,art)}`;const selected=state.creatorOptions.engines.find(i=>i.id===($('#engineSelect').value||'auto'));$('#engineHelp').textContent=selected?.description||'Factory chooses for gameplay + visual quality.'}
+function themeBatch(item){
+  const suggestions=item?.themeSuggestions||[];if(!suggestions.length)return[];
+  const page=Math.max(0,Number(state.themePages[item.slug]||0));const start=(page*3)%suggestions.length;
+  const out=[];for(let i=0;i<Math.min(3,suggestions.length);i+=1)out.push(suggestions[(start+i)%suggestions.length]);return out;
+}
+function selectedTheme(item){
+  const suggestions=item?.themeSuggestions||[];if(!suggestions.length)return null;
+  const selectedId=state.themeSelections[item.slug];return suggestions.find(x=>x.id===selectedId)||themeBatch(item)[0]||suggestions[0];
+}
+function chooseTheme(slug,id){state.themeSelections[slug]=id;renderOpportunityReport(state.opportunityReport)}
+function refreshThemes(slug){
+  const item=state.opportunityReport?.opportunities?.find(x=>x.slug===slug);if(!item)return;
+  const count=Math.max(1,Math.ceil((item.themeSuggestions?.length||0)/3));state.themePages[slug]=((state.themePages[slug]||0)+1)%count;
+  const first=themeBatch(item)[0];state.themeSelections[slug]=first?.id||null;renderOpportunityReport(state.opportunityReport);
+}
 function renderOpportunityReport(report){
-  state.opportunityReport=report;
+  const newReport=state.opportunityReport!==report;state.opportunityReport=report;if(newReport){state.themePages={};state.themeSelections={}}
   const topThemes=(report.themeRadar?.themes||[]).slice(0,3).map(t=>`${t.label} ${t.heat}`).join(' · ');
   $('#scoutStatus').textContent=`${report.market?.live?'Live Poki pages checked':'Using fallback market snapshot'} · ${new Date(report.generatedAt).toLocaleTimeString([],{hour:'numeric',minute:'2-digit'})}${topThemes?` · Theme Radar: ${topThemes}`:''} · ${report.methodology}`;
   const items=(report.opportunities||[]).slice(0,6);
   $('#opportunityList').innerHTML=items.map((item,index)=>{
-    const theme=item.themeSuggestions?.[0];
-    return `<article class="opportunity-card ${index===0?'top':''}"><span class="opportunity-rank">#${index+1}</span><div><h3>${escapeHtml(item.title)}</h3><span class="genre">${escapeHtml(item.genre)} · ${escapeHtml(item.confidence)} confidence</span></div><p>${escapeHtml(item.hook)}</p><div class="score-row"><div class="score-chip"><span>Score</span><strong>${item.score}/100</strong></div><div class="score-chip"><span>Trend</span><strong>${item.trendFit??'—'}</strong></div><div class="score-chip"><span>Theme</span><strong>${item.themeFit??'—'}</strong></div><div class="score-chip"><span>Mobile</span><strong>${item.mobileFit}</strong></div></div><div class="opportunity-meta"><span>${escapeHtml(optionLabel(report.engines,item.engine))}</span><span>${escapeHtml(optionLabel(report.artStyles,item.art))}</span><span>Ad fit ${item.adFit}</span></div>${theme?`<p class="theme-direction"><strong>Theme direction:</strong> ${escapeHtml(theme.idea)}</p>`:''}<ul class="opportunity-reasons">${(item.why||[]).slice(0,4).map(r=>`<li>${escapeHtml(r)}</li>`).join('')}</ul><button class="primary-button use-opportunity" data-opportunity="${escapeHtml(item.slug)}" type="button">Build This Game</button></article>`;
+    const themes=themeBatch(item),chosen=selectedTheme(item);
+    const themePicker=themes.length?`<div class="theme-picker"><div class="theme-picker-head"><strong>Suggested themes</strong><button class="ghost-button refresh-themes" data-refresh-theme="${escapeHtml(item.slug)}" type="button">↻ Refresh Themes</button></div><div class="theme-options">${themes.map(theme=>`<button class="theme-option ${chosen?.id===theme.id?'selected':''}" data-theme-slug="${escapeHtml(item.slug)}" data-theme-id="${escapeHtml(theme.id)}" type="button"><span>${escapeHtml(theme.idea)}</span><small>${escapeHtml(theme.theme.replaceAll('_',' '))} · heat ${theme.heat??'—'}</small></button>`).join('')}</div></div>`:'';
+    return `<article class="opportunity-card ${index===0?'top':''}"><span class="opportunity-rank">#${index+1}</span><div><h3>${escapeHtml(item.title)}</h3><span class="genre">${escapeHtml(item.genre)} · ${escapeHtml(item.confidence)} confidence</span></div><p>${escapeHtml(item.hook)}</p><div class="score-row"><div class="score-chip"><span>Score</span><strong>${item.score}/100</strong></div><div class="score-chip"><span>Trend</span><strong>${item.trendFit??'—'}</strong></div><div class="score-chip"><span>Theme</span><strong>${item.themeFit??'—'}</strong></div><div class="score-chip"><span>Mobile</span><strong>${item.mobileFit}</strong></div></div><div class="opportunity-meta"><span>${escapeHtml(optionLabel(report.engines,item.engine))}</span><span>${escapeHtml(optionLabel(report.artStyles,item.art))}</span><span>Ad fit ${item.adFit}</span></div>${themePicker}<ul class="opportunity-reasons">${(item.why||[]).slice(0,4).map(r=>`<li>${escapeHtml(r)}</li>`).join('')}</ul><button class="primary-button use-opportunity" data-opportunity="${escapeHtml(item.slug)}" type="button">Build This Game</button></article>`;
   }).join('');
+  document.querySelectorAll('.refresh-themes').forEach(b=>b.addEventListener('click',()=>refreshThemes(b.dataset.refreshTheme)));
+  document.querySelectorAll('.theme-option').forEach(b=>b.addEventListener('click',()=>chooseTheme(b.dataset.themeSlug,b.dataset.themeId)));
   document.querySelectorAll('.use-opportunity').forEach(b=>b.addEventListener('click',()=>useOpportunity(b.dataset.opportunity)));
 }
 async function runMarketScout(){const b=$('#runScout');b.disabled=true;b.textContent='Researching Poki…';$('#scoutStatus').textContent='Checking current Poki popular/new/category pages plus theme wrappers…';$('#opportunityList').innerHTML='';try{renderOpportunityReport(await api(`/api/opportunities?t=${Date.now()}`))}catch(error){$('#scoutStatus').textContent=error.message}finally{b.disabled=false;b.textContent='Run Market Scout'}}
 function useOpportunity(slug){
   const item=state.opportunityReport?.opportunities?.find(i=>i.slug===slug);if(!item)return;
-  const theme=item.themeSuggestions?.[0];
-  const themeBlock=theme?`\n\nTHEME RADAR DIRECTION\n${theme.idea}\nTreat this as a hypothesis: strengthen memorability/cuteness/surprise while preserving mechanic clarity. Do not copy existing characters or force the theme if it weakens gameplay.`:'';
+  const theme=selectedTheme(item);
+  const themeBlock=theme?`\n\nTHEME RADAR DIRECTION — SELECTED BY USER\n${theme.idea}\nTreat this as a hypothesis: strengthen memorability/cuteness/surprise while preserving mechanic clarity. Do not copy existing characters or force the theme if it weakens gameplay.`:'';
   $('#newGameTitle').value=item.title;
   $('#newGameConcept').value=`${item.hook}\n\nCore direction: ${(item.why||[]).join('; ')}.${themeBlock}`;
   $('#selectedOpportunity').value=item.slug;$('#engineSelect').value='auto';$('#artSelect').value='auto';setStudioPane('creator');updateRecommendation();
