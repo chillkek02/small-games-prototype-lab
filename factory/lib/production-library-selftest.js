@@ -6,6 +6,7 @@ import { writeUiMenuKit } from './ui-menu-kit.js';
 import { writeAssetAnimationKit } from './asset-kit.js';
 import { writeShaderVfxKit } from './shader-vfx-kit.js';
 import { writeModelForgeKit } from './model-forge-kit.js';
+import { writeCharacterRigKit } from './character-rig-kit.js';
 
 const root=await fsp.mkdtemp(path.join(os.tmpdir(),'gutpopper-production-library-'));
 try{
@@ -13,9 +14,10 @@ try{
     writeUiMenuKit({gameDir:root}),
     writeAssetAnimationKit({gameDir:root}),
     writeShaderVfxKit({gameDir:root}),
-    writeModelForgeKit({gameDir:root})
+    writeModelForgeKit({gameDir:root}),
+    writeCharacterRigKit({gameDir:root})
   ]);
-  const files=['ui-menu.js','asset-kit.js','shader-vfx.js','model-forge.js'];
+  const files=['ui-menu.js','asset-kit.js','shader-vfx.js','model-forge.js','character-forge.js'];
   for(const file of files){
     const full=path.join(root,'starter',file);
     const result=spawnSync(process.execPath,['--check',full],{encoding:'utf8',windowsHide:true});
