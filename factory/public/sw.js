@@ -1,5 +1,5 @@
-const CACHE = 'gutpopper-factory-shell-v0.13-studio-loop';
-const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/app.js', '/device-preview.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
+const CACHE = 'gutpopper-factory-shell-v0.14-discovery-engine';
+const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/app.js', '/device-preview.js', '/test-funnel.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
