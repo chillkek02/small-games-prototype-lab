@@ -6,9 +6,6 @@ const START_PATTERN = /^(?:play(?:\s+now)?|start(?:\s+(?:game|shift|job|run|leve
 const SOURCE_EXTENSIONS = new Set(['.html', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx']);
 const SOURCE_SKIP_DIRS = new Set(['node_modules', '.git', '.cache', 'dist', 'build', 'vendor']);
 
-// These are Gutpopper Factory quality targets, not published Poki pass/fail numbers.
-// Poki's public guidance is qualitative: keep builds lean, load fast, sustain stable
-// frame rates, work on mobile/desktop, and remain playable with an ad blocker.
 export const FACTORY_WEB_TARGETS = {
   coldReadyGreatMs: 1500,
   coldReadyWarnMs: 3500,
@@ -57,7 +54,7 @@ async function meaningfulUi(page) {
 async function frameSample(page, durationMs = 2400) {
   return page.evaluate(duration => new Promise(resolve => {
     const intervals = [];
-    let started = performance.now();
+    const started = performance.now();
     let last = started;
     function frame(now) {
       if (now !== last) intervals.push(now - last);
@@ -83,12 +80,7 @@ async function frameSample(page, durationMs = 2400) {
 }
 
 async function coldLoadProbe(browser, { url }) {
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    isMobile: true,
-    hasTouch: true,
-    deviceScaleFactor: 1
-  });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
   const page = await context.newPage();
   const origin = new URL(url).origin;
   const resources = [];
@@ -175,12 +167,7 @@ async function coldLoadProbe(browser, { url }) {
 }
 
 async function adBlockProbe(browser, { url }) {
-  const context = await browser.newContext({
-    viewport: { width: 390, height: 844 },
-    isMobile: true,
-    hasTouch: true,
-    deviceScaleFactor: 1
-  });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
   await context.route(/game-cdn\.poki\.com|poki-sdk/i, route => route.abort());
   const page = await context.newPage();
   const errors = [];
@@ -204,6 +191,55 @@ async function adBlockProbe(browser, { url }) {
   }
   await context.close();
   return { passed: loaded && responsive, loaded, responsive, startControl, errors: [...new Set(errors)].slice(0, 8) };
+}
+
+async function sdkEventProbe(browser, { url }) {
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true, deviceScaleFactor: 1 });
+  const stub = `(()=>{const events=[];window.__POKI_TEST_EVENTS__=events;const mark=name=>events.push({name,t:Math.round(performance.now())});const base={init:()=>Promise.resolve(true),gameLoadingFinished:()=>mark('gameLoadingFinished'),gameplayStart:()=>mark('gameplayStart'),gameplayStop:()=>mark('gameplayStop'),commercialBreak:()=>{mark('commercialBreak');return Promise.resolve(true)},rewardedBreak:()=>{mark('rewardedBreak');return Promise.resolve(true)},setDebug:()=>{},getURLParam:()=>null};window.PokiSDK=new Proxy(base,{get:(target,key)=>key in target?target[key]:(...args)=>{mark(String(key));return Promise.resolve(true)}});})();`;
+  await context.route(/game-cdn\.poki\.com\/scripts\/v2\/poki-sdk\.js|poki-sdk\.js/i, route => route.fulfill({ status: 200, contentType: 'text/javascript', body: stub }));
+  const page = await context.newPage();
+  const errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  let beforeInput = [];
+  let afterInput = [];
+  let inputControl = null;
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 });
+    await page.waitForTimeout(900);
+    beforeInput = await page.evaluate(() => window.__POKI_TEST_EVENTS__ || []).catch(() => []);
+    const found = await findStartControl(page);
+    if (found) {
+      inputControl = found.text;
+      await found.control.click({ timeout: 1500 }).catch(() => {});
+    } else {
+      inputControl = 'synthetic center tap';
+      await page.touchscreen.tap(195, 500).catch(() => {});
+    }
+    await page.waitForTimeout(800);
+    afterInput = await page.evaluate(() => window.__POKI_TEST_EVENTS__ || []).catch(() => []);
+  } catch (error) {
+    errors.push(error.message);
+  }
+  await context.close();
+
+  const violations = [];
+  const namesBefore = beforeInput.map(event => event.name);
+  const namesAfter = afterInput.map(event => event.name);
+  if (namesBefore.includes('gameplayStart')) violations.push('gameplayStart fired before the first test input.');
+  if (!namesAfter.includes('gameLoadingFinished')) violations.push('gameLoadingFinished did not fire during the tested startup.');
+  if (!namesAfter.includes('gameplayStart')) violations.push('gameplayStart did not fire after the first test input.');
+  const loadingIndex = namesAfter.indexOf('gameLoadingFinished');
+  const gameplayIndex = namesAfter.indexOf('gameplayStart');
+  if (loadingIndex >= 0 && gameplayIndex >= 0 && gameplayIndex < loadingIndex) violations.push('gameplayStart fired before gameLoadingFinished.');
+  const gameplayEvents = namesAfter.filter(name => name === 'gameplayStart' || name === 'gameplayStop');
+  for (let i = 1; i < gameplayEvents.length; i += 1) {
+    if (gameplayEvents[i] === gameplayEvents[i - 1]) {
+      violations.push(`${gameplayEvents[i]} fired twice in succession.`);
+      break;
+    }
+  }
+  if (errors.length) violations.push(`SDK event probe saw ${errors.length} page error(s).`);
+  return { passed: violations.length === 0, inputControl, beforeInput, events: afterInput, violations, errors: [...new Set(errors)].slice(0, 8) };
 }
 
 async function walkSource(root, relative = '') {
@@ -240,22 +276,9 @@ async function sourceAudit(gameDir) {
   const gameplayStop = /(?:PokiSDK\.gameplayStop|GutpopperCore\.poki\.gameplayStop)\s*\(/.test(source);
   const commercialBreak = /(?:PokiSDK\.commercialBreak|GutpopperCore\.poki\.commercialBreak)\s*\(/.test(source);
   const rewardedBreak = /(?:PokiSDK\.rewardedBreak|GutpopperCore\.poki\.rewardedBreak)\s*\(/.test(source);
-  const outgoingLinks = [...source.matchAll(/<a\b[^>]*href=["'](https?:\/\/[^"']+)["']/gi)]
-    .map(match => match[1])
-    .filter(url => !/poki\.com/i.test(url))
-    .slice(0, 8);
+  const outgoingLinks = [...source.matchAll(/<a\b[^>]*href=["'](https?:\/\/[^"']+)["']/gi)].map(match => match[1]).filter(link => !/poki\.com/i.test(link)).slice(0, 8);
   const otherAds = /adsbygoogle|googlesyndication|adinplay|gamemonetize|gamepix|crazygames-sdk/i.test(source);
-  return {
-    target: metadata?.target || (hasPokiSdk ? 'Poki' : 'Unknown'),
-    hasPokiSdk,
-    loadingFinished,
-    gameplayStart,
-    gameplayStop,
-    commercialBreak,
-    rewardedBreak,
-    outgoingLinks,
-    otherAdSystemDetected: otherAds
-  };
+  return { target: metadata?.target || (hasPokiSdk ? 'Poki' : 'Unknown'), hasPokiSdk, loadingFinished, gameplayStart, gameplayStop, commercialBreak, rewardedBreak, outgoingLinks, otherAdSystemDetected: otherAds };
 }
 
 function scorePerformance(metrics) {
@@ -266,54 +289,55 @@ function scorePerformance(metrics) {
   if (metrics.meaningfulReadyMs > 7000) { score -= 35; notes.push(`Meaningful UI took ${metrics.meaningfulReadyMs} ms locally.`); }
   else if (metrics.meaningfulReadyMs > FACTORY_WEB_TARGETS.coldReadyWarnMs) { score -= 20; notes.push(`Meaningful UI took ${metrics.meaningfulReadyMs} ms locally; tighten startup.`); }
   else if (metrics.meaningfulReadyMs > FACTORY_WEB_TARGETS.coldReadyGreatMs) { score -= 8; notes.push(`Meaningful UI took ${metrics.meaningfulReadyMs} ms locally; there is room to improve.`); }
-
   if (metrics.initialBytes > FACTORY_WEB_TARGETS.initialBytesBad) { score -= 40; notes.push(`Initial same-origin payload is ${bytesMb.toFixed(1)} MB — far too heavy for a fast web start.`); }
   else if (metrics.initialBytes > FACTORY_WEB_TARGETS.initialBytesWarn) { score -= 24; notes.push(`Initial same-origin payload is ${bytesMb.toFixed(1)} MB; use progressive loading/compression.`); }
   else if (metrics.initialBytes > FACTORY_WEB_TARGETS.initialBytesGreat) { score -= 10; notes.push(`Initial same-origin payload is ${bytesMb.toFixed(1)} MB; consider deferring nonessential assets.`); }
-
   if (metrics.initialRequests > FACTORY_WEB_TARGETS.requestBad) { score -= 12; notes.push(`${metrics.initialRequests} initial local requests create avoidable startup overhead.`); }
   else if (metrics.initialRequests > FACTORY_WEB_TARGETS.requestWarn) { score -= 5; notes.push(`${metrics.initialRequests} initial local requests is higher than the Factory target.`); }
-
   if (metrics.frame.fps && metrics.frame.fps < 30) { score -= 35; notes.push(`Measured frame rate is only about ${metrics.frame.fps} FPS.`); }
   else if (metrics.frame.fps && metrics.frame.fps < FACTORY_WEB_TARGETS.fpsWarn) { score -= 22; notes.push(`Measured frame rate is about ${metrics.frame.fps} FPS.`); }
   else if (metrics.frame.fps && metrics.frame.fps < FACTORY_WEB_TARGETS.fpsGreat) { score -= 8; notes.push(`Measured frame rate is about ${metrics.frame.fps} FPS; aim for steadier 60-ish FPS.`); }
   if (metrics.frame.longFrameRatio > FACTORY_WEB_TARGETS.longFrameWarnRatio) { score -= 10; notes.push(`${Math.round(metrics.frame.longFrameRatio * 100)}% of sampled frames exceeded 34 ms.`); }
-
   if (metrics.estimated4MbpsReadyMs > 12000) { score -= 18; notes.push(`Factory 4 Mbps estimate reaches meaningful UI in ~${(metrics.estimated4MbpsReadyMs / 1000).toFixed(1)} s.`); }
   else if (metrics.estimated4MbpsReadyMs > 8000) { score -= 10; notes.push(`Factory 4 Mbps estimate reaches meaningful UI in ~${(metrics.estimated4MbpsReadyMs / 1000).toFixed(1)} s.`); }
-
   if (!notes.length) notes.push('Cold-load weight, request count, startup timing, and sampled frame pacing are within Factory targets.');
   return { score: Math.max(0, Math.min(100, score)), notes };
 }
 
-function scorePoki(source, adBlock, metrics) {
+function scorePoki(source, adBlock, metrics, sdkEvents) {
   let score = 100;
   const notes = [];
   if (!source.hasPokiSdk) { score -= 20; notes.push('Poki SDK integration was not detected in project source.'); }
-  if (!source.loadingFinished) { score -= 14; notes.push('No gameLoadingFinished/loadingFinished call detected.'); }
-  if (!source.gameplayStart) { score -= 14; notes.push('No gameplayStart call detected.'); }
-  if (!source.gameplayStop) { score -= 14; notes.push('No gameplayStop call detected.'); }
+  if (!source.loadingFinished) { score -= 12; notes.push('No gameLoadingFinished/loadingFinished call detected in project source.'); }
+  if (!source.gameplayStart) { score -= 12; notes.push('No gameplayStart call detected in project source.'); }
+  if (!source.gameplayStop) { score -= 12; notes.push('No gameplayStop call detected in project source.'); }
   if (!source.commercialBreak) { score -= 7; notes.push('No natural commercialBreak opportunity detected in source.'); }
   if (!source.rewardedBreak) { score -= 4; notes.push('No optional rewardedBreak opportunity detected in source.'); }
   if (!adBlock.passed) { score -= 25; notes.push('Game did not remain meaningfully playable with the Poki SDK request blocked.'); }
   if (source.outgoingLinks.length) { score -= 12; notes.push(`Outgoing link(s) detected: ${source.outgoingLinks.join(', ')}`); }
   if (source.otherAdSystemDetected) { score -= 30; notes.push('Possible non-Poki advertising SDK/system detected.'); }
   if (metrics.meaningfulReadyMs > 5000) { score -= 8; notes.push('Slow first meaningful UI can hurt conversion to play.'); }
-  if (!metrics.startControl) notes.push('No explicit start control was detected; verify first input enters gameplay and fires gameplayStart at the correct moment.');
-  if (!notes.length) notes.push('Poki SDK/event hooks, ad-block resilience, and outgoing-link checks look healthy.');
+  if (!sdkEvents.passed) {
+    score -= Math.min(28, sdkEvents.violations.length * 8);
+    notes.push(...sdkEvents.violations.map(issue => `SDK event flow: ${issue}`));
+  } else {
+    notes.push('Dynamic SDK event ordering passed: loading finished before gameplay and gameplayStart waited for first input.');
+  }
+  if (!metrics.startControl) notes.push('No explicit start control was detected; manually verify first input enters gameplay and fires gameplayStart at the correct moment.');
   return { score: Math.max(0, Math.min(100, score)), notes };
 }
 
 export async function runPokiReadiness({ gameDir, url }) {
   const browser = await launchBrowser();
   try {
-    const [metrics, adBlock, source] = await Promise.all([
+    const [metrics, adBlock, sdkEvents, source] = await Promise.all([
       coldLoadProbe(browser, { url }),
       adBlockProbe(browser, { url }),
+      sdkEventProbe(browser, { url }),
       sourceAudit(gameDir)
     ]);
     const performance = scorePerformance(metrics);
-    const poki = scorePoki(source, adBlock, metrics);
+    const poki = scorePoki(source, adBlock, metrics, sdkEvents);
     return {
       checkedAt: new Date().toISOString(),
       performanceScore: performance.score,
@@ -322,11 +346,9 @@ export async function runPokiReadiness({ gameDir, url }) {
       pokiNotes: poki.notes,
       metrics,
       adBlock,
+      sdkEvents,
       source,
-      targets: {
-        ...FACTORY_WEB_TARGETS,
-        note: 'Gutpopper Factory internal targets; Poki does not publish these as official numeric pass/fail thresholds.'
-      }
+      targets: { ...FACTORY_WEB_TARGETS, note: 'Gutpopper Factory internal targets; Poki does not publish these as official numeric pass/fail thresholds.' }
     };
   } finally {
     await browser.close();
