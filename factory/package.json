@@ -5,13 +5,13 @@
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
-  "description": "Poki-first AI game discovery studio with live Trend Radar, research-backed prototype plans, Studio Loop, Asset/Animation Forge, Poki Game Events, real-player promotion funnel, visual/retention/ad/performance gates and safe versioning.",
+  "description": "Poki-first AI game discovery studio with live Trend + Theme Radar, research-backed prototype plans, Studio Loop, Asset/Animation Forge, Poki Game Events, real-player promotion funnel, visual/retention/ad/performance gates and safe versioning.",
   "author": "Gutpopper Games",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
     "desktop": "electron .",
-    "check": "node --check server.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check codex-router.cjs && node --check lib/qa.js && node --check lib/runner.js && node --check lib/opportunity.js && node --check lib/trend-radar.js && node --check lib/poki-discovery.js && node --check lib/poki-events-kit.js && node --check lib/test-funnel.js && node --check lib/new-game.js && node --check lib/quality.js && node --check lib/studio-loop.js && node --check lib/asset-kit.js && node --check lib/house-style.js && node --check lib/visual-quality.js && node --check lib/visual-gate.js && node --check lib/retention.js && node --check lib/ad-readiness.js && node --check lib/poki-readiness.js && node --check lib/playtester.js && node --check lib/snapshots.js && node --check lib/game-trash.js && node --check lib/starter-kit.js && node --check public/app.js && node --check public/device-preview.js && node --check public/test-funnel.js && node --check public/quality-lab.js && node --check public/sw.js",
+    "check": "node --check server.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check codex-router.cjs && node --check lib/qa.js && node --check lib/runner.js && node --check lib/opportunity.js && node --check lib/trend-radar.js && node --check lib/theme-radar.js && node --check lib/poki-discovery.js && node --check lib/poki-events-kit.js && node --check lib/test-funnel.js && node --check lib/new-game.js && node --check lib/quality.js && node --check lib/studio-loop.js && node --check lib/asset-kit.js && node --check lib/house-style.js && node --check lib/visual-quality.js && node --check lib/visual-gate.js && node --check lib/retention.js && node --check lib/ad-readiness.js && node --check lib/poki-readiness.js && node --check lib/playtester.js && node --check lib/snapshots.js && node --check lib/game-trash.js && node --check lib/starter-kit.js && node --check public/app.js && node --check public/device-preview.js && node --check public/test-funnel.js && node --check public/quality-lab.js && node --check public/sw.js",
     "package:win": "npm run check && electron-builder --win dir --x64",
     "make:win": "npm run check && electron-builder --win nsis --x64"
   },
