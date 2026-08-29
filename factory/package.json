@@ -1,7 +1,7 @@
 {
   "name": "gutpopper-game-factory",
   "productName": "Gutpopper Game Factory",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
@@ -12,8 +12,8 @@
     "dev": "node --watch server.js",
     "desktop": "electron .",
     "check": "node --check server.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check lib/qa.js && node --check public/app.js && node --check public/sw.js",
-    "package:win": "npm run check && electron-forge package --platform=win32 --arch=x64",
-    "make:win": "npm run check && electron-forge make --platform=win32 --arch=x64"
+    "package:win": "npm run check && electron-builder --win dir --x64",
+    "make:win": "npm run check && electron-builder --win nsis --x64"
   },
   "engines": {
     "node": ">=20"
@@ -23,7 +23,40 @@
   },
   "devDependencies": {
     "electron": "44.0.0",
-    "@electron-forge/cli": "7.11.2",
-    "@electron-forge/maker-squirrel": "7.11.2"
+    "electron-builder": "26.15.7"
+  },
+  "build": {
+    "appId": "com.gutpopper.gamefactory",
+    "productName": "Gutpopper Game Factory",
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "server.js",
+      "lib/**/*",
+      "public/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ],
+      "artifactName": "Gutpopper-Game-Factory-Setup.exe"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowElevation": true,
+      "allowToChangeInstallationDirectory": false,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Gutpopper Game Factory",
+      "runAfterFinish": true
+    }
   }
 }
