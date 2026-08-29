@@ -1,7 +1,7 @@
 const { spawnSync } = require('node:child_process');
 
-const cli = require.resolve('playwright/cli');
-const result = spawnSync(process.execPath, [cli, 'install', 'chromium'], {
+const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
+const result = spawnSync(npx, ['playwright', 'install', 'chromium'], {
   stdio: 'inherit',
   env: {
     ...process.env,
