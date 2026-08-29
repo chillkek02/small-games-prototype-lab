@@ -21,10 +21,13 @@ if not exist "node_modules\electron" (
   if errorlevel 1 goto :fail
 )
 
-if not exist "node_modules\playwright-core\.local-browsers" (
-  echo Installing the Chromium QA runtime...
-  call npm run prepare:chromium
-  if errorlevel 1 goto :fail
+echo Checking Microsoft Edge for automated QA...
+where msedge >nul 2>nul
+if errorlevel 1 (
+  if not exist "%ProgramFiles(x86)%\Microsoft\Edge\Application\msedge.exe" if not exist "%ProgramFiles%\Microsoft\Edge\Application\msedge.exe" (
+    echo WARNING: Microsoft Edge was not detected. The app can open, but automated game QA may require Edge to be installed or updated.
+    echo.
+  )
 )
 
 echo Starting Gutpopper Game Factory Desktop...
