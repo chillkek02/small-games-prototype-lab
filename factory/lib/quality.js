@@ -5,6 +5,7 @@ import path from 'node:path';
 import { runQa } from './qa.js';
 import { runPokiReadiness } from './poki-readiness.js';
 import { runAiPlaytest } from './playtester.js';
+import { parseVisualRubric, visualRubricAuditInstructions } from './visual-quality.js';
 
 const CODEX_COMMAND = process.env.GAME_FACTORY_CODEX_COMMAND || 'codex';
 
@@ -19,7 +20,7 @@ function runProcess(command, args, { cwd, input = '', timeoutMs = 8 * 60 * 1000 
     let stdout = '';
     let stderr = '';
     let settled = false;
-    child.stdout?.on('data', chunk => { stdout += chunk.toString(); if (stdout.length > 120000) stdout = stdout.slice(-120000); });
+    child.stdout?.on('data', chunk => { stdout += chunk.toString(); if (stdout.length > 140000) stdout = stdout.slice(-140000); });
     child.stderr?.on('data', chunk => { stderr += chunk.toString(); if (stderr.length > 120000) stderr = stderr.slice(-120000); });
     const timer = setTimeout(() => {
       if (settled) return;
@@ -85,7 +86,7 @@ async function runVisualDirector({ gameDir, artifactDir, qa, playtest, readiness
   for (const image of images) {
     try { await fsp.access(image); existing.push(image); } catch {}
   }
-  if (!existing.length) return { report: 'Visual Director could not run because no screenshots were produced.', score: null, error: 'No screenshots' };
+  if (!existing.length) return { report: 'Visual Director could not run because no screenshots were produced.', score: null, rubric: null, error: 'No screenshots' };
 
   const technicalSummary = qa.views.map(view => `${view.name}: ${view.passed ? 'PASS' : 'FAIL'}; ${view.issues.join(' | ') || 'no technical issues'}`).join('\n');
   const performanceSummary = [
@@ -102,7 +103,7 @@ async function runVisualDirector({ gameDir, artifactDir, qa, playtest, readiness
     `Poki findings: ${readiness.pokiNotes.join(' | ')}`
   ].join('\n');
 
-  const prompt = `model: terra\nYou are the VISUAL DIRECTOR and GAME DOCTOR inside Gutpopper Game Factory.\n\nThis is a READ-ONLY audit. Do not modify any files.\nThe attached images are, in order when present: desktop QA (1440x900), phone QA (390x844), AI Playtester desktop gameplay, AI Playtester phone gameplay.\nYou may inspect the game source in the current working directory when it helps explain what you see.\n\nTECHNICAL QA\n${technicalSummary}\n\nAI PLAYTESTER\n${playtestSummary(playtest)}\n\nPOKI / WEB PERFORMANCE\n${performanceSummary}\n\nEvaluate this as a commercial browser/Poki-style casual game, not as a coding demo. Focus on what a real player sees and feels. Judge:\n- first-glance hook and clarity\n- visual polish and art-direction consistency\n- hierarchy/readability and HUD scale\n- desktop composition and screen utilization\n- phone composition, touch readability, safe margins, obstruction\n- whether the inferred controls/objective seem understandable from the actual presentation\n- game-feel signals visible after the AI Playtester follows the game's inferred controls\n- whether success/failure/retry feedback is understandable and frictionless when the playtest reaches it\n- first-time access: avoid unnecessary splash/menu friction; get players to meaningful interaction quickly\n- loading/performance risks when they are severe enough to affect player conversion or feel\n- whether the game looks like a prototype or a publishable casual game\n- the highest-value changes that would materially improve player response\n\nDESKTOP ADAPTATION IS A HARD QUALITY REQUIREMENT:\nA 1440x900 desktop build must look intentionally landscape and use the available screen area. Do not accept a narrow portrait/mobile game column centered between large empty or decorative side gutters. The desktop camera/playfield/menu/HUD may recompose differently from phone while preserving the same game. If desktop still looks like a phone screenshot placed in a desktop window, call it out as a major problem and lower the score substantially.\n\nPERFORMANCE IS A HARD PUBLISHING CONCERN:\nPoki publicly emphasizes lean file size, fast loading, stable frame rates, progressive loading, and playability when the ad SDK is blocked. Treat severe load weight, startup delay, frame pacing, or ad-block failure as publish blockers. The numeric Factory targets in the supplied report are internal quality targets, not official Poki thresholds.\n\nPLAYTEST INTERPRETATION:\nThe AI Playtester is bounded and synthetic. Treat repeated no-response controls, browser errors, missing retry after a detected terminal state, or clear desktop/phone control parity failures as strong evidence. Do not treat failure to finish a long game in a short bounded session as proof the game is broken.\n\nReturn concise markdown using EXACTLY these headings:\nOVERALL QUALITY SCORE: NN/100\n## What Works\n## Visual Problems\n## Phone Problems\n## Gameplay / Feel Concerns\n## Performance / Poki Concerns\n## Top 5 Fixes\n## Publish Verdict\nKeep the Top 5 Fixes concrete and implementation-ready. Do not praise weak work just to be agreeable.`;
+  const prompt = `model: terra\nYou are the VISUAL DIRECTOR and GAME DOCTOR inside Gutpopper Game Factory.\n\nThis is a READ-ONLY audit. Do not modify any files.\nThe attached images are, in order when present: desktop QA (1440x900), phone QA (390x844), AI Playtester desktop gameplay, AI Playtester phone gameplay.\nYou may inspect the game source in the current working directory when it helps explain what you see.\n\nTECHNICAL QA\n${technicalSummary}\n\nAI PLAYTESTER\n${playtestSummary(playtest)}\n\nPOKI / WEB PERFORMANCE\n${performanceSummary}\n\nEvaluate this as a commercial browser/Poki-style casual game, not as a coding demo. Focus on what a real player sees and feels. Judge:\n- first-glance hook and clarity\n- visual polish and art-direction consistency\n- hierarchy/readability and HUD scale\n- desktop composition and screen utilization\n- phone composition, touch readability, safe margins, obstruction\n- whether the inferred controls/objective seem understandable from the actual presentation\n- game-feel signals visible after the AI Playtester follows the game's inferred controls\n- whether success/failure/retry feedback is understandable and frictionless when the playtest reaches it\n- first-time access: avoid unnecessary splash/menu friction; get players to meaningful interaction quickly\n- loading/performance risks when they are severe enough to affect player conversion or feel\n- whether the game looks like a crude programmer prototype, a promising polished prototype, or a publishable casual game\n- the highest-value changes that would materially improve player response\n\nDESKTOP ADAPTATION IS A HARD QUALITY REQUIREMENT:\nA 1440x900 desktop build must look intentionally landscape and use the available screen area. Do not accept a narrow portrait/mobile game column centered between large empty or decorative side gutters. The desktop camera/playfield/menu/HUD may recompose differently from phone while preserving the same game. If desktop still looks like a phone screenshot placed in a desktop window, call it out as a major problem and lower the score substantially.\n\nPERFORMANCE IS A HARD PUBLISHING CONCERN:\nPoki/browser games should keep file size lean, load quickly, maintain stable frame pacing, progressively load nonessential content, and remain playable when the ad SDK is blocked. Treat severe load weight, startup delay, frame pacing, or ad-block failure as publish blockers. The numeric Factory targets in the supplied report are internal quality targets.\n\nPLAYTEST INTERPRETATION:\nThe AI Playtester is bounded and synthetic. Treat repeated no-response controls, browser errors, missing retry after a detected terminal state, or clear desktop/phone control parity failures as strong evidence. Do not treat failure to finish a long game in a short bounded session as proof the game is broken.\n\n${visualRubricAuditInstructions()}\n\nReturn concise markdown using EXACTLY these headings before the required VISUAL_RUBRIC_JSON block:\nOVERALL QUALITY SCORE: NN/100\n## What Works\n## Visual Problems\n## Phone Problems\n## Gameplay / Feel Concerns\n## Performance / Poki Concerns\n## Top 5 Fixes\n## Publish Verdict\nKeep the Top 5 Fixes concrete and implementation-ready. Be severe about ugly/default/placeholder presentation; do not grade on an 'early prototype' curve.`;
 
   const args = [
     'exec', '--ephemeral', '--sandbox', 'read-only',
@@ -122,9 +123,11 @@ async function runVisualDirector({ gameDir, artifactDir, qa, playtest, readiness
       throw new Error(`Codex visual review exited with code ${result.code}${detail ? `: ${detail}` : ''}`);
     }
     const report = result.stdout.trim() || 'Visual Director returned no report text.';
-    return { report, score: extractScore(report), error: null };
+    const rubric = parseVisualRubric(report);
+    const score = rubric?.score ?? extractScore(report);
+    return { report, score, rubric, error: rubric ? null : 'Visual rubric block was missing or invalid; falling back to report score.' };
   } catch (error) {
-    return { report: `Visual Director unavailable: ${error.message}`, score: null, error: error.message };
+    return { report: `Visual Director unavailable: ${error.message}`, score: null, rubric: null, error: error.message };
   }
 }
 
@@ -135,8 +138,6 @@ export async function runQualityAudit({ game, gameDir, url, stateDir }) {
 
   const startedAt = new Date().toISOString();
 
-  // Keep performance measurement isolated from other browser/AI work so FPS and
-  // startup timings are not distorted by several simultaneous test browsers.
   const readiness = await runPokiReadiness({ gameDir, url });
   const qa = await runQa({ url, artifactDir });
   const playtest = await runAiPlaytest({ gameDir, url, artifactDir });
@@ -153,6 +154,18 @@ export async function runQualityAudit({ game, gameDir, url, stateDir }) {
     readiness.pokiScore * .10
   );
 
+  const visualFloor = visual.rubric || {
+    version: null,
+    score: visualScore,
+    status: visualScore >= 70 ? 'PASS' : visualScore >= 60 ? 'NEEDS_POLISH' : 'VISUAL_FAIL',
+    passed: visualScore >= 70,
+    minimumPrototypeScore: 70,
+    publishCandidateScore: 80,
+    categories: {},
+    hardFails: [],
+    summary: 'Visual rubric details were unavailable.'
+  };
+
   const audit = {
     id,
     game,
@@ -162,7 +175,9 @@ export async function runQualityAudit({ game, gameDir, url, stateDir }) {
     technicalScore,
     interactionScore: playtestScore,
     playtestScore,
-    visualScore: visual.score,
+    visualScore,
+    visualFloor,
+    visualFloorPassed: visualFloor.passed,
     performanceScore: readiness.performanceScore,
     pokiScore: readiness.pokiScore,
     qa,
