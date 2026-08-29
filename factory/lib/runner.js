@@ -227,6 +227,21 @@ function countOccurrences(haystack, needle) {
   }
 }
 
+async function replaceUtf8BytesOnce(filePath, from, to) {
+  const raw = await fs.readFile(filePath);
+  const needle = Buffer.from(from, 'utf8');
+  const replacement = Buffer.from(to, 'utf8');
+  const first = raw.indexOf(needle);
+  if (first < 0 || raw.indexOf(needle, first + needle.length) >= 0) return false;
+  const updated = Buffer.concat([
+    raw.subarray(0, first),
+    replacement,
+    raw.subarray(first + needle.length)
+  ]);
+  await fs.writeFile(filePath, updated);
+  return true;
+}
+
 async function tryDirectEdit(gameDir, instruction) {
   const replacement = parseDirectReplacement(instruction);
   if (!replacement) return { ok: false, reason: 'request is not an exact quoted replacement' };
@@ -255,16 +270,21 @@ async function tryDirectEdit(gameDir, instruction) {
   }
 
   const match = matches[0];
-  const updated = match.content.replace(replacement.from, replacement.to);
-  await fs.writeFile(path.join(gameDir, match.relative), updated, 'utf8');
+  const filePath = path.join(gameDir, match.relative);
+  const replaced = await replaceUtf8BytesOnce(filePath, replacement.from, replacement.to);
+  if (!replaced) return { ok: false, reason: 'byte-preserving replacement could not be verified uniquely' };
   return { ok: true, relative: match.relative, from: replacement.from, to: replacement.to };
 }
 
 function lineCount(text) {
   if (!text) return 0;
-  const normalized = text.replace(/\r\n/g, '\n');
+  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
   const parts = normalized.split('\n');
   return parts.length - (normalized.endsWith('\n') ? 1 : 0);
+}
+
+function normalizeForDiff(text = '') {
+  return String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
 
 async function runScopedDiffStat({ before, gameDir, gameRelativePath, artifactDir }) {
@@ -275,7 +295,9 @@ async function runScopedDiffStat({ before, gameDir, gameRelativePath, artifactDi
     if (!changed.length) return 'No source-file changes in this run.';
 
     const beforeDir = path.join(artifactDir, '.diff-before');
+    const afterDir = path.join(artifactDir, '.diff-after');
     await fs.mkdir(beforeDir, { recursive: true });
+    await fs.mkdir(afterDir, { recursive: true });
     const rows = [];
     let totalAdd = 0;
     let totalDel = 0;
@@ -292,10 +314,12 @@ async function runScopedDiffStat({ before, gameDir, gameRelativePath, artifactDi
         deleted = lineCount(oldText);
       } else {
         const beforePath = path.join(beforeDir, relative);
+        const afterPath = path.join(afterDir, relative);
         await fs.mkdir(path.dirname(beforePath), { recursive: true });
-        await fs.writeFile(beforePath, oldText, 'utf8');
-        const currentPath = path.join(gameDir, relative);
-        const result = await runProcess('git', ['diff', '--no-index', '--numstat', '--', beforePath, currentPath], {
+        await fs.mkdir(path.dirname(afterPath), { recursive: true });
+        await fs.writeFile(beforePath, normalizeForDiff(oldText), 'utf8');
+        await fs.writeFile(afterPath, normalizeForDiff(newText), 'utf8');
+        const result = await runProcess('git', ['diff', '--no-index', '--numstat', '--ignore-space-at-eol', '--', beforePath, afterPath], {
           cwd: gameDir,
           timeoutMs: 10000
         });
