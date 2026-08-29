@@ -117,14 +117,22 @@ ${pokiBoot}
 
 export function buildNewGameInstruction({ title, concept, engine, artStyle, opportunityTitle = '', target = 'Poki' }) {
   const pokiRules = target === 'Poki' ? `
-POKI PRODUCTION RULES
+POKI PRODUCTION + PERFORMANCE RULES
 - Poki SDK and GutpopperCore.poki are already scaffolded. Keep them.
-- Call GutpopperCore.poki.loadingFinished() when the actual game is ready.
-- Call GutpopperCore.poki.gameplayStart() only when active gameplay begins and gameplayStop() on pause/end/menu transitions.
+- Call GutpopperCore.poki.loadingFinished() exactly when the actually playable initial content is ready.
+- gameplayStart() must not fire on page load. Fire it on the player's first gameplay input and when returning to active gameplay.
+- gameplayStop() must fire for interruptions such as pause/menu, level end, death/game over, or cutscene where active play stops. Never fire gameplayStart twice in succession or gameplayStop twice in succession.
 - Create natural commercial-break opportunities between runs/levels, never during active play.
-- Create at least one optional rewarded-ad opportunity that is genuinely useful but not required for progression (retry, bonus reward, temporary boost, etc.).
+- Create at least one optional rewarded-ad opportunity that is useful but not required for progression (retry, bonus reward, temporary boost, etc.).
 - Use GutpopperCore.poki.commercialBreak() / rewardedBreak() so local testing safely falls back without pretending an ad reward succeeded.
-- Never fake ad success.
+- The game MUST remain playable if the Poki SDK script is blocked/unavailable. Do not gate loading, input, audio, progression, or startup on successful SDK initialization.
+- Do not add another advertising SDK, ad-block prevention, outbound promotional links, or third-party splash screens.
+- Avoid unnecessary splash/title/level-select chains. A first-time player should reach meaningful interaction immediately or with at most one obvious start action when the concept truly needs it.
+- Keep the initial download lean. Load only the menu/tutorial/first playable content needed to start, then progressively load later levels, cosmetic assets, extra audio, and nonessential content in the background.
+- Do not preload every level or large asset at startup. Avoid giant inline base64 assets, oversized textures, unnecessary duplicate libraries, and excessive network requests.
+- Stable frame pacing matters as much as visuals. Pool/reuse frequently spawned objects and effects, cap particle counts, avoid per-frame DOM churn, and avoid expensive allocations in hot loops.
+- For Canvas/Three.js, avoid rendering at wastefully high device pixel ratios on phones; cap pixel ratio when necessary for stable performance. For Three.js, resize renderer/camera correctly and keep draw calls/material complexity reasonable.
+- A loading/progress treatment is useful only when loading is actually long enough to need it; never add a fake delay.
 ` : '';
 
   return `CREATE A BRAND-NEW PRODUCTION PROTOTYPE
@@ -157,13 +165,15 @@ GAME DESIGN TARGET
 - Include meaningful game feel: juice, hit/collect feedback, transitions, particles, camera/screen feedback, and use the built-in burst/shake/vibrate helpers where they fit.
 - Support desktop controls AND excellent touch controls. Prefer one-thumb or simple two-thumb interaction and use the normalized input helper when appropriate.
 - Prevent text selection, long-press/callout, context menus, accidental browser gestures, and drag-selection on gameplay UI.
-- Fit 390x844 mobile and 1440x900 desktop without horizontal overflow.
+- PHONE 390x844: use a touch-first composition appropriate to the game.
+- DESKTOP 1440x900: create a genuinely landscape desktop composition that uses the available viewport for gameplay/camera/playfield and intentionally recomposes HUD/menu where useful. Do NOT center the same narrow portrait/mobile game column between large side gutters.
+- Use responsive resize/orientation handling rather than a one-time viewport calculation. Phaser should use an appropriate responsive Scale Manager strategy; Three.js must resize renderer and update camera aspect; Canvas/SVG must respond to resize without stretching.
 ${pokiRules}
 SCOPE
 Build the actual playable v1 prototype now, not a design document or placeholder. Keep it compact enough to iterate quickly, but complete enough to judge whether the core loop is fun. You may create supporting JS/CSS/SVG/data files inside this game folder. Do not edit any other game or Factory file.
 
 QA
-The Factory will run desktop/mobile browser QA after you finish. Do not launch your own browser or HTTP server unless absolutely necessary to diagnose a source error. Perform lightweight syntax/source checks and then stop.`;
+The Factory will run desktop/mobile browser QA and Game Doctor can run cold-load, payload-size, request-count, frame-pacing, ad-block-resilience, SDK-event-order, and visual-quality checks. Do not launch your own browser or HTTP server unless absolutely necessary to diagnose a source error. Perform lightweight syntax/source checks and then stop.`;
 }
 
 export async function createGameProject({ gamesDir, factoryDir, title, concept, engine = 'auto', artStyle = 'auto', opportunity = '', target = 'Poki' }) {
