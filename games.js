@@ -226,5 +226,17 @@ window.SMALL_GAMES = [
     "accent": "#e8c66a",
     "symbol": "◉",
     "status": "PROTOTYPE"
+  },
+  {
+    "id": 20,
+    "slug": "fire-crew",
+    "folder": "20-fire-crew",
+    "title": "Fire Crew",
+    "version": "v4",
+    "genre": "Arcade Rescue · Vehicle Action",
+    "hook": "Race to emergencies, extinguish escalating fires, rescue civilians, and upgrade your fire truck.",
+    "accent": "#ff6a43",
+    "symbol": "🔥",
+    "status": "POKI CANDIDATE"
   }
 ];
