@@ -11,10 +11,6 @@ module.exports = {
         name: 'GutpopperGameFactory',
         setupExe: 'Gutpopper-Game-Factory-Setup.exe'
       }
-    },
-    {
-      name: '@electron-forge/maker-zip',
-      platforms: ['win32']
     }
   ]
 };
