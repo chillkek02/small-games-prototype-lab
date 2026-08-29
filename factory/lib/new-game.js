@@ -2,6 +2,7 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { resolveRecommendation } from './opportunity.js';
 import { writeProductionStarterKit, starterKitInstruction } from './starter-kit.js';
+import { visualQualityBrief } from './visual-quality.js';
 
 const POKI_SDK = 'https://game-cdn.poki.com/scripts/v2/poki-sdk.js';
 
@@ -154,7 +155,12 @@ ${starterKitInstruction()}
 
 ART DIRECTION — REQUIRED
 ${artLabel(artStyle)}.
-Make the game visually intentional and polished, not prototype-gray. Use code-generated shapes, SVG, canvas, engine primitives, gradients, particles, procedural/simple vector assets, or lightweight generated geometry appropriate to this style. Avoid copyrighted characters/assets and avoid requiring external art downloads.
+Make the game visually intentional and polished from the FIRST playable build. Do not defer basic art direction/UI polish to a later pass. Use code-generated shapes, SVG, canvas, engine primitives, gradients, layered geometry, particles, procedural/vector assets, or other lightweight techniques appropriate to this style. Avoid copyrighted characters/assets and avoid requiring external art downloads.
+
+${visualQualityBrief()}
+
+BEFORE IMPLEMENTING THE SCREEN
+Privately establish a compact visual brief for yourself: palette, typography hierarchy, UI/card/button language, character/prop shape language, environment density, feedback style, desktop composition, and phone composition. Then implement consistently from that brief. Do not return the brief instead of building the game.
 
 GAME DESIGN TARGET
 - The first playable loop should be understandable in under 10 seconds.
@@ -170,10 +176,17 @@ GAME DESIGN TARGET
 - Use responsive resize/orientation handling rather than a one-time viewport calculation. Phaser should use an appropriate responsive Scale Manager strategy; Three.js must resize renderer and update camera aspect; Canvas/SVG must respond to resize without stretching.
 ${pokiRules}
 SCOPE
-Build the actual playable v1 prototype now, not a design document or placeholder. Keep it compact enough to iterate quickly, but complete enough to judge whether the core loop is fun. You may create supporting JS/CSS/SVG/data files inside this game folder. Do not edit any other game or Factory file.
+Build the actual playable v1 prototype now, not a design document or placeholder. Keep it compact enough to iterate quickly, but complete and polished enough to judge whether the core loop is fun and visually promising. You may create supporting JS/CSS/SVG/data files inside this game folder. Do not edit any other game or Factory file.
+
+SELF-CHECK BEFORE FINISHING
+- Ask whether the screen would look embarrassing in a screenshot next to modern casual web games. If yes, improve it now.
+- Remove obvious programmer-art/default-browser presentation.
+- Make sure major characters/props/environment/HUD do not read as raw primitive placeholders.
+- Make sure the first screenshot has a clear focal point, cohesive palette, deliberate spacing, depth/layering, and visible feedback potential.
+- Keep improvements lightweight enough to preserve the Poki performance targets.
 
 QA
-The Factory will run desktop/mobile browser QA and Game Doctor can run cold-load, payload-size, request-count, frame-pacing, ad-block-resilience, SDK-event-order, and visual-quality checks. Do not launch your own browser or HTTP server unless absolutely necessary to diagnose a source error. Perform lightweight syntax/source checks and then stop.`;
+The Factory will run desktop/mobile browser QA and Game Doctor can run cold-load, payload-size, request-count, frame-pacing, ad-block-resilience, SDK-event-order, AI playtesting, and strict visual-quality-floor checks. Do not launch your own browser or HTTP server unless absolutely necessary to diagnose a source error. Perform lightweight syntax/source checks and then stop.`;
 }
 
 export async function createGameProject({ gamesDir, factoryDir, title, concept, engine = 'auto', artStyle = 'auto', opportunity = '', target = 'Poki' }) {
@@ -197,6 +210,7 @@ export async function createGameProject({ gamesDir, factoryDir, title, concept, 
     const metadata = {
       id, title, concept, target, engine, artStyle, opportunity: opportunity || null,
       starterKit: { name: starterKit.name, version: starterKit.version },
+      visualQualityFloor: { version: '1.0.0', minimumPrototypeScore: 70 },
       createdBy: 'Gutpopper Game Factory', createdAt: new Date().toISOString()
     };
     await Promise.all([
