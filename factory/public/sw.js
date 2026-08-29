@@ -1,4 +1,4 @@
-const CACHE = 'gutpopper-factory-shell-v0.9-automatic-visual-polish';
+const CACHE = 'gutpopper-factory-shell-v0.10-retention-automation';
 const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/app.js', '/device-preview.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
