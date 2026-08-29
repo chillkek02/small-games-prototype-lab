@@ -1,17 +1,17 @@
 {
   "name": "gutpopper-game-factory",
   "productName": "Gutpopper Game Factory",
-  "version": "0.3.1",
+  "version": "0.4.0",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
-  "description": "AI browser-game studio, Poki opportunity scout, desktop factory and private phone remote for Gutpopper Games.",
+  "description": "AI browser-game studio, Poki opportunity scout, quality lab, desktop factory and private phone remote for Gutpopper Games.",
   "author": "Gutpopper Games",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
     "desktop": "electron .",
-    "check": "node --check server.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check codex-router.cjs && node --check lib/qa.js && node --check lib/runner.js && node --check lib/opportunity.js && node --check lib/new-game.js && node --check public/app.js && node --check public/sw.js",
+    "check": "node --check server.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check codex-router.cjs && node --check lib/qa.js && node --check lib/runner.js && node --check lib/opportunity.js && node --check lib/new-game.js && node --check lib/quality.js && node --check public/app.js && node --check public/device-preview.js && node --check public/quality-lab.js && node --check public/sw.js",
     "package:win": "npm run check && electron-builder --win dir --x64",
     "make:win": "npm run check && electron-builder --win nsis --x64"
   },
