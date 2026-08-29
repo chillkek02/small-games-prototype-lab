@@ -1,6 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 import { resolveRecommendation } from './opportunity.js';
+import { writeProductionStarterKit, starterKitInstruction } from './starter-kit.js';
 
 const POKI_SDK = 'https://game-cdn.poki.com/scripts/v2/poki-sdk.js';
 
@@ -87,7 +88,7 @@ function scaffoldHtml({ title, engine, engineAsset, target }) {
   const poki = target === 'Poki';
   const pokiTag = poki ? `<script src="${POKI_SDK}"></script>` : '';
   const pokiBoot = poki
-    ? `window.__POKI_READY__=false;if(window.PokiSDK){PokiSDK.init().then(()=>{window.__POKI_READY__=true}).catch(()=>{});}`
+    ? `window.__POKI_READY__=false;if(window.GutpopperCore){GutpopperCore.poki.init().then(ok=>{window.__POKI_READY__=ok}).catch(()=>{});}`
     : '';
   return `<!doctype html>
 <html lang="en">
@@ -97,15 +98,15 @@ function scaffoldHtml({ title, engine, engineAsset, target }) {
 <meta name="theme-color" content="#10141c">
 <title>${safeTitle}</title>
 <link rel="icon" href="data:,">
+<link rel="stylesheet" href="./starter/production-core.css">
 ${pokiTag}
+<script src="./starter/production-core.js"></script>
 ${engineTag}
 ${moduleHint}
-<style>
-*{box-sizing:border-box}html,body{margin:0;width:100%;height:100%;overflow:hidden;background:#10141c;color:white;font-family:system-ui,sans-serif;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}body{display:grid;place-items:center}.boot{display:grid;gap:10px;text-align:center;padding:24px}.boot strong{font-size:22px}.boot span{opacity:.65;font-size:12px}
-</style>
+<style>.boot{display:grid;gap:10px;text-align:center;padding:24px}.boot strong{font-size:22px}.boot span{opacity:.65;font-size:12px}</style>
 </head>
 <body oncontextmenu="return false">
-<div class="boot"><strong>${safeTitle}</strong><span>Gutpopper Game Factory is building the playable prototype…</span></div>
+<div class="boot"><strong>${safeTitle}</strong><span>Gutpopper Production Core loaded. Building the playable prototype…</span></div>
 <script>
 window.__GUTPOPPER_ENGINE__=${JSON.stringify(engine)};
 ${pokiBoot}
@@ -117,12 +118,13 @@ ${pokiBoot}
 export function buildNewGameInstruction({ title, concept, engine, artStyle, opportunityTitle = '', target = 'Poki' }) {
   const pokiRules = target === 'Poki' ? `
 POKI PRODUCTION RULES
-- Keep PokiSDK initialization in the page and call gameLoadingFinished() when the actual game is ready.
-- Call gameplayStart() only when active gameplay begins and gameplayStop() on pause/end/menu transitions.
+- Poki SDK and GutpopperCore.poki are already scaffolded. Keep them.
+- Call GutpopperCore.poki.loadingFinished() when the actual game is ready.
+- Call GutpopperCore.poki.gameplayStart() only when active gameplay begins and gameplayStop() on pause/end/menu transitions.
 - Create natural commercial-break opportunities between runs/levels, never during active play.
 - Create at least one optional rewarded-ad opportunity that is genuinely useful but not required for progression (retry, bonus reward, temporary boost, etc.).
-- If PokiSDK is unavailable locally, gameplay must still work normally.
-- Never fake ad success. Gracefully continue in local testing.
+- Use GutpopperCore.poki.commercialBreak() / rewardedBreak() so local testing safely falls back without pretending an ad reward succeeded.
+- Never fake ad success.
 ` : '';
 
   return `CREATE A BRAND-NEW PRODUCTION PROTOTYPE
@@ -140,6 +142,8 @@ ${opportunityTitle ? `MARKET-SCOUT ORIGIN\nThis concept was selected from the Fa
 ENGINE — REQUIRED
 Use ${engineLabel(engine)} as the primary game/rendering engine. The Factory scaffold already provisioned the local engine file when needed. Do not replace it with an unrelated framework or remote CDN.
 
+${starterKitInstruction()}
+
 ART DIRECTION — REQUIRED
 ${artLabel(artStyle)}.
 Make the game visually intentional and polished, not prototype-gray. Use code-generated shapes, SVG, canvas, engine primitives, gradients, particles, procedural/simple vector assets, or lightweight generated geometry appropriate to this style. Avoid copyrighted characters/assets and avoid requiring external art downloads.
@@ -149,8 +153,9 @@ GAME DESIGN TARGET
 - Build a complete short-session loop: start -> play -> success/failure -> reward/progression -> replay.
 - Aim for a 2–5 minute satisfying session with reasons to immediately replay.
 - Include score, progression, upgrades, unlocks, streaks, missions, or another retention layer appropriate to the concept.
-- Include meaningful game feel: juice, hit/collect feedback, transitions, particles, camera/screen feedback when appropriate, readable audio hooks only if local/generated safely.
-- Support desktop controls AND excellent touch controls. Prefer one-thumb or simple two-thumb interaction.
+- Use the Production Core save helpers for persistent progression when appropriate.
+- Include meaningful game feel: juice, hit/collect feedback, transitions, particles, camera/screen feedback, and use the built-in burst/shake/vibrate helpers where they fit.
+- Support desktop controls AND excellent touch controls. Prefer one-thumb or simple two-thumb interaction and use the normalized input helper when appropriate.
 - Prevent text selection, long-press/callout, context menus, accidental browser gestures, and drag-selection on gameplay UI.
 - Fit 390x844 mobile and 1440x900 desktop without horizontal overflow.
 ${pokiRules}
@@ -178,8 +183,10 @@ export async function createGameProject({ gamesDir, factoryDir, title, concept, 
   try {
     await fsp.mkdir(gameDir, { recursive: false });
     const engineAsset = await provisionEngine({ engine, factoryDir, gameDir });
+    const starterKit = await writeProductionStarterKit({ gameDir, engine, target });
     const metadata = {
       id, title, concept, target, engine, artStyle, opportunity: opportunity || null,
+      starterKit: { name: starterKit.name, version: starterKit.version },
       createdBy: 'Gutpopper Game Factory', createdAt: new Date().toISOString()
     };
     await Promise.all([
@@ -192,6 +199,7 @@ export async function createGameProject({ gamesDir, factoryDir, title, concept, 
       gameDir,
       engine,
       artStyle,
+      starterKit,
       instruction: buildNewGameInstruction({ title, concept, engine, artStyle, opportunityTitle: opportunity, target }),
       metadata
     };
