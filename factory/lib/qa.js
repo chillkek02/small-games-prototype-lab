@@ -2,6 +2,8 @@ import path from 'node:path';
 import { chromium } from 'playwright';
 
 const START_PATTERN = /^(play|start|begin|go|launch|continue|new game|start game)$/i;
+const GENERIC_RESOURCE_ERROR = /^Failed to load resource: the server responded with a status of \d+/i;
+const OPTIONAL_ICON_PATH = /\/(favicon\.ico|apple-touch-icon(?:-[^/]*)?\.png)$/i;
 
 async function launchQaBrowser() {
   if (process.platform === 'win32') {
@@ -43,11 +45,30 @@ async function inspectViewport(browser, { name, width, height, url, screenshotPa
   const page = await context.newPage();
   const consoleErrors = [];
   const pageErrors = [];
+  const resourceErrors = [];
+  const targetOrigin = new URL(url).origin;
 
   page.on('console', message => {
-    if (message.type() === 'error') consoleErrors.push(message.text());
+    if (message.type() !== 'error') return;
+    const text = message.text();
+    // Chromium's generic 4xx/5xx console line has no URL. Resource responses are
+    // checked separately below, where we can distinguish real game assets from
+    // harmless browser icon probes such as /favicon.ico.
+    if (!GENERIC_RESOURCE_ERROR.test(text)) consoleErrors.push(text);
   });
   page.on('pageerror', error => pageErrors.push(error.message));
+  page.on('response', response => {
+    const status = response.status();
+    if (status < 400) return;
+    try {
+      const responseUrl = new URL(response.url());
+      if (responseUrl.origin !== targetOrigin) return;
+      if (OPTIONAL_ICON_PATH.test(responseUrl.pathname)) return;
+      resourceErrors.push(`${status} ${responseUrl.pathname}`);
+    } catch {
+      // Ignore malformed/non-HTTP response URLs.
+    }
+  });
 
   let responseStatus = null;
   let loadError = null;
@@ -89,6 +110,7 @@ async function inspectViewport(browser, { name, width, height, url, screenshotPa
   if (responseStatus && responseStatus >= 400) issues.push(`${name}: HTTP ${responseStatus}`);
   if (pageErrors.length) issues.push(`${name}: ${pageErrors.length} uncaught page error(s): ${pageErrors.slice(0, 3).join(' | ')}`);
   if (consoleErrors.length) issues.push(`${name}: ${consoleErrors.length} console error(s): ${consoleErrors.slice(0, 3).join(' | ')}`);
+  if (resourceErrors.length) issues.push(`${name}: ${resourceErrors.length} missing/failed local resource(s): ${resourceErrors.slice(0, 3).join(' | ')}`);
   if (metrics) {
     if (metrics.scrollWidth - metrics.clientWidth > 3) {
       issues.push(`${name}: horizontal overflow (${metrics.scrollWidth}px content in ${metrics.clientWidth}px viewport)`);
@@ -107,6 +129,7 @@ async function inspectViewport(browser, { name, width, height, url, screenshotPa
     responseStatus,
     consoleErrors: consoleErrors.slice(0, 10),
     pageErrors: pageErrors.slice(0, 10),
+    resourceErrors: resourceErrors.slice(0, 10),
     metrics,
     screenshot: path.basename(screenshotPath)
   };
