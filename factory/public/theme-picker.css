@@ -1,0 +1,13 @@
+.theme-picker{margin:11px 0 4px;padding:10px;border:1px solid rgba(120,169,255,.16);border-radius:13px;background:linear-gradient(180deg,rgba(120,169,255,.055),rgba(255,255,255,.018))}
+.theme-picker-head{display:flex;align-items:center;justify-content:space-between;gap:9px;margin-bottom:8px}
+.theme-picker-head>strong{font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:#c9d7ef}
+.theme-picker-head .refresh-themes{min-height:28px;padding:0 9px;font-size:9px;white-space:nowrap}
+.theme-options{display:grid;grid-template-columns:1fr;gap:6px}
+.theme-option{width:100%;display:grid;gap:4px;padding:9px 10px;border:1px solid rgba(255,255,255,.075);border-radius:10px;background:rgba(7,11,18,.46);color:#dce4f1;text-align:left;cursor:pointer;transition:border-color .14s ease,background .14s ease,transform .14s ease}
+.theme-option:hover{border-color:rgba(120,169,255,.28);background:rgba(120,169,255,.075)}
+.theme-option:active{transform:scale(.992)}
+.theme-option.selected{border-color:rgba(139,255,154,.42);background:linear-gradient(90deg,rgba(139,255,154,.105),rgba(120,169,255,.06));box-shadow:inset 3px 0 0 rgba(139,255,154,.75)}
+.theme-option span{font-size:9.5px;line-height:1.4;font-weight:700}
+.theme-option small{font-size:8px;color:#78869c;text-transform:capitalize}
+@media(min-width:900px){.theme-options{grid-template-columns:repeat(3,minmax(0,1fr))}.theme-option{min-height:86px}}
+@media(max-width:620px){.theme-picker{padding:9px}.theme-picker-head{align-items:flex-start}.theme-picker-head .refresh-themes{min-height:34px}.theme-option{min-height:58px;padding:10px}.theme-option span{font-size:10px}}
