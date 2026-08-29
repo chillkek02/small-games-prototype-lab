@@ -38,21 +38,25 @@ FINAL RESPONSE
 Give a concise implementation summary, files changed, tests run, and any real blockers. Do not claim tests passed unless you ran them.`;
 }
 
-function quickEditPrompt(job) {
+function quickEditRules(gameName) {
   return `You are the QUICK EDIT agent inside Gutpopper Game Factory.
 
 TARGET
-- Current game only: ${job.game}.
-- Make the smallest localized source edit that satisfies the request.
+- Current game only: ${gameName}.
+- Make the smallest localized source edit needed.
 - Do not commit, push, create branches, install dependencies, or edit outside the current game directory.
 
 TOKEN-EFFICIENT RULES
-- Inspect only the exact file/lines needed. Do not explore the whole project unless the requested edit cannot be located otherwise.
-- Do not launch a browser, local HTTP server, Playwright, test suite, or broad repository scan. Gutpopper Game Factory performs desktop/mobile QA immediately after you finish.
+- Inspect only the exact file/lines needed. Do not explore the whole project unless the edit cannot otherwise be located.
+- Do not read Codex memory files, rollout summaries, session history, git history, origin/main, or unrelated repository documentation for a localized edit.
+- Do not launch a browser, local HTTP server, Playwright, test suite, or broad repository scan. Gutpopper Game Factory performs desktop/mobile QA after you finish.
 - Do not repeatedly print the file, diff, or git status.
 - Preserve gameplay, Poki SDK/ad behavior, controls, and unrelated visuals unless the request explicitly changes them.
-- If the user asks to verify or test the tiny change, rely on the Factory QA that runs after this edit rather than duplicating that work here.
-- Once the requested edit is complete and syntactically sane, stop.
+- Once the localized edit is complete and syntactically sane, stop.`;
+}
+
+function quickEditPrompt(job) {
+  return `${quickEditRules(job.game)}
 
 USER REQUEST
 ${job.instruction}
@@ -66,8 +70,22 @@ function buildPrompt(job, mode = 'standard') {
   return `${studioRules(job.game)}\n\nUSER REQUEST\n${job.instruction}`;
 }
 
-function buildRepairPrompt(job, qa) {
+function buildRepairPrompt(job, qa, mode = 'standard') {
   const issueText = qa.issues.length ? qa.issues.map((issue, i) => `${i + 1}. ${issue}`).join('\n') : 'No machine-readable issues were reported.';
+  if (mode === 'quick') {
+    return `${quickEditRules(job.game)}
+
+FACTORY QA FOUND A PROBLEM
+Fix only the concrete QA issue(s) below with the smallest possible edit. Do not investigate unrelated project history or architecture.
+
+${issueText}
+
+ORIGINAL REQUEST
+${job.instruction}
+
+FINAL RESPONSE
+Maximum 5 short lines.`;
+  }
   return `${studioRules(job.game)}\n\nAUTOMATED QA FAILED\nThe previous implementation was smoke-tested in desktop and mobile browser QA. Fix the failures below, then retest locally.\n\n${issueText}\n\nDo not undo the original requested change: ${job.instruction}`;
 }
 
@@ -212,12 +230,16 @@ export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, 
       if (qa.passed) break;
       if (repair === MAX_REPAIR_PASSES) break;
 
-      await store.patch(job.id, { stage: `Codex repair pass ${repair + 1}`, attempt: repair + 2 });
-      await log(`QA found ${qa.issues.length} issue(s); escalating to standard repair pass ${repair + 1}`);
+      const repairMode = mode === 'quick' ? 'quick' : 'standard';
+      await store.patch(job.id, {
+        stage: mode === 'quick' ? `Codex quick repair ${repair + 1}` : `Codex repair pass ${repair + 1}`,
+        attempt: repair + 2
+      });
+      await log(`QA found ${qa.issues.length} issue(s); starting ${mode === 'quick' ? 'token-efficient quick repair' : 'standard repair'} ${repair + 1}`);
       await runCodex({
         cwd: gameDir,
-        prompt: buildRepairPrompt(job, qa),
-        mode: 'standard',
+        prompt: buildRepairPrompt(job, qa, repairMode),
+        mode: repairMode,
         onLine: line => void log(line)
       });
     }
