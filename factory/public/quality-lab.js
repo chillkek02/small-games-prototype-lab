@@ -161,12 +161,38 @@ function artifactUrl(audit, file) {
   return `/quality-artifacts/${encodeURIComponent(audit.id)}/${encodeURIComponent(file)}`;
 }
 
+function playtestText(audit) {
+  const playtest = audit.playtest;
+  if (!playtest) return 'AI Playtester was not available.';
+  const plan = playtest.plan || {};
+  const lines = [
+    'AI PLAYTESTER',
+    `Planner confidence: ${plan.confidence || '—'}`,
+    `Objective: ${plan.objective || '—'}`,
+    `Control plan: ${plan.summary || '—'}`,
+    ''
+  ];
+  for (const device of ['desktop', 'phone']) {
+    const runs = (playtest.sessions || []).filter(run => run.device === device);
+    const changes = runs.reduce((sum, run) => sum + (run.visualChanges || 0), 0);
+    const actions = runs.reduce((sum, run) => sum + (run.activeActionCount || 0), 0);
+    const terminals = runs.filter(run => run.terminal).map(run => `${run.terminal.type}: ${run.terminal.term}`).join(', ') || 'not reached';
+    const restarts = runs.filter(run => run.terminal).map(run => run.restartAvailable ? 'available' : 'missing').join(', ') || 'not tested';
+    const errors = runs.reduce((sum, run) => sum + (run.errors?.length || 0), 0);
+    lines.push(`${device.toUpperCase()}: ${runs.length} runs · visible responses ${changes}/${actions} · terminal ${terminals} · retry ${restarts} · errors ${errors}`);
+  }
+  lines.push('', ...(playtest.notes || []).map(note => `• ${note}`));
+  if (playtest.plannerError) lines.push('', `Planner fallback reason: ${playtest.plannerError}`);
+  return lines.join('\n');
+}
+
 function readinessText(audit) {
   const readiness = audit.readiness;
   if (!readiness) return 'Poki/performance audit was not available.';
   const m = readiness.metrics || {};
   const frame = m.frame || {};
   const source = readiness.source || {};
+  const sdkEvents = readiness.sdkEvents || {};
   return [
     'PERFORMANCE',
     `Meaningful UI: ${m.meaningfulReadyMs ?? '—'} ms local`,
@@ -185,8 +211,10 @@ function readinessText(audit) {
     `gameplayStop: ${source.gameplayStop ? 'yes' : 'no'}`,
     `commercialBreak: ${source.commercialBreak ? 'yes' : 'no'}`,
     `rewardedBreak: ${source.rewardedBreak ? 'yes' : 'no'}`,
+    `SDK event-order probe: ${sdkEvents.passed ? 'PASS' : 'FAIL'}`,
     `Ad-block resilience: ${readiness.adBlock?.passed ? 'PASS' : 'FAIL'}`,
     '',
+    ...(sdkEvents.violations || []).map(note => `• SDK: ${note}`),
     ...(readiness.pokiNotes || []).map(note => `• ${note}`),
     '',
     'Note: numeric load/size/FPS targets are Gutpopper Factory internal targets, not official Poki pass/fail thresholds.'
@@ -197,7 +225,7 @@ function renderAudit(audit) {
   lastAudit = audit;
   setScore('#qualityOverall', audit.overallScore);
   setScore('#qualityTechnical', audit.technicalScore);
-  setScore('#qualityInteraction', audit.interactionScore);
+  setScore('#qualityInteraction', audit.playtestScore ?? audit.interactionScore);
   setScore('#qualityVisual', audit.visualScore);
   setScore('#qualityPerformance', audit.performanceScore);
   setScore('#qualityPoki', audit.pokiScore);
@@ -213,8 +241,8 @@ function renderAudit(audit) {
     const items = [
       ['Desktop QA', audit.artifacts?.desktop],
       ['Phone QA', audit.artifacts?.phone],
-      ['Desktop Play', audit.artifacts?.desktopPlay],
-      ['Phone Play', audit.artifacts?.phonePlay]
+      ['AI Playtest · Desktop', audit.artifacts?.desktopPlay],
+      ['AI Playtest · Phone', audit.artifacts?.phonePlay]
     ].filter(([, file]) => file);
     gallery.innerHTML = items.map(([label, file]) => `
       <a href="${artifactUrl(audit, file)}" target="_blank" rel="noreferrer">
@@ -224,12 +252,11 @@ function renderAudit(audit) {
   }
 
   const issues = [...(audit.qa?.issues || [])];
-  for (const view of audit.interaction?.views || []) {
-    if (!view.responsiveAfterInputs) issues.push(`${view.name}: page stopped responding after interaction probe.`);
-    if (view.errors?.length) issues.push(`${view.name}: ${view.errors.length} interaction error(s).`);
-  }
   const technical = document.querySelector('#qualityTechnicalNotes');
-  if (technical) technical.textContent = issues.length ? issues.join('\n') : 'Desktop and phone technical checks passed with no machine-detected issues.';
+  if (technical) {
+    const qaText = issues.length ? issues.map(issue => `• ${issue}`).join('\n') : '• Desktop and phone technical checks passed with no machine-detected issues.';
+    technical.textContent = `${playtestText(audit)}\n\nTECHNICAL QA\n${qaText}`;
+  }
 
   setStatus(`Audit complete · ${new Date(audit.finishedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
   if (applyButton) applyButton.disabled = false;
@@ -247,9 +274,9 @@ function resetAuditView(game) {
   const gallery = document.querySelector('#qualityGallery');
   const technical = document.querySelector('#qualityTechnicalNotes');
   const readiness = document.querySelector('#qualityReadinessNotes');
-  if (report) report.textContent = 'Visual Director is waiting for screenshots…';
+  if (report) report.textContent = 'Visual Director is waiting for QA and AI playtest screenshots…';
   if (gallery) gallery.innerHTML = '';
-  if (technical) technical.textContent = 'Running desktop and phone checks…';
+  if (technical) technical.textContent = 'AI Playtester will inspect the game, infer controls/objective, then run desktop and phone sessions…';
   if (readiness) readiness.textContent = 'Measuring cold load, payload size, requests, frame pacing, Poki events, and ad-block resilience…';
   const title = document.querySelector('#qualityTitle');
   if (title) title.textContent = `Game Doctor · ${game}`;
@@ -263,7 +290,7 @@ async function runDoctor() {
   overlay?.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   resetAuditView(game);
-  setStatus('Running Desktop QA → Phone QA → Performance/Poki gate → interaction probe → Visual Director…');
+  setStatus('Running Performance/Poki gate → Desktop/Phone QA → AI Playtester → Visual Director…');
   doctorButton.disabled = true;
   try {
     const response = await fetch(`/api/games/${encodeURIComponent(game)}/doctor`, { method: 'POST' });
@@ -287,7 +314,7 @@ function closeQuality() {
 
 function sendFixesToDirector() {
   if (!lastAudit || !instruction) return;
-  const request = `Improve this game using the latest Game Doctor audit. Prioritize the highest-value player-facing and Poki/web-performance fixes. Preserve working gameplay, controls, Poki hooks, and existing features. Fix desktop and phone issues together. Do not trade away core fun merely to improve a synthetic score.\n\nGAME DOCTOR SCORE: ${lastAudit.overallScore}/100\nTECHNICAL: ${lastAudit.technicalScore}/100\nINTERACTION: ${lastAudit.interactionScore}/100\nVISUAL: ${lastAudit.visualScore ?? 'unavailable'}/100\nPERFORMANCE: ${lastAudit.performanceScore ?? 'unavailable'}/100\nPOKI READINESS: ${lastAudit.pokiScore ?? 'unavailable'}/100\n\nVISUAL DIRECTOR REPORT\n${lastAudit.visualReport}\n\nPERFORMANCE FINDINGS\n${(lastAudit.readiness?.performanceNotes || []).join('\n') || 'None.'}\n\nPOKI FINDINGS\n${(lastAudit.readiness?.pokiNotes || []).join('\n') || 'None.'}\n\nAUTOMATED ISSUES\n${(lastAudit.qa?.issues || []).join('\n') || 'None.'}`;
+  const request = `Improve this game using the latest Game Doctor audit. Prioritize the highest-value player-facing, AI-playtest, and Poki/web-performance fixes. Preserve working gameplay, controls, Poki hooks, and existing features. Fix desktop and phone issues together. Do not trade away core fun merely to improve a synthetic score.\n\nGAME DOCTOR SCORE: ${lastAudit.overallScore}/100\nTECHNICAL: ${lastAudit.technicalScore}/100\nAI PLAYTEST: ${lastAudit.playtestScore ?? lastAudit.interactionScore ?? 'unavailable'}/100\nVISUAL: ${lastAudit.visualScore ?? 'unavailable'}/100\nPERFORMANCE: ${lastAudit.performanceScore ?? 'unavailable'}/100\nPOKI READINESS: ${lastAudit.pokiScore ?? 'unavailable'}/100\n\nAI PLAYTEST PLAN\nObjective: ${lastAudit.playtest?.plan?.objective || 'unknown'}\nControls: ${lastAudit.playtest?.plan?.summary || 'unknown'}\nConfidence: ${lastAudit.playtest?.plan?.confidence || 'unknown'}\n\nAI PLAYTEST FINDINGS\n${(lastAudit.playtest?.notes || []).join('\n') || 'None.'}\n\nVISUAL DIRECTOR REPORT\n${lastAudit.visualReport}\n\nPERFORMANCE FINDINGS\n${(lastAudit.readiness?.performanceNotes || []).join('\n') || 'None.'}\n\nPOKI FINDINGS\n${(lastAudit.readiness?.pokiNotes || []).join('\n') || 'None.'}\n\nAUTOMATED ISSUES\n${(lastAudit.qa?.issues || []).join('\n') || 'None.'}`;
   instruction.value = request;
   instruction.dispatchEvent(new Event('input', { bubbles: true }));
   closeQuality();
@@ -300,6 +327,9 @@ closeButton?.addEventListener('click', closeQuality);
 rerunButton?.addEventListener('click', runDoctor);
 applyButton?.addEventListener('click', sendFixesToDirector);
 overlay?.addEventListener('click', event => { if (event.target === overlay) closeQuality(); });
+
+const playtestLabel = document.querySelector('#qualityInteraction')?.parentElement?.querySelector('span');
+if (playtestLabel) playtestLabel.textContent = 'AI Playtest';
 
 if (openGame) new MutationObserver(syncButton).observe(openGame, { attributes: true, attributeFilter: ['href', 'class'] });
 ensureSnapshotControls();
