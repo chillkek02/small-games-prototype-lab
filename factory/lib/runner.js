@@ -3,6 +3,18 @@ import { spawn } from 'node:child_process';
 const MAX_REPAIR_PASSES = Math.max(0, Math.min(3, Number(process.env.GAME_FACTORY_REPAIR_PASSES || 1)));
 const CODEX_COMMAND = process.env.GAME_FACTORY_CODEX_COMMAND || 'codex';
 
+const QUICK_ACTION = /\b(change|set|rename|replace|update|increase|decrease|remove|delete|hide|show|move|adjust|fix|correct|add)\b/i;
+const QUICK_TARGET = /\b(comment|text|label|title|copy|typo|number|value|speed|size|color|colour|font|spacing|margin|padding|position|opacity|volume|name|word|button text)\b/i;
+const COMPLEX_SIGNAL = /\b(system|mechanic|gameplay|architecture|refactor|overhaul|redesign|rework|new feature|level|mission|quest|enemy|boss|progression|upgrade system|physics|multiplayer|network|save system|inventory|economy|procedural|generation|combat system|ai behavior|sdk integration|monetization system)\b/i;
+
+function classifyTask(instruction = '') {
+  const text = instruction.trim();
+  if (/^\s*(quick|tiny|small)\s*:/i.test(text)) return 'quick';
+  if (/^\s*(standard|full)\s*:/i.test(text)) return 'standard';
+  if (text.length <= 240 && QUICK_ACTION.test(text) && QUICK_TARGET.test(text) && !COMPLEX_SIGNAL.test(text)) return 'quick';
+  return 'standard';
+}
+
 function studioRules(gameName) {
   return `You are the implementation agent inside Gutpopper Game Factory.
 
@@ -26,7 +38,31 @@ FINAL RESPONSE
 Give a concise implementation summary, files changed, tests run, and any real blockers. Do not claim tests passed unless you ran them.`;
 }
 
-function buildPrompt(job) {
+function quickEditPrompt(job) {
+  return `You are the QUICK EDIT agent inside Gutpopper Game Factory.
+
+TARGET
+- Current game only: ${job.game}.
+- Make the smallest localized source edit that satisfies the request.
+- Do not commit, push, create branches, install dependencies, or edit outside the current game directory.
+
+TOKEN-EFFICIENT RULES
+- Inspect only the exact file/lines needed. Do not explore the whole project unless the requested edit cannot be located otherwise.
+- Do not launch a browser, local HTTP server, Playwright, test suite, or broad repository scan. Gutpopper Game Factory performs desktop/mobile QA immediately after you finish.
+- Do not repeatedly print the file, diff, or git status.
+- Preserve gameplay, Poki SDK/ad behavior, controls, and unrelated visuals unless the request explicitly changes them.
+- If the user asks to verify or test the tiny change, rely on the Factory QA that runs after this edit rather than duplicating that work here.
+- Once the requested edit is complete and syntactically sane, stop.
+
+USER REQUEST
+${job.instruction}
+
+FINAL RESPONSE
+Maximum 5 short lines: what changed, file changed, and any real blocker.`;
+}
+
+function buildPrompt(job, mode = 'standard') {
+  if (mode === 'quick') return quickEditPrompt(job);
   return `${studioRules(job.game)}\n\nUSER REQUEST\n${job.instruction}`;
 }
 
@@ -99,19 +135,26 @@ async function runProcess(command, args, { cwd, input = '', timeoutMs = 20 * 60 
   });
 }
 
-async function runCodex({ cwd, prompt, onLine }) {
-  onLine('Codex automation mode: workspace-write sandbox · approvals=never · ephemeral session', false);
+async function runCodex({ cwd, prompt, onLine, mode = 'standard' }) {
+  const args = [
+    'exec',
+    '--ephemeral',
+    '--sandbox', 'workspace-write',
+    '-c', 'approval_policy=never'
+  ];
+
+  if (mode === 'quick') {
+    args.push('-c', 'model_reasoning_effort=low', '-c', 'model_verbosity=low');
+    onLine('Quick Edit mode: Terra · low reasoning · low verbosity · Factory QA handles testing', false);
+  } else {
+    onLine('Standard mode: configured Codex model/reasoning · workspace-write sandbox · Factory QA', false);
+  }
+
+  args.push('--color', 'never', '-C', cwd, '-');
+
   const result = await runProcess(
     CODEX_COMMAND,
-    [
-      'exec',
-      '--ephemeral',
-      '--sandbox', 'workspace-write',
-      '-c', 'approval_policy=never',
-      '--color', 'never',
-      '-C', cwd,
-      '-'
-    ],
+    args,
     { cwd, input: prompt, onLine }
   );
   if (result.code !== 0) {
@@ -141,12 +184,20 @@ export async function probeCodex(repoRoot) {
 
 export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, gameUrl }) {
   const log = async line => store.appendLog(job.id, line);
+  const mode = classifyTask(job.instruction);
   try {
-    await store.patch(job.id, { status: 'running', stage: 'Codex implementation', attempt: 1, error: null });
-    await log(`Starting Codex implementation for ${job.game}`);
+    await store.patch(job.id, {
+      status: 'running',
+      stage: mode === 'quick' ? 'Codex quick edit' : 'Codex implementation',
+      attempt: 1,
+      mode,
+      error: null
+    });
+    await log(`Starting ${mode === 'quick' ? 'token-efficient quick edit' : 'Codex implementation'} for ${job.game}`);
     await runCodex({
       cwd: gameDir,
-      prompt: buildPrompt(job),
+      prompt: buildPrompt(job, mode),
+      mode,
       onLine: line => void log(line)
     });
 
@@ -162,10 +213,11 @@ export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, 
       if (repair === MAX_REPAIR_PASSES) break;
 
       await store.patch(job.id, { stage: `Codex repair pass ${repair + 1}`, attempt: repair + 2 });
-      await log(`QA found ${qa.issues.length} issue(s); starting repair pass ${repair + 1}`);
+      await log(`QA found ${qa.issues.length} issue(s); escalating to standard repair pass ${repair + 1}`);
       await runCodex({
         cwd: gameDir,
         prompt: buildRepairPrompt(job, qa),
+        mode: 'standard',
         onLine: line => void log(line)
       });
     }
