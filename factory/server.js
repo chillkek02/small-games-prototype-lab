@@ -9,6 +9,7 @@ import { getOpportunityReport, getCreatorOptions } from './lib/opportunity.js';
 import { createGameProject } from './lib/new-game.js';
 import { runQualityAudit } from './lib/quality.js';
 import { createSnapshot, listSnapshots, restoreSnapshot } from './lib/snapshots.js';
+import { trashGame, listTrash } from './lib/game-trash.js';
 
 const __dirname=path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT=path.resolve(process.env.GAME_FACTORY_REPO_ROOT||path.resolve(__dirname,'..'));
@@ -38,11 +39,29 @@ async function snapshotBeforeBuild({game,gameDir,label,kind,jobId=null}){return 
 async function handleApi(req,res,url){
   if(req.method==='GET'&&url.pathname==='/api/status'){
     const[codex,jobs]=await Promise.all([probeCodex(REPO_ROOT),store.list(5)]);
-    return sendJson(res,200,{name:'Gutpopper Game Factory',version:'0.12.0',repoRoot:REPO_ROOT,codex,engines:{phaser3:'3.90.0',phaser4:'4.2.1',three:'0.185.1'},qualityLab:{visualDirector:true,studioVisualDirector:true,houseStyle:'Gutpopper Bright Toy Casual v1',visualMinimum:78,visualCommercialTarget:85,aiPlaytester:true,retentionReplay:true,adReadiness:true,performanceGate:true,pokiReadiness:true,automatedFirstPrototypePolish:true,desktopViewport:'1440x900',phoneViewport:'390x844'},snapshots:{automatic:true,maxPerGame:12,undo:true},activeGames:[...activeByGame.keys()],recentJobs:jobs.length});
+    return sendJson(res,200,{name:'Gutpopper Game Factory',version:'0.12.1',repoRoot:REPO_ROOT,codex,engines:{phaser3:'3.90.0',phaser4:'4.2.1',three:'0.185.1'},qualityLab:{visualDirector:true,studioVisualDirector:true,houseStyle:'Gutpopper Bright Toy Casual v1',visualMinimum:78,visualCommercialTarget:85,aiPlaytester:true,retentionReplay:true,adReadiness:true,performanceGate:true,pokiReadiness:true,automatedFirstPrototypePolish:true,desktopViewport:'1440x900',phoneViewport:'390x844'},snapshots:{automatic:true,maxPerGame:12,undo:true},gameTrash:{safeDelete:true,recoverable:true},activeGames:[...activeByGame.keys()],recentJobs:jobs.length});
   }
   if(req.method==='GET'&&url.pathname==='/api/games')return sendJson(res,200,{games:await listGames()});
+  if(req.method==='GET'&&url.pathname==='/api/trash')return sendJson(res,200,{trash:await listTrash({stateDir:STATE_DIR})});
   if(req.method==='GET'&&url.pathname==='/api/creator-options')return sendJson(res,200,getCreatorOptions());
   if(req.method==='GET'&&url.pathname==='/api/opportunities'){try{return sendJson(res,200,await getOpportunityReport())}catch(error){return sendJson(res,500,{error:`Opportunity Scout failed: ${error.message}`})}}
+
+  const deleteGameMatch=url.pathname.match(/^\/api\/games\/([^/]+)$/);
+  if(req.method==='DELETE'&&deleteGameMatch){
+    const game=decodeURIComponent(deleteGameMatch[1]);
+    if(!safeSegment(game))return sendJson(res,400,{error:'Invalid game id'});
+    if(gameIsBusy(game))return sendJson(res,409,{error:'Wait for the active Factory operation to finish before deleting this game.'});
+    const gameDir=gameDirFor(game);
+    if(!await validateGameDir(gameDir))return sendJson(res,404,{error:'Game target not found'});
+    let title=game;
+    try{const html=await fsp.readFile(path.join(gameDir,'index.html'),'utf8');title=html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim()||game}catch{}
+    try{
+      const trashed=await trashGame({stateDir:STATE_DIR,game,gameDir,title});
+      return sendJson(res,200,{deleted:true,game,title,trash:{trashId:trashed.trashId,deletedAt:trashed.deletedAt,recoverable:true}});
+    }catch(error){
+      return sendJson(res,500,{error:`Could not move game to Factory Trash: ${error.message}`});
+    }
+  }
 
   const snapshotListMatch=url.pathname.match(/^\/api\/games\/([^/]+)\/snapshots$/);
   if(snapshotListMatch){const game=decodeURIComponent(snapshotListMatch[1]);if(!safeSegment(game))return sendJson(res,400,{error:'Invalid game id'});const gameDir=gameDirFor(game);if(!await validateGameDir(gameDir))return sendJson(res,404,{error:'Game target not found'});if(req.method==='GET')return sendJson(res,200,{snapshots:await listSnapshots({stateDir:STATE_DIR,game})});if(req.method==='POST'){if(gameIsBusy(game))return sendJson(res,409,{error:'Wait for the active Factory operation to finish before saving a restore point.'});try{const body=await readBody(req);const snapshot=await createSnapshot({stateDir:STATE_DIR,game,gameDir,label:String(body.label||'Manual restore point').slice(0,120),kind:'manual'});return sendJson(res,201,{snapshot})}catch(error){return sendJson(res,500,{error:`Could not create restore point: ${error.message}`})}}}
@@ -79,5 +98,5 @@ async function handler(req,res){
   const publicRelative=url.pathname==='/'?'index.html':decodeURIComponent(url.pathname).replace(/^\/+/,''),publicPath=safeJoin(PUBLIC_DIR,publicRelative);if(publicPath&&await serveFile(res,publicPath,{noCache:true}))return;res.writeHead(404,{'content-type':'text/plain; charset=utf-8'});res.end('Not found');
 }
 
-export async function startFactoryServer(){await store.init();await recoverInterruptedJobs();const server=http.createServer((req,res)=>{handler(req,res).catch(error=>{console.error(error);if(!res.headersSent)sendJson(res,500,{error:error.message});else res.end()})});await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(PORT,HOST,()=>{server.off('error',reject);resolve()})});const localUrl=`http://${HOST}:${PORT}`;console.log(`\nGutpopper Game Factory v0.12.0`);console.log(localUrl);console.log(`Repo: ${REPO_ROOT}\n`);return{server,url:localUrl,repoRoot:REPO_ROOT,stateDir:STATE_DIR,port:PORT,host:HOST}}
+export async function startFactoryServer(){await store.init();await recoverInterruptedJobs();const server=http.createServer((req,res)=>{handler(req,res).catch(error=>{console.error(error);if(!res.headersSent)sendJson(res,500,{error:error.message});else res.end()})});await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(PORT,HOST,()=>{server.off('error',reject);resolve()})});const localUrl=`http://${HOST}:${PORT}`;console.log(`\nGutpopper Game Factory v0.12.1`);console.log(localUrl);console.log(`Repo: ${REPO_ROOT}\n`);return{server,url:localUrl,repoRoot:REPO_ROOT,stateDir:STATE_DIR,port:PORT,host:HOST}}
 if(process.env.GAME_FACTORY_EMBEDDED!=='1')await startFactoryServer();
