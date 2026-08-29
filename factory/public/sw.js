@@ -1,4 +1,4 @@
-const CACHE = 'gutpopper-factory-shell-v0.11-ad-readiness';
+const CACHE = 'gutpopper-factory-shell-v0.12-visual-overhaul';
 const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/app.js', '/device-preview.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
@@ -13,14 +13,9 @@ self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
   if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/game/') || url.pathname.startsWith('/artifacts/') || url.pathname.startsWith('/quality-artifacts/')) return;
-
-  event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        const copy = response.clone();
-        void caches.open(CACHE).then(cache => cache.put(event.request, copy));
-        return response;
-      })
-      .catch(() => caches.match(event.request).then(cached => cached || caches.match('/')))
-  );
+  event.respondWith(fetch(event.request).then(response => {
+    const copy = response.clone();
+    void caches.open(CACHE).then(cache => cache.put(event.request, copy));
+    return response;
+  }).catch(() => caches.match(event.request).then(cached => cached || caches.match('/'))));
 });
