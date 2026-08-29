@@ -84,6 +84,15 @@ async function startFactory() {
     return null;
   }
 
+  const factoryDir = path.resolve(__dirname, '..');
+  const currentPath = process.env.PATH || process.env.Path || '';
+  if (process.platform === 'win32') {
+    process.env.PATH = `${factoryDir};${currentPath}`;
+    process.env.Path = process.env.PATH;
+    if (!process.env.GAME_FACTORY_CODEX_COMMAND) process.env.GAME_FACTORY_CODEX_COMMAND = 'codex-router.cmd';
+  }
+  process.env.GAME_FACTORY_MODEL_POLICY ||= 'auto';
+
   process.env.GAME_FACTORY_EMBEDDED = '1';
   process.env.GAME_FACTORY_REPO_ROOT = repoRoot;
   process.env.GAME_FACTORY_STATE_DIR = path.join(app.getPath('userData'), 'factory-state');
