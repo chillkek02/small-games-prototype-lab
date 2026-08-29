@@ -7,10 +7,10 @@ import { JobStore } from './lib/store.js';
 import { probeCodex, runJob } from './lib/runner.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const REPO_ROOT = path.resolve(__dirname, '..');
+const REPO_ROOT = path.resolve(process.env.GAME_FACTORY_REPO_ROOT || path.resolve(__dirname, '..'));
 const PUBLIC_DIR = path.join(__dirname, 'public');
 const GAMES_DIR = path.join(REPO_ROOT, 'games');
-const STATE_DIR = path.join(__dirname, '.state');
+const STATE_DIR = path.resolve(process.env.GAME_FACTORY_STATE_DIR || path.join(__dirname, '.state'));
 const PORT = Number(process.env.GAME_FACTORY_PORT || 4177);
 const HOST = process.env.GAME_FACTORY_HOST || '127.0.0.1';
 const store = new JobStore(STATE_DIR);
@@ -21,6 +21,7 @@ const MIME = {
   '.js': 'text/javascript; charset=utf-8',
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
+  '.webmanifest': 'application/manifest+json; charset=utf-8',
   '.png': 'image/png',
   '.jpg': 'image/jpeg',
   '.jpeg': 'image/jpeg',
@@ -92,7 +93,8 @@ async function serveFile(res, filePath, { noCache = false } = {}) {
     res.writeHead(200, {
       'content-type': MIME[path.extname(filePath).toLowerCase()] || 'application/octet-stream',
       'content-length': stat.size,
-      'cache-control': noCache ? 'no-store' : 'public, max-age=60'
+      'cache-control': noCache ? 'no-store' : 'public, max-age=60',
+      'x-content-type-options': 'nosniff'
     });
     fs.createReadStream(filePath).pipe(res);
     return true;
@@ -106,7 +108,7 @@ async function handleApi(req, res, url) {
     const [codex, jobs] = await Promise.all([probeCodex(REPO_ROOT), store.list(5)]);
     return sendJson(res, 200, {
       name: 'Gutpopper Game Factory',
-      version: '0.1.0',
+      version: '0.2.0',
       repoRoot: REPO_ROOT,
       codex,
       activeGames: [...activeByGame.keys()],
@@ -195,17 +197,31 @@ async function handler(req, res) {
   res.end('Not found');
 }
 
-await store.init();
-const server = http.createServer((req, res) => {
-  handler(req, res).catch(error => {
-    console.error(error);
-    if (!res.headersSent) sendJson(res, 500, { error: error.message });
-    else res.end();
+export async function startFactoryServer() {
+  await store.init();
+  const server = http.createServer((req, res) => {
+    handler(req, res).catch(error => {
+      console.error(error);
+      if (!res.headersSent) sendJson(res, 500, { error: error.message });
+      else res.end();
+    });
   });
-});
 
-server.listen(PORT, HOST, () => {
-  console.log(`\nGutpopper Game Factory v0.1`);
-  console.log(`http://${HOST}:${PORT}`);
+  await new Promise((resolve, reject) => {
+    server.once('error', reject);
+    server.listen(PORT, HOST, () => {
+      server.off('error', reject);
+      resolve();
+    });
+  });
+
+  const url = `http://${HOST}:${PORT}`;
+  console.log(`\nGutpopper Game Factory v0.2.0`);
+  console.log(url);
   console.log(`Repo: ${REPO_ROOT}\n`);
-});
+  return { server, url, repoRoot: REPO_ROOT, stateDir: STATE_DIR, port: PORT, host: HOST };
+}
+
+if (process.env.GAME_FACTORY_EMBEDDED !== '1') {
+  await startFactoryServer();
+}
