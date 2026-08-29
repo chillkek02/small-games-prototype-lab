@@ -1,4 +1,4 @@
-const CACHE = 'gutpopper-factory-shell-v0.4-quality-lab';
+const CACHE = 'gutpopper-factory-shell-v0.6-performance-gate';
 const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/app.js', '/device-preview.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
