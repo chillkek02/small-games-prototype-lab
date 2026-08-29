@@ -1,0 +1,45 @@
+name: Build Game Factory Windows App
+
+on:
+  push:
+    branches:
+      - game-factory-v1
+    paths:
+      - 'factory/**'
+      - 'Build Game Factory Windows App.bat'
+      - 'Start Game Factory Desktop.bat'
+      - '.github/workflows/build-game-factory-windows.yml'
+  workflow_dispatch:
+
+jobs:
+  windows-installer:
+    runs-on: windows-latest
+    defaults:
+      run:
+        working-directory: factory
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+          cache-dependency-path: factory/package-lock.json
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Build Windows installer
+        run: npm run make:win
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: Gutpopper-Game-Factory-Windows
+          path: |
+            factory/out/make/squirrel.windows/x64/**
+            factory/out/make/zip/win32/x64/**
+          if-no-files-found: error
+          retention-days: 14
