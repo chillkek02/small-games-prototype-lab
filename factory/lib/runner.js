@@ -4,13 +4,13 @@ import path from 'node:path';
 
 const MAX_REPAIR_PASSES = Math.max(0, Math.min(3, Number(process.env.GAME_FACTORY_REPAIR_PASSES || 1)));
 const CODEX_COMMAND = process.env.GAME_FACTORY_CODEX_COMMAND || 'codex';
-
 const QUICK_ACTION = /\b(change|set|rename|replace|update|increase|decrease|remove|delete|hide|show|move|adjust|fix|correct|add)\b/i;
 const QUICK_TARGET = /\b(comment|text|label|title|copy|typo|number|value|speed|size|color|colour|font|spacing|margin|padding|position|opacity|volume|name|word|button text)\b/i;
 const COMPLEX_SIGNAL = /\b(system|mechanic|gameplay|architecture|refactor|overhaul|redesign|rework|new feature|level|mission|quest|enemy|boss|progression|upgrade system|physics|multiplayer|network|save system|inventory|economy|procedural|generation|combat system|ai behavior|sdk integration|monetization system)\b/i;
 const TEXT_EXTENSIONS = new Set(['.html', '.htm', '.js', '.mjs', '.cjs', '.ts', '.tsx', '.jsx', '.css', '.json', '.svg', '.txt', '.md', '.xml', '.yaml', '.yml']);
 const SKIP_DIRS = new Set(['node_modules', '.git', '.cache', 'dist', 'build']);
 const MAX_TEXT_FILE_BYTES = 5 * 1024 * 1024;
+const MAX_LCS_CELLS = 4_000_000;
 
 function stripModePrefix(instruction = '') {
   return instruction.replace(/^\s*(?:direct|quick|tiny|small|standard|full)\s*:\s*/i, '').trim();
@@ -75,36 +75,17 @@ TOKEN-EFFICIENT RULES
 - Once the localized edit is complete and syntactically sane, stop.`;
 }
 
-function quickEditPrompt(job) {
-  return `${quickEditRules(job.game)}
-
-USER REQUEST
-${job.instruction}
-
-FINAL RESPONSE
-Maximum 5 short lines: what changed, file changed, and any real blocker.`;
-}
-
 function buildPrompt(job, mode = 'standard') {
-  if (mode === 'quick') return quickEditPrompt(job);
+  if (mode === 'quick') {
+    return `${quickEditRules(job.game)}\n\nUSER REQUEST\n${job.instruction}\n\nFINAL RESPONSE\nMaximum 5 short lines: what changed, file changed, and any real blocker.`;
+  }
   return `${studioRules(job.game)}\n\nUSER REQUEST\n${job.instruction}`;
 }
 
 function buildRepairPrompt(job, qa, mode = 'standard') {
   const issueText = qa.issues.length ? qa.issues.map((issue, i) => `${i + 1}. ${issue}`).join('\n') : 'No machine-readable issues were reported.';
   if (mode === 'quick') {
-    return `${quickEditRules(job.game)}
-
-FACTORY QA FOUND A PROBLEM
-Fix only the concrete QA issue(s) below with the smallest possible edit. Do not investigate unrelated project history or architecture.
-
-${issueText}
-
-ORIGINAL REQUEST
-${job.instruction}
-
-FINAL RESPONSE
-Maximum 5 short lines.`;
+    return `${quickEditRules(job.game)}\n\nFACTORY QA FOUND A PROBLEM\nFix only the concrete QA issue(s) below with the smallest possible edit. Do not investigate unrelated project history or architecture.\n\n${issueText}\n\nORIGINAL REQUEST\n${job.instruction}\n\nFINAL RESPONSE\nMaximum 5 short lines.`;
   }
   return `${studioRules(job.game)}\n\nAUTOMATED QA FAILED\nThe previous implementation was smoke-tested in desktop and mobile browser QA. Fix the failures below, then retest locally.\n\n${issueText}\n\nDo not undo the original requested change: ${job.instruction}`;
 }
@@ -256,7 +237,7 @@ async function tryDirectEdit(gameDir, instruction) {
       continue;
     }
     const count = countOccurrences(content, replacement.from);
-    if (count) matches.push({ relative, content, count });
+    if (count) matches.push({ relative, count });
   }
 
   const totalMatches = matches.reduce((sum, match) => sum + match.count, 0);
@@ -276,28 +257,75 @@ async function tryDirectEdit(gameDir, instruction) {
   return { ok: true, relative: match.relative, from: replacement.from, to: replacement.to };
 }
 
-function lineCount(text) {
-  if (!text) return 0;
-  const normalized = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-  const parts = normalized.split('\n');
-  return parts.length - (normalized.endsWith('\n') ? 1 : 0);
-}
-
-function normalizeForDiff(text = '') {
+function normalizeText(text = '') {
   return String(text).replace(/\r\n/g, '\n').replace(/\r/g, '\n');
 }
 
-async function runScopedDiffStat({ before, gameDir, gameRelativePath, artifactDir }) {
+function splitLines(text = '') {
+  const normalized = normalizeText(text);
+  if (!normalized) return [];
+  const lines = normalized.split('\n');
+  if (normalized.endsWith('\n')) lines.pop();
+  return lines;
+}
+
+function lineCount(text) {
+  return splitLines(text).length;
+}
+
+function diffLineCounts(oldText, newText) {
+  if (oldText === newText) return { added: 0, deleted: 0 };
+
+  const oldLines = splitLines(oldText);
+  const newLines = splitLines(newText);
+  let prefix = 0;
+  const maxPrefix = Math.min(oldLines.length, newLines.length);
+  while (prefix < maxPrefix && oldLines[prefix] === newLines[prefix]) prefix += 1;
+
+  let oldEnd = oldLines.length - 1;
+  let newEnd = newLines.length - 1;
+  while (oldEnd >= prefix && newEnd >= prefix && oldLines[oldEnd] === newLines[newEnd]) {
+    oldEnd -= 1;
+    newEnd -= 1;
+  }
+
+  const oldMid = oldLines.slice(prefix, oldEnd + 1);
+  const newMid = newLines.slice(prefix, newEnd + 1);
+  if (!oldMid.length) return { added: newMid.length, deleted: 0 };
+  if (!newMid.length) return { added: 0, deleted: oldMid.length };
+
+  if (oldMid.length * newMid.length > MAX_LCS_CELLS) {
+    return { added: newMid.length, deleted: oldMid.length };
+  }
+
+  const dp = new Uint32Array(newMid.length + 1);
+  for (const oldLine of oldMid) {
+    let diagonal = 0;
+    for (let j = 1; j <= newMid.length; j += 1) {
+      const previousRow = dp[j];
+      if (oldLine === newMid[j - 1]) {
+        dp[j] = diagonal + 1;
+      } else if (dp[j - 1] > dp[j]) {
+        dp[j] = dp[j - 1];
+      }
+      diagonal = previousRow;
+    }
+  }
+
+  const common = dp[newMid.length];
+  return {
+    added: newMid.length - common,
+    deleted: oldMid.length - common
+  };
+}
+
+async function runScopedDiffStat({ before, gameDir, gameRelativePath }) {
   try {
     const after = await snapshotTextSource(gameDir);
     const allPaths = new Set([...before.keys(), ...after.keys()]);
     const changed = [...allPaths].filter(relative => before.get(relative) !== after.get(relative)).sort();
     if (!changed.length) return 'No source-file changes in this run.';
 
-    const beforeDir = path.join(artifactDir, '.diff-before');
-    const afterDir = path.join(artifactDir, '.diff-after');
-    await fs.mkdir(beforeDir, { recursive: true });
-    await fs.mkdir(afterDir, { recursive: true });
     const rows = [];
     let totalAdd = 0;
     let totalDel = 0;
@@ -305,44 +333,17 @@ async function runScopedDiffStat({ before, gameDir, gameRelativePath, artifactDi
     for (const relative of changed) {
       const oldText = before.get(relative);
       const newText = after.get(relative);
-      let added = 0;
-      let deleted = 0;
+      let counts;
+      if (oldText === undefined) counts = { added: lineCount(newText), deleted: 0 };
+      else if (newText === undefined) counts = { added: 0, deleted: lineCount(oldText) };
+      else counts = diffLineCounts(oldText, newText);
 
-      if (oldText === undefined) {
-        added = lineCount(newText);
-      } else if (newText === undefined) {
-        deleted = lineCount(oldText);
-      } else {
-        const beforePath = path.join(beforeDir, relative);
-        const afterPath = path.join(afterDir, relative);
-        await fs.mkdir(path.dirname(beforePath), { recursive: true });
-        await fs.mkdir(path.dirname(afterPath), { recursive: true });
-        await fs.writeFile(beforePath, normalizeForDiff(oldText), 'utf8');
-        await fs.writeFile(afterPath, normalizeForDiff(newText), 'utf8');
-        const result = await runProcess('git', ['diff', '--no-index', '--numstat', '--ignore-space-at-eol', '--', beforePath, afterPath], {
-          cwd: gameDir,
-          timeoutMs: 10000
-        });
-        const line = result.stdout.split(/\r?\n/).find(Boolean) || '';
-        const parts = line.split('\t');
-        if (/^\d+$/.test(parts[0] || '') && /^\d+$/.test(parts[1] || '')) {
-          added = Number(parts[0]);
-          deleted = Number(parts[1]);
-        } else {
-          added = lineCount(newText);
-          deleted = lineCount(oldText);
-        }
-      }
-
-      totalAdd += added;
-      totalDel += deleted;
-      rows.push(`${path.join(gameRelativePath, relative)} | +${added} -${deleted}`);
+      totalAdd += counts.added;
+      totalDel += counts.deleted;
+      rows.push(`${path.join(gameRelativePath, relative)} | +${counts.added} -${counts.deleted}`);
     }
 
-    const filesLabel = `${changed.length} file${changed.length === 1 ? '' : 's'} changed`;
-    const additionsLabel = `${totalAdd} insertion${totalAdd === 1 ? '' : 's'}(+)`;
-    const deletionsLabel = `${totalDel} deletion${totalDel === 1 ? '' : 's'}(-)`;
-    rows.push(`${filesLabel}, ${additionsLabel}, ${deletionsLabel}`);
+    rows.push(`${changed.length} file${changed.length === 1 ? '' : 's'} changed, ${totalAdd} insertion${totalAdd === 1 ? '' : 's'}(+), ${totalDel} deletion${totalDel === 1 ? '' : 's'}(-)`);
     return rows.join('\n');
   } catch {
     return 'Run-scoped diff unavailable.';
@@ -365,12 +366,7 @@ async function runCodex({ cwd, prompt, onLine, mode = 'standard' }) {
   }
 
   args.push('--color', 'never', '-C', cwd, '-');
-
-  const result = await runProcess(
-    CODEX_COMMAND,
-    args,
-    { cwd, input: prompt, onLine }
-  );
+  const result = await runProcess(CODEX_COMMAND, args, { cwd, input: prompt, onLine });
   if (result.code !== 0) {
     const detail = (result.stderr || result.stdout || '').trim().slice(-4000);
     throw new Error(`Codex exited with code ${result.code}${detail ? `: ${detail}` : ''}`);
@@ -411,21 +407,11 @@ export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, 
         mode = 'quick';
         await store.patch(job.id, { stage: 'Codex quick edit', mode, tokensUsed: null });
         await log(`Direct Edit declined: ${direct.reason}. Falling back to token-efficient Quick Terra.`);
-        await runCodex({
-          cwd: gameDir,
-          prompt: buildPrompt(job, mode),
-          mode,
-          onLine: line => void log(line)
-        });
+        await runCodex({ cwd: gameDir, prompt: buildPrompt(job, mode), mode, onLine: line => void log(line) });
       }
     } else {
       await log(`Starting ${mode === 'quick' ? 'token-efficient quick edit' : 'Codex implementation'} for ${job.game}`);
-      await runCodex({
-        cwd: gameDir,
-        prompt: buildPrompt(job, mode),
-        mode,
-        onLine: line => void log(line)
-      });
+      await runCodex({ cwd: gameDir, prompt: buildPrompt(job, mode), mode, onLine: line => void log(line) });
     }
 
     let qa = null;
@@ -436,8 +422,7 @@ export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, 
       qa = await runQa({ url: gameUrl, artifactDir });
       await store.patch(job.id, { qa });
 
-      if (qa.passed) break;
-      if (repair === MAX_REPAIR_PASSES) break;
+      if (qa.passed || repair === MAX_REPAIR_PASSES) break;
 
       const repairMode = mode === 'standard' ? 'standard' : 'quick';
       await store.patch(job.id, {
@@ -447,16 +432,11 @@ export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, 
         tokensUsed: null
       });
       await log(`QA found ${qa.issues.length} issue(s); starting ${repairMode === 'quick' ? 'token-efficient quick repair' : 'standard repair'} ${repair + 1}`);
-      await runCodex({
-        cwd: gameDir,
-        prompt: buildRepairPrompt(job, qa, repairMode),
-        mode: repairMode,
-        onLine: line => void log(line)
-      });
+      await runCodex({ cwd: gameDir, prompt: buildRepairPrompt(job, qa, repairMode), mode: repairMode, onLine: line => void log(line) });
       mode = repairMode;
     }
 
-    const diffStat = await runScopedDiffStat({ before, gameDir, gameRelativePath, artifactDir });
+    const diffStat = await runScopedDiffStat({ before, gameDir, gameRelativePath });
     if (qa?.passed) {
       await log('Build passed automated QA');
       await store.patch(job.id, {
@@ -483,7 +463,7 @@ export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, 
       stage: 'Failed',
       finishedAt: new Date().toISOString(),
       error: error.message,
-      diffStat: await runScopedDiffStat({ before, gameDir, gameRelativePath, artifactDir })
+      diffStat: await runScopedDiffStat({ before, gameDir, gameRelativePath })
     });
   }
 }
