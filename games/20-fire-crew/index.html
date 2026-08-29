@@ -177,9 +177,10 @@ html,body,#game,canvas,.btn,button,#controls{
 /* Desktop safe-area pass: panels reserve the four corners and do not
    sit on top of gameplay controls. */
 @media (min-width:851px) {
+  #status { top:100px; }
   #instruction { z-index:7; }
   #controls { z-index:10; }
-  #navPanel { z-index:7; }
+  #navPanel { right:218px;bottom:18px;z-index:7; }
 }
 
 
@@ -217,7 +218,18 @@ html,body,#game,canvas,.btn,button,#controls{
 
 </style>
 
-<script src="https://game-cdn.poki.com/scripts/v2/poki-sdk.js"></script>
+<script>
+// GitHub Pages is the public application preview, not an authorized Poki game
+// host. Load the real SDK automatically everywhere except local/GitHub previews.
+window.__pokiSdkReady=new Promise(resolve=>{
+  const h=location.hostname;
+  const preview=h==='localhost'||h==='127.0.0.1'||h.endsWith('.github.io');
+  if(preview){resolve();return;}
+  const s=document.createElement('script');
+  s.src='https://game-cdn.poki.com/scripts/v2/poki-sdk.js';
+  s.onload=resolve;s.onerror=resolve;document.head.appendChild(s);
+});
+</script>
 </head>
 <body>
 <div id="game"></div>
@@ -251,6 +263,7 @@ import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.181.1/build/three.m
 const PokiBridge={
   ready:false,pendingStart:false,playing:false,loaded:false,loadingSent:false,
   async init(){
+    await window.__pokiSdkReady;
     if(!window.PokiSDK) return;
     try{await PokiSDK.init();this.ready=true;}catch(e){this.ready=false;}
     this.finishLoading();
