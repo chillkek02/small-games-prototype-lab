@@ -1,4 +1,4 @@
-const CACHE = 'gutpopper-factory-shell-v0.14-theme-refresh';
+const CACHE = 'gutpopper-factory-shell-v0.15-shader-vfx-forge';
 const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/theme-picker.css', '/app.js', '/device-preview.js', '/test-funnel.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
