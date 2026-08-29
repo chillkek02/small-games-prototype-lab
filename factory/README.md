@@ -1,81 +1,118 @@
-# Gutpopper Game Factory — V0.1
+# Gutpopper Game Factory — V0.2
 
-A local Tesana-style AI production dashboard for `small-games-prototype-lab`.
+Gutpopper Game Factory is a local AI game-production app for `small-games-prototype-lab` with a private phone remote.
 
-V0.1 deliberately focuses on one complete production loop instead of trying to solve every future feature at once:
+## What V0.2 does
 
-1. Discover playable projects under `../games/*/index.html`.
-2. Select a game and describe a change in natural language.
-3. Run Codex non-interactively inside only that game directory.
-4. Launch Chromium with Playwright at desktop (1440×900) and mobile (390×844).
-5. Capture page errors, console errors, obvious horizontal overflow, and QA screenshots.
-6. If QA fails, give the failures back to Codex for one automatic repair pass.
-7. Show the live preview, logs, screenshots, QA state, and Git diff stat in the dashboard.
+1. Discovers playable projects under `games/*/index.html`.
+2. Lets you choose a game and describe a change in natural language.
+3. Runs Codex non-interactively inside only that game's directory.
+4. Runs Playwright Chromium QA at desktop (1440×900) and mobile (390×844).
+5. Captures page errors, console errors, obvious horizontal overflow, and screenshots.
+6. Sends QA failures back to Codex for an automatic repair pass.
+7. Shows the live game, build stage, agent log, screenshots, QA status, changed-file summary, and job history.
+8. Runs as a Windows Electron desktop application instead of requiring a browser + terminal.
+9. Can privately expose the same dashboard through Tailscale Serve so a phone can control the PC factory and play the current build.
+10. Is installable on the phone as a PWA via Add to Home Screen.
 
-Codex is instructed not to commit or push. The factory edits the existing local working tree so you can review the changes before publishing.
+Codex is instructed not to commit or push. Factory jobs edit the real local game working tree so changes can be reviewed before publishing.
 
-## Safest setup on the current Prototype Lab machine
+## Safely copy V0.2 into the current Prototype Lab checkout
 
-If the Prototype Lab has uncommitted game changes, do **not** switch branches just to install the factory. Copy only the new factory tooling into your current working tree:
+Do not switch branches if the current Prototype Lab contains uncommitted game work. From PowerShell in the repository root:
 
 ```powershell
-cd "C:\Users\chill\OneDrive\Documents\GitHub\small-games-prototype-lab"
 git fetch origin
-git restore --source=origin/game-factory-v1 -- factory "Start Game Factory.bat"
+git restore --source=origin/game-factory-v1 -- factory "Start Game Factory Desktop.bat" "Build Game Factory Windows App.bat"
 ```
 
-That command does not replace anything under `games/` and does not change your current branch.
+This copies the factory tooling without replacing files under `games/`.
 
-After that, double-click **Start Game Factory.bat** in the repository root. On the first launch it installs the factory's npm dependencies and Chromium automatically, starts the local server, and opens the dashboard.
+## Run the desktop app before installing it
 
-The dashboard runs at:
+Double-click:
 
-`http://127.0.0.1:4177`
+`Start Game Factory Desktop.bat`
 
-## Manual setup
+The first run installs the desktop dependencies and Chromium QA runtime, then opens the Electron application.
 
-If you prefer to run it manually after copying the factory files:
+You can also run it from PowerShell:
 
 ```powershell
-cd "C:\Users\chill\OneDrive\Documents\GitHub\small-games-prototype-lab\factory"
-npm install
-npx playwright install chromium
-codex --version
-npm start
+& ".\Start Game Factory Desktop.bat"
 ```
 
-The factory uses your already-installed/logged-in Codex CLI. It does not require an OpenAI API key in V0.1.
+## Build the Windows installer
 
-If `codex --version` is not found, install/update the Codex CLI and sign in normally before starting the factory.
+Double-click:
 
-## Useful environment settings
+`Build Game Factory Windows App.bat`
+
+Or run:
 
 ```powershell
-# Change local port
-$env:GAME_FACTORY_PORT="4178"
-
-# Allow two QA repair passes instead of one (0-3)
-$env:GAME_FACTORY_REPAIR_PASSES="2"
-
-# Override the Codex executable if needed
-$env:GAME_FACTORY_CODEX_COMMAND="codex"
-
-npm start
+& ".\Build Game Factory Windows App.bat"
 ```
 
-## Safety boundary
+The Windows installer is generated under:
 
-The implementation prompt tells Codex to work only inside the selected `games/<game>` directory, and Codex is launched with `--full-auto`, which currently maps to workspace-write sandboxing in the Codex CLI. The agent is explicitly forbidden from committing, pushing, creating branches, adding secrets, or editing other projects.
+`factory\out\make\squirrel.windows\x64\Gutpopper-Game-Factory-Setup.exe`
 
-As with any local coding agent, review changes before publishing. If a specific Codex version reports that the native-Windows workspace-write sandbox is read-only, update Codex first; 2026 Codex releases have had Windows sandbox regressions. Running the factory from WSL2 is a fallback if the installed native build is affected.
+A portable ZIP is also produced. The installer is currently unsigned, so Windows SmartScreen may warn when it is first opened. Code signing can be added before public distribution.
 
-## V0.2 targets
+The `game-factory-v1` branch also contains a GitHub Actions workflow that builds the same Windows installer automatically and uploads it as the `Gutpopper-Game-Factory-Windows` workflow artifact.
 
-- Vision-model screenshot review (composition, clipping, ugly/prototype-looking UI, visual readability).
-- Dedicated Director → Gameplay/UI/Art/Platform worker routing.
-- Git snapshots/revert buttons per successful run.
-- "New Game" generation from a blank house template.
-- Poki-specific validator (SDK lifecycle, rewarded hooks, mobile input, pause/audio behavior).
-- Performance budgets and Lighthouse-style checks.
-- Asset-generation adapters and an asset library.
-- One-click share/publish workflow.
+## Phone Remote
+
+The PC remains the worker. Codex, Git, game files, Chromium QA, and builds stay on the PC. The phone only controls the factory through its web API and can play the current game build.
+
+Recommended private connection: Tailscale Serve.
+
+1. Install Tailscale on the Windows PC and phone.
+2. Sign both devices into the same Tailscale network.
+3. Start Gutpopper Game Factory Desktop.
+4. Click `Phone Remote` in the desktop app.
+5. Click `Enable Phone Remote`.
+6. The desktop app shows a private `https://<pc-name>.<tailnet>.ts.net` address.
+7. Open that address on the phone.
+8. Use the browser's `Add to Home Screen` action to install Gutpopper Game Factory Remote like an app.
+
+Tailscale Serve is used rather than Funnel, so the factory is shared only inside the authenticated tailnet instead of being exposed publicly.
+
+## Desktop security model
+
+- Electron renderer: `nodeIntegration: false`.
+- Context isolation: enabled.
+- Renderer sandbox: enabled.
+- Permission requests: denied by default.
+- Remote phone clients never receive the Electron native bridge.
+- The local factory server remains bound to `127.0.0.1`; Tailscale Serve proxies private HTTPS traffic to it.
+- Codex is launched inside the selected game's working directory with workspace-write behavior and explicit no-commit/no-push rules.
+
+## Requirements
+
+For AI build jobs:
+
+- Codex CLI installed and signed in.
+- Git available in PATH.
+
+For source/development launch or building an installer:
+
+- Node.js 20+ (Node.js 22 is used by the automated Windows build).
+
+For remote phone access:
+
+- Tailscale on the PC and phone.
+
+The installed Electron app bundles its UI/runtime and the Playwright Chromium QA browser, but it intentionally does not bundle your Codex credentials.
+
+## Next targets
+
+- Vision-model screenshot review for composition, clipping, readability, and prototype-looking presentation.
+- Git snapshots and one-click Revert/Approve.
+- New Game from prompt using a studio template.
+- Dedicated Director → Gameplay/UI/Art/Poki worker routing.
+- Poki-specific SDK/lifecycle/rewarded-ad validator.
+- Performance budgets.
+- Phone-friendly approval/revert controls and build notifications.
+- Optional native Capacitor Android/iOS wrapper around the same remote UI.
