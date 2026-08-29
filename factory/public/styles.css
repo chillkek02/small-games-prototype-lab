@@ -37,9 +37,14 @@ h2 { font-size: 16px; }
 .eyebrow { display: block; margin-bottom: 5px; font-size: 9px; font-weight: 900; letter-spacing: .16em; color: var(--muted); }
 .count-badge, .mode-pill { color: #c7cfdf; font-size: 10px; font-weight: 700; padding: 6px 9px; border: 1px solid var(--line); border-radius: 999px; background: rgba(255,255,255,.04); }
 .game-list { overflow: auto; padding: 9px; }
-.game-item { width: 100%; border: 1px solid transparent; color: inherit; background: transparent; display: grid; grid-template-columns: 34px 1fr 16px; gap: 10px; align-items: center; text-align: left; padding: 10px; border-radius: 13px; cursor: pointer; transition: .15s ease; }
+.game-item { width: 100%; display: grid; grid-template-columns: minmax(0, 1fr) 30px; gap: 4px; align-items: center; border: 1px solid transparent; border-radius: 13px; transition: .15s ease; }
 .game-item:hover { background: rgba(255,255,255,.045); }
 .game-item.selected { background: linear-gradient(90deg, rgba(120,169,255,.14), rgba(139,255,154,.05)); border-color: rgba(120,169,255,.22); }
+.game-select { min-width: 0; width: 100%; border: 0; color: inherit; background: transparent; display: grid; grid-template-columns: 34px minmax(0, 1fr) 16px; gap: 10px; align-items: center; text-align: left; padding: 10px 5px 10px 10px; border-radius: 12px; cursor: pointer; }
+.game-select:focus-visible, .game-delete:focus-visible { outline: 2px solid var(--accent-2); outline-offset: 1px; }
+.game-delete { width: 28px; height: 28px; display: grid; place-items: center; border: 1px solid transparent; border-radius: 9px; background: transparent; color: #aab2c2; cursor: pointer; font-size: 12px; opacity: .66; transition: .15s ease; }
+.game-delete:hover { opacity: 1; color: #ffd0d0; border-color: rgba(255,123,123,.25); background: rgba(255,123,123,.12); }
+.game-delete:active { transform: scale(.94); }
 .game-index { width: 34px; height: 34px; display: grid; place-items: center; border-radius: 10px; background: rgba(255,255,255,.06); font-size: 11px; font-weight: 900; color: #c7d3e8; }
 .game-item.selected .game-index { color: #08121d; background: var(--accent-2); }
 .game-copy { min-width: 0; display: flex; flex-direction: column; gap: 3px; }
@@ -122,4 +127,5 @@ pre { margin: 0; white-space: pre-wrap; overflow-wrap: anywhere; font-family: ui
   .projects-panel { max-height: 240px; }
   .center-column { grid-template-rows: 430px auto; }
   .activity-panel { grid-column: auto; }
+  .game-delete { width: 32px; height: 32px; opacity: .86; }
 }
