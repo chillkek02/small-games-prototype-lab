@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Gutpopper Game Factory</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="brand-mark">GF</div>
+        <div>
+          <div class="brand-title">Gutpopper Game Factory</div>
+          <div class="brand-subtitle">AI production line for Small Games</div>
+        </div>
+      </div>
+      <div class="topbar-status">
+        <span id="codexDot" class="status-dot"></span>
+        <span id="codexStatus">Checking Codex…</span>
+      </div>
+    </header>
+
+    <main class="workspace">
+      <aside class="projects-panel panel">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">PROJECTS</span>
+            <h2>Prototype Lab</h2>
+          </div>
+          <span id="gameCount" class="count-badge">0</span>
+        </div>
+        <div id="gameList" class="game-list"></div>
+      </aside>
+
+      <section class="center-column">
+        <div class="preview-panel panel">
+          <div class="preview-toolbar">
+            <div>
+              <span class="eyebrow">LIVE PREVIEW</span>
+              <h1 id="selectedTitle">Select a game</h1>
+            </div>
+            <div class="preview-actions">
+              <button id="reloadPreview" class="ghost-button" type="button">Reload</button>
+              <a id="openGame" class="ghost-button disabled" href="#" target="_blank" rel="noreferrer">Open ↗</a>
+            </div>
+          </div>
+          <div class="screen-frame">
+            <iframe id="gameFrame" title="Game preview"></iframe>
+            <div id="emptyPreview" class="empty-preview">
+              <div class="empty-icon">▶</div>
+              <strong>Choose a prototype</strong>
+              <span>The factory will load it here.</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="command-panel panel">
+          <div class="command-head">
+            <div>
+              <span class="eyebrow">DIRECTOR</span>
+              <h2>What should we build?</h2>
+            </div>
+            <span class="mode-pill">Codex → QA → Repair</span>
+          </div>
+          <textarea id="instruction" rows="5" placeholder="Example: Polish the fire truck, make steering feel tighter on mobile, improve the mission-complete celebration, and preserve the existing Poki ad hooks."></textarea>
+          <div class="command-footer">
+            <span id="commandHint">Select a game, then describe the change.</span>
+            <button id="runBuild" class="primary-button" type="button" disabled>Run Factory Build</button>
+          </div>
+        </div>
+      </section>
+
+      <aside class="activity-panel panel">
+        <div class="panel-heading">
+          <div>
+            <span class="eyebrow">FACTORY RUN</span>
+            <h2>Build status</h2>
+          </div>
+          <span id="jobStatusBadge" class="job-badge idle">Idle</span>
+        </div>
+
+        <div id="noJob" class="no-job">
+          <div class="no-job-orb">AI</div>
+          <strong>No build running</strong>
+          <span>Your latest run will appear here with QA results and screenshots.</span>
+        </div>
+
+        <div id="jobView" class="job-view hidden">
+          <div class="stage-card">
+            <span class="eyebrow">CURRENT STAGE</span>
+            <strong id="jobStage">Queued</strong>
+            <span id="jobAttempt">Attempt 0</span>
+          </div>
+
+          <div class="qa-grid">
+            <div class="qa-card">
+              <span>Desktop</span>
+              <strong id="desktopResult">—</strong>
+            </div>
+            <div class="qa-card">
+              <span>Mobile</span>
+              <strong id="mobileResult">—</strong>
+            </div>
+          </div>
+
+          <div id="screenshots" class="screenshots"></div>
+
+          <div class="log-section">
+            <div class="section-title">Agent log</div>
+            <pre id="jobLog">Waiting for output…</pre>
+          </div>
+
+          <div id="diffSection" class="log-section hidden">
+            <div class="section-title">Changed files</div>
+            <pre id="diffStat"></pre>
+          </div>
+        </div>
+
+        <div class="history-section">
+          <div class="section-title">Recent runs</div>
+          <div id="historyList" class="history-list"></div>
+        </div>
+      </aside>
+    </main>
+  </div>
+
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
