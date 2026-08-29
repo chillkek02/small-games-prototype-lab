@@ -44,8 +44,6 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: Gutpopper-Game-Factory-Windows
-          path: |
-            factory/out/make/squirrel.windows/x64/**
-            factory/out/make/zip/win32/x64/**
+          path: factory/out/make/squirrel.windows/x64/**
           if-no-files-found: error
           retention-days: 14
