@@ -7,6 +7,8 @@ const state = {
   lastJobStatus: null
 };
 
+const desktopBridge = window.factoryDesktop || null;
+
 function escapeHtml(value = '') {
   return String(value).replace(/[&<>'"]/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[ch]));
 }
@@ -21,6 +23,36 @@ async function api(url, options) {
 function setCodexStatus(codex) {
   $('#codexDot').className = `status-dot ${codex?.ready ? 'ready' : 'error'}`;
   $('#codexStatus').textContent = codex?.ready ? `Codex ready · ${codex.version || 'installed'}` : 'Codex not ready';
+}
+
+function showRemoteUrl(url) {
+  if (!url) return;
+  const link = $('#remoteUrl');
+  link.href = url;
+  link.textContent = url;
+  $('#remoteUrlWrap').classList.remove('hidden');
+}
+
+async function setupClientMode() {
+  if (!desktopBridge?.isDesktop) {
+    const isRemote = location.protocol === 'https:' || location.hostname.endsWith('.ts.net');
+    $('#clientMode').textContent = isRemote ? 'Phone Remote' : 'Browser';
+    $('#clientMode').classList.toggle('remote', isRemote);
+    document.body.classList.toggle('remote-client', isRemote);
+    return;
+  }
+
+  $('#clientMode').textContent = 'PC Factory';
+  $('#phoneRemoteButton').classList.remove('hidden');
+
+  try {
+    const info = await desktopBridge.getInfo();
+    if (info?.remote?.installed && info.remote.ready) {
+      $('#remoteMessage').textContent = 'Tailscale is ready. Enable Phone Remote to make this factory available privately to your signed-in devices.';
+    }
+  } catch (error) {
+    console.error('Desktop bridge startup failed', error);
+  }
 }
 
 function renderGames() {
@@ -186,7 +218,44 @@ $('#reloadPreview').addEventListener('click', () => {
   if (state.selectedGame) $('#gameFrame').src = `${state.selectedGame.url}?factory=${Date.now()}`;
 });
 
+$('#phoneRemoteButton').addEventListener('click', () => $('#remotePanel').classList.toggle('hidden'));
+$('#closeRemote').addEventListener('click', () => $('#remotePanel').classList.add('hidden'));
+$('#installTailscale').addEventListener('click', async () => {
+  if (desktopBridge) await desktopBridge.openTailscaleDownload();
+});
+$('#enableRemote').addEventListener('click', async () => {
+  if (!desktopBridge) return;
+  const button = $('#enableRemote');
+  button.disabled = true;
+  button.textContent = 'Enabling…';
+  $('#installTailscale').classList.add('hidden');
+  $('#remoteMessage').textContent = 'Configuring the private phone connection…';
+  try {
+    const result = await desktopBridge.enablePhoneRemote();
+    if (result.ok) {
+      $('#remoteMessage').textContent = result.message;
+      showRemoteUrl(result.url);
+      button.textContent = 'Phone Remote Enabled ✓';
+    } else {
+      $('#remoteMessage').textContent = result.message || 'Phone Remote setup failed.';
+      if (result.code === 'TAILSCALE_MISSING') $('#installTailscale').classList.remove('hidden');
+      if (result.command) $('#remoteMessage').textContent += ` Command: ${result.command}`;
+      button.disabled = false;
+      button.textContent = 'Try Again';
+    }
+  } catch (error) {
+    $('#remoteMessage').textContent = error.message;
+    button.disabled = false;
+    button.textContent = 'Try Again';
+  }
+});
+
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.register('/sw.js').catch(error => console.debug('Service worker unavailable', error));
+}
+
 try {
+  await setupClientMode();
   const data = await api('/api/games');
   state.games = data.games || [];
   renderGames();
