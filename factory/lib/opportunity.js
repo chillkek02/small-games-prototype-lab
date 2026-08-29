@@ -51,21 +51,21 @@ function scoreConcept(concept,signal,trends,themes){
   const demand=signal?.demand??70,saturation=signal?.saturation??75,whitespace=100-saturation,currentTrendFit=trendFit(concept.trendTags,trends);
   const tags=concept.themeTags?.length?concept.themeTags:inferThemeTags(`${concept.title} ${concept.hook}`),currentThemeFit=themeFit(tags,themes);
   const score=clamp(demand*.23+whitespace*.11+concept.mobileFit*.16+concept.adFit*.11+concept.buildFit*.13+currentTrendFit*.16+currentThemeFit*.10);
-  return{...concept,themeTags:tags,score,demand,saturation,whitespace:clamp(whitespace),trendFit:currentTrendFit,themeFit:currentThemeFit,themeSuggestions:recommendThemeWrappers({category:concept.category,themes}).slice(0,3),confidence:score>=82?'High':score>=72?'Medium-High':'Medium'};
+  return{...concept,themeTags:tags,score,demand,saturation,whitespace:clamp(whitespace),trendFit:currentTrendFit,themeFit:currentThemeFit,themeSuggestions:recommendThemeWrappers({category:concept.category,themes,limit:9}),confidence:score>=82?'High':score>=72?'Medium-High':'Medium'};
 }
 
 export async function getOpportunityReport(){
   const market=await collectSignals();
   const base=CONCEPT_LIBRARY.map(concept=>scoreConcept(concept,market.stats[concept.category],market.trends,market.themes));
   const mashups=generateTrendMashups(market.trends).map(item=>{
-    const themeSuggestions=recommendThemeWrappers({category:item.category,themes:market.themes}).slice(0,3);
+    const themeSuggestions=recommendThemeWrappers({category:item.category,themes:market.themes,limit:9});
     const tags=inferThemeTags(`${item.title} ${item.hook}`);
     const currentThemeFit=themeFit(tags.length?tags:[themeSuggestions[0]?.theme].filter(Boolean),market.themes);
     const score=clamp(item.score*.9+currentThemeFit*.1);
     return{...item,score,themeTags:tags,themeFit:currentThemeFit,themeSuggestions,mobileFit:92,adFit:86,buildFit:86,demand:Math.round(item.trendHeat),saturation:55,whitespace:45,trendFit:item.trendHeat};
   });
   const opportunities=[...mashups,...base].sort((a,b)=>b.score-a.score);
-  return{platform:'Poki',generatedAt:new Date().toISOString(),market,themeRadar:{version:'1.0.0',themes:market.themes,principle:'Familiar mechanic + distinctive emotional wrapper; theme is a moderate opportunity multiplier, not a replacement for fun mechanics.'},opportunities,methodology:'Live Trend Radar reads current Poki Popular/New/category pages. Theme Radar separately measures wrapper patterns such as animals, food/fruit, blobs/objects, weird mascots, mini/cozy worlds, customization and stylized vehicles. Ranking combines current demand/trend/theme signals with mobile fit, monetization fit, production speed, visual potential and saturation. Real Poki tests remain the authority.',engines:ENGINE_OPTIONS,artStyles:ART_OPTIONS};
+  return{platform:'Poki',generatedAt:new Date().toISOString(),market,themeRadar:{version:'1.1.0',themes:market.themes,principle:'Familiar mechanic + distinctive emotional wrapper; theme is a moderate opportunity multiplier, not a replacement for fun mechanics.'},opportunities,methodology:'Live Trend Radar reads current Poki Popular/New/category pages. Theme Radar separately measures wrapper patterns such as animals, food/fruit, blobs/objects, weird mascots, mini/cozy worlds, customization and stylized vehicles. Ranking combines current demand/trend/theme signals with mobile fit, monetization fit, production speed, visual potential and saturation. Real Poki tests remain the authority.',engines:ENGINE_OPTIONS,artStyles:ART_OPTIONS};
 }
 export function getCreatorOptions(){return{engines:ENGINE_OPTIONS,artStyles:ART_OPTIONS,concepts:CONCEPT_LIBRARY}}
 export function resolveRecommendation({concept='',engine='auto',artStyle='auto',category=''}={}){const normalized=String(concept).toLowerCase();let candidate=CONCEPT_LIBRARY.find(item=>item.slug===category||item.title.toLowerCase()===normalized);if(!candidate){if(/drive|truck|car|tow|delivery|vehicle|road|parking|taxi|bus|pet|clean|vacuum|wash|repair|restore|job|rescue|fire|crowd|shop|tycoon|store|restaurant|worker|construction|demol|destroy|city|town|world|3d|obby/.test(normalized))candidate={engine:'three',art:'toy3d'};else if(/puzzle|sort|belt|conveyor|grid|match|card|word|pack/.test(normalized))candidate={engine:'phaser3',art:'isometric'};else if(/platform|shooter|sports|runner|arcade|survival|arena/.test(normalized))candidate={engine:'phaser3',art:'vector'};else candidate={engine:'three',art:'toy3d'}}return{engine:engine==='auto'?candidate.engine:engine,artStyle:artStyle==='auto'?candidate.art:artStyle}}
