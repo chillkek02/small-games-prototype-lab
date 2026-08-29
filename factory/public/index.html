@@ -70,20 +70,27 @@
         <div class="preview-panel panel">
           <div class="preview-toolbar">
             <div>
-              <span class="eyebrow">LIVE PREVIEW</span>
+              <span class="eyebrow">DEVICE TEST CENTER</span>
               <h1 id="selectedTitle">Select a game</h1>
+              <span id="previewViewportLabel" class="preview-viewport-label">Desktop · 1440×900</span>
             </div>
-            <div class="preview-actions">
-              <button id="reloadPreview" class="ghost-button" type="button">Reload</button>
-              <a id="openGame" class="ghost-button disabled" href="#" target="_blank" rel="noreferrer">Open ↗</a>
+            <div class="preview-actions-wrap">
+              <div class="device-switch" aria-label="Preview device">
+                <button id="previewDesktop" class="device-button active" type="button" aria-pressed="true">Desktop</button>
+                <button id="previewPhone" class="device-button" type="button" aria-pressed="false">Phone</button>
+              </div>
+              <div class="preview-actions">
+                <button id="reloadPreview" class="ghost-button" type="button">Reload</button>
+                <a id="openGame" class="ghost-button disabled" href="#" target="_blank" rel="noreferrer">Play Fullscreen ↗</a>
+              </div>
             </div>
           </div>
-          <div class="screen-frame">
+          <div class="screen-frame" data-device-mode="desktop">
             <iframe id="gameFrame" title="Game preview"></iframe>
             <div id="emptyPreview" class="empty-preview">
               <div class="empty-icon">▶</div>
               <strong>Choose a prototype</strong>
-              <span>The factory will load it here.</span>
+              <span>Switch Desktop / Phone, then play it here.</span>
             </div>
           </div>
         </div>
@@ -127,8 +134,8 @@
           </div>
 
           <div class="qa-grid">
-            <div class="qa-card"><span>Desktop</span><strong id="desktopResult">—</strong></div>
-            <div class="qa-card"><span>Mobile</span><strong id="mobileResult">—</strong></div>
+            <div class="qa-card"><span>Desktop QA</span><strong id="desktopResult">—</strong></div>
+            <div class="qa-card"><span>Phone QA</span><strong id="mobileResult">—</strong></div>
           </div>
 
           <div id="screenshots" class="screenshots"></div>
@@ -201,5 +208,6 @@
   </section>
 
   <script type="module" src="/app.js"></script>
+  <script type="module" src="/device-preview.js"></script>
 </body>
 </html>
