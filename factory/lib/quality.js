@@ -5,6 +5,7 @@ import path from 'node:path';
 import { runQa } from './qa.js';
 import { runPokiReadiness } from './poki-readiness.js';
 import { runAiPlaytest } from './playtester.js';
+import { runRetentionAudit } from './retention.js';
 import { parseVisualRubric, visualRubricAuditInstructions } from './visual-quality.js';
 
 const CODEX_COMMAND = process.env.GAME_FACTORY_CODEX_COMMAND || 'codex';
@@ -79,7 +80,20 @@ function playtestSummary(playtest) {
   return lines.join('\n');
 }
 
-async function runVisualDirector({ gameDir, artifactDir, qa, playtest, readiness }) {
+function retentionSummary(retention) {
+  return [
+    `Retention/replay score: ${retention.score}/100`,
+    `Replay route: ${retention.restartAvailable ? `verified (${retention.restartControl || 'restart'})` : retention.secondRunStarted ? 'second run can start' : 'not verified'}`,
+    `Persistence source: ${retention.source?.persistence ? 'yes' : 'no'}`,
+    `Save changed during probe: ${retention.storageMutated ? 'yes' : 'no'}`,
+    `Save survived reload: ${retention.persistedAfterReload ? 'yes' : 'no'}`,
+    `Upgrade/shop visible: ${retention.upgradeVisible ? 'yes' : 'no'}`,
+    `Replay systems: upgrades=${Boolean(retention.source?.upgrades)}, score=${Boolean(retention.source?.scoreChase)}, missions=${Boolean(retention.source?.missions)}, progression=${Boolean(retention.source?.progression)}, variation=${Boolean(retention.source?.variation)}`,
+    `Findings: ${(retention.notes || []).join(' | ') || 'none'}`
+  ].join('\n');
+}
+
+async function runVisualDirector({ gameDir, artifactDir, qa, playtest, readiness, retention }) {
   const images = ['desktop.png', 'mobile.png', 'playtest-desktop.png', 'playtest-phone.png']
     .map(name => path.join(artifactDir, name));
   const existing = [];
@@ -103,7 +117,7 @@ async function runVisualDirector({ gameDir, artifactDir, qa, playtest, readiness
     `Poki findings: ${readiness.pokiNotes.join(' | ')}`
   ].join('\n');
 
-  const prompt = `model: terra\nYou are the VISUAL DIRECTOR and GAME DOCTOR inside Gutpopper Game Factory.\n\nThis is a READ-ONLY audit. Do not modify any files.\nThe attached images are, in order when present: desktop QA (1440x900), phone QA (390x844), AI Playtester desktop gameplay, AI Playtester phone gameplay.\nYou may inspect the game source in the current working directory when it helps explain what you see.\n\nTECHNICAL QA\n${technicalSummary}\n\nAI PLAYTESTER\n${playtestSummary(playtest)}\n\nPOKI / WEB PERFORMANCE\n${performanceSummary}\n\nEvaluate this as a commercial browser/Poki-style casual game, not as a coding demo. Focus on what a real player sees and feels. Judge:\n- first-glance hook and clarity\n- visual polish and art-direction consistency\n- hierarchy/readability and HUD scale\n- desktop composition and screen utilization\n- phone composition, touch readability, safe margins, obstruction\n- whether the inferred controls/objective seem understandable from the actual presentation\n- game-feel signals visible after the AI Playtester follows the game's inferred controls\n- whether success/failure/retry feedback is understandable and frictionless when the playtest reaches it\n- first-time access: avoid unnecessary splash/menu friction; get players to meaningful interaction quickly\n- loading/performance risks when they are severe enough to affect player conversion or feel\n- whether the game looks like a crude programmer prototype, a promising polished prototype, or a publishable casual game\n- the highest-value changes that would materially improve player response\n\nDESKTOP ADAPTATION IS A HARD QUALITY REQUIREMENT:\nA 1440x900 desktop build must look intentionally landscape and use the available screen area. Do not accept a narrow portrait/mobile game column centered between large empty or decorative side gutters. The desktop camera/playfield/menu/HUD may recompose differently from phone while preserving the same game. If desktop still looks like a phone screenshot placed in a desktop window, call it out as a major problem and lower the score substantially.\n\nPERFORMANCE IS A HARD PUBLISHING CONCERN:\nPoki/browser games should keep file size lean, load quickly, maintain stable frame pacing, progressively load nonessential content, and remain playable when the ad SDK is blocked. Treat severe load weight, startup delay, frame pacing, or ad-block failure as publish blockers. The numeric Factory targets in the supplied report are internal quality targets.\n\nPLAYTEST INTERPRETATION:\nThe AI Playtester is bounded and synthetic. Treat repeated no-response controls, browser errors, missing retry after a detected terminal state, or clear desktop/phone control parity failures as strong evidence. Do not treat failure to finish a long game in a short bounded session as proof the game is broken.\n\n${visualRubricAuditInstructions()}\n\nReturn concise markdown using EXACTLY these headings before the required VISUAL_RUBRIC_JSON block:\nOVERALL QUALITY SCORE: NN/100\n## What Works\n## Visual Problems\n## Phone Problems\n## Gameplay / Feel Concerns\n## Performance / Poki Concerns\n## Top 5 Fixes\n## Publish Verdict\nKeep the Top 5 Fixes concrete and implementation-ready. Be severe about ugly/default/placeholder presentation; do not grade on an 'early prototype' curve.`;
+  const prompt = `model: terra\nYou are the VISUAL DIRECTOR and GAME DOCTOR inside Gutpopper Game Factory.\n\nThis is a READ-ONLY audit. Do not modify any files.\nThe attached images are, in order when present: desktop QA (1440x900), phone QA (390x844), AI Playtester desktop gameplay, AI Playtester phone gameplay.\nYou may inspect the game source in the current working directory when it helps explain what you see.\n\nTECHNICAL QA\n${technicalSummary}\n\nAI PLAYTESTER\n${playtestSummary(playtest)}\n\nRETENTION / REPLAY\n${retentionSummary(retention)}\n\nPOKI / WEB PERFORMANCE\n${performanceSummary}\n\nEvaluate this as a commercial browser/Poki-style casual game, not as a coding demo. Focus on what a real player sees and feels. Judge:\n- first-glance hook and clarity\n- visual polish and art-direction consistency\n- hierarchy/readability and HUD scale\n- desktop composition and screen utilization\n- phone composition, touch readability, safe margins, obstruction\n- whether the inferred controls/objective seem understandable from the actual presentation\n- game-feel signals visible after the AI Playtester follows the game's inferred controls\n- whether success/failure/retry feedback is understandable and frictionless when the playtest reaches it\n- whether progression/replay cues are visible enough to create a believable one-more-run loop\n- first-time access: avoid unnecessary splash/menu friction; get players to meaningful interaction quickly\n- loading/performance risks when they are severe enough to affect player conversion or feel\n- whether the game looks like a crude programmer prototype, a promising polished prototype, or a publishable casual game\n- the highest-value changes that would materially improve player response\n\nDESKTOP ADAPTATION IS A HARD QUALITY REQUIREMENT:\nA 1440x900 desktop build must look intentionally landscape and use the available screen area. Do not accept a narrow portrait/mobile game column centered between large empty or decorative side gutters. The desktop camera/playfield/menu/HUD may recompose differently from phone while preserving the same game. If desktop still looks like a phone screenshot placed in a desktop window, call it out as a major problem and lower the score substantially.\n\nPERFORMANCE IS A HARD PUBLISHING CONCERN:\nPoki/browser games should keep file size lean, load quickly, maintain stable frame pacing, progressively load nonessential content, and remain playable when the ad SDK is blocked. Treat severe load weight, startup delay, frame pacing, or ad-block failure as publish blockers. The numeric Factory targets in the supplied report are internal quality targets.\n\nRETENTION INTERPRETATION:\nA short casual game does not need permanent RPG progression to be replayable. Accept strong score-chasing, streaks, missions, randomized variation, escalating difficulty, new levels, or other clear one-more-run systems. However, a game with no progression, challenge variation, score chase, unlocks, or quick replay route should be treated as weak retention.\n\nPLAYTEST INTERPRETATION:\nThe AI Playtester is bounded and synthetic. Treat repeated no-response controls, browser errors, missing retry after a detected terminal state, or clear desktop/phone control parity failures as strong evidence. Do not treat failure to finish a long game in a short bounded session as proof the game is broken.\n\n${visualRubricAuditInstructions()}\n\nReturn concise markdown using EXACTLY these headings before the required VISUAL_RUBRIC_JSON block:\nOVERALL QUALITY SCORE: NN/100\n## What Works\n## Visual Problems\n## Phone Problems\n## Gameplay / Feel Concerns\n## Retention / Replay Concerns\n## Performance / Poki Concerns\n## Top 5 Fixes\n## Publish Verdict\nKeep the Top 5 Fixes concrete and implementation-ready. Be severe about ugly/default/placeholder presentation; do not grade on an 'early prototype' curve.`;
 
   const args = [
     'exec', '--ephemeral', '--sandbox', 'read-only',
@@ -141,15 +155,18 @@ export async function runQualityAudit({ game, gameDir, url, stateDir }) {
   const readiness = await runPokiReadiness({ gameDir, url });
   const qa = await runQa({ url, artifactDir });
   const playtest = await runAiPlaytest({ gameDir, url, artifactDir });
-  const visual = await runVisualDirector({ gameDir, artifactDir, qa, playtest, readiness });
+  const retention = await runRetentionAudit({ gameDir, url, playtestPlan: playtest.plan });
+  const visual = await runVisualDirector({ gameDir, artifactDir, qa, playtest, readiness, retention });
 
   const technicalScore = qa.passed ? 100 : Math.max(30, 100 - qa.issues.length * 12);
   const playtestScore = playtest.score;
   const visualScore = visual.score ?? Math.round((technicalScore + playtestScore) / 2);
+  const retentionScore = retention.score;
   const overallScore = Math.round(
-    visualScore * .45 +
-    technicalScore * .10 +
-    playtestScore * .20 +
+    visualScore * .40 +
+    technicalScore * .05 +
+    playtestScore * .15 +
+    retentionScore * .15 +
     readiness.performanceScore * .15 +
     readiness.pokiScore * .10
   );
@@ -175,6 +192,8 @@ export async function runQualityAudit({ game, gameDir, url, stateDir }) {
     technicalScore,
     interactionScore: playtestScore,
     playtestScore,
+    retentionScore,
+    retentionPassed: retention.passed,
     visualScore,
     visualFloor,
     visualFloorPassed: visualFloor.passed,
@@ -182,6 +201,7 @@ export async function runQualityAudit({ game, gameDir, url, stateDir }) {
     pokiScore: readiness.pokiScore,
     qa,
     playtest,
+    retention,
     readiness,
     visualReport: visual.report,
     visualError: visual.error,
