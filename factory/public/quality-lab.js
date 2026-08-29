@@ -5,8 +5,11 @@ const rerunButton = document.querySelector('#rerunDoctor');
 const applyButton = document.querySelector('#applyDoctorFixes');
 const openGame = document.querySelector('#openGame');
 const instruction = document.querySelector('#instruction');
+const gameFrame = document.querySelector('#gameFrame');
+const commandHint = document.querySelector('#commandHint');
 
 let lastAudit = null;
+let snapshotButtons = null;
 
 function selectedGameId() {
   const href = openGame?.getAttribute('href') || '';
@@ -14,9 +17,125 @@ function selectedGameId() {
   return match ? decodeURIComponent(match[1]) : null;
 }
 
+function selectedGameUrl() {
+  const game = selectedGameId();
+  return game ? `/game/${encodeURIComponent(game)}/` : null;
+}
+
+function setCommandMessage(text) {
+  if (commandHint) commandHint.textContent = text;
+}
+
+async function refreshSnapshotCount() {
+  const game = selectedGameId();
+  if (!snapshotButtons) return;
+  const { undo, save } = snapshotButtons;
+  undo.disabled = !game;
+  save.disabled = !game;
+  if (!game) {
+    undo.textContent = 'Undo';
+    return;
+  }
+  try {
+    const response = await fetch(`/api/games/${encodeURIComponent(game)}/snapshots?t=${Date.now()}`);
+    const data = await response.json().catch(() => ({}));
+    const count = Array.isArray(data.snapshots) ? data.snapshots.length : 0;
+    undo.disabled = count === 0;
+    undo.textContent = count ? `Undo · ${count}` : 'Undo';
+    undo.title = count ? `${count} restore point${count === 1 ? '' : 's'} available` : 'No restore points yet';
+  } catch {
+    undo.textContent = 'Undo';
+  }
+}
+
+function reloadSelectedGame() {
+  const url = selectedGameUrl();
+  if (url && gameFrame) gameFrame.src = `${url}?factory=${Date.now()}`;
+}
+
+async function saveRestorePoint() {
+  const game = selectedGameId();
+  if (!game || !snapshotButtons) return;
+  const { save } = snapshotButtons;
+  save.disabled = true;
+  const original = save.textContent;
+  save.textContent = 'Saving…';
+  try {
+    const response = await fetch(`/api/games/${encodeURIComponent(game)}/snapshots`, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ label: 'Manual restore point' })
+    });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+    setCommandMessage(`Restore point saved · ${data.snapshot?.id?.slice(-8) || 'ready'}`);
+  } catch (error) {
+    setCommandMessage(error.message);
+  } finally {
+    save.textContent = original;
+    await refreshSnapshotCount();
+  }
+}
+
+async function undoLastChange() {
+  const game = selectedGameId();
+  if (!game || !snapshotButtons) return;
+  if (!window.confirm('Restore the most recent Factory restore point for this game? The current version will be saved first, so you can undo the restore too.')) return;
+  const { undo, save } = snapshotButtons;
+  undo.disabled = true;
+  save.disabled = true;
+  const original = undo.textContent;
+  undo.textContent = 'Restoring…';
+  setCommandMessage('Restoring the last safe version…');
+  try {
+    const response = await fetch(`/api/games/${encodeURIComponent(game)}/undo`, { method: 'POST' });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
+    reloadSelectedGame();
+    const label = data.restored?.label || data.restored?.id || 'restore point';
+    setCommandMessage(`Restored: ${label}. Your pre-restore version was also saved.`);
+  } catch (error) {
+    setCommandMessage(error.message);
+  } finally {
+    undo.textContent = original;
+    await refreshSnapshotCount();
+  }
+}
+
+function ensureSnapshotControls() {
+  if (snapshotButtons) return snapshotButtons;
+  const actions = document.querySelector('.preview-actions');
+  if (!actions) return null;
+  const save = document.createElement('button');
+  save.id = 'saveRestorePoint';
+  save.className = 'ghost-button';
+  save.type = 'button';
+  save.textContent = 'Save Point';
+  save.title = 'Save the current game as a manual restore point';
+  save.disabled = true;
+
+  const undo = document.createElement('button');
+  undo.id = 'undoLastChange';
+  undo.className = 'ghost-button';
+  undo.type = 'button';
+  undo.textContent = 'Undo';
+  undo.title = 'Restore the latest safe version';
+  undo.disabled = true;
+
+  actions.insertBefore(undo, actions.firstChild);
+  actions.insertBefore(save, undo);
+  save.addEventListener('click', saveRestorePoint);
+  undo.addEventListener('click', undoLastChange);
+  snapshotButtons = { save, undo };
+  void refreshSnapshotCount();
+  return snapshotButtons;
+}
+
 function syncButton() {
   if (!doctorButton) return;
   doctorButton.disabled = !selectedGameId();
+  ensureSnapshotControls();
+  void refreshSnapshotCount();
 }
 
 function setStatus(text) {
@@ -137,4 +256,5 @@ applyButton?.addEventListener('click', sendFixesToDirector);
 overlay?.addEventListener('click', event => { if (event.target === overlay) closeQuality(); });
 
 if (openGame) new MutationObserver(syncButton).observe(openGame, { attributes: true, attributeFilter: ['href', 'class'] });
+ensureSnapshotControls();
 syncButton();
