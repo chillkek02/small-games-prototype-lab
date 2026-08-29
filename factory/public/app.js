@@ -4,7 +4,8 @@ const state = {
   games: [],
   selectedGame: null,
   activeJobId: null,
-  lastJobStatus: null
+  lastJobStatus: null,
+  lastJobUpdate: null
 };
 
 const desktopBridge = window.factoryDesktop || null;
@@ -105,6 +106,7 @@ function resultLabel(view) {
 
 function renderJob(job) {
   if (!job) return;
+  state.lastJobUpdate = Date.now();
   $('#noJob').classList.add('hidden');
   $('#jobView').classList.remove('hidden');
   const badge = $('#jobStatusBadge');
@@ -125,7 +127,7 @@ function renderJob(job) {
   if (mobile?.screenshot) screenshots.push(`<a href="/artifacts/${encodeURIComponent(job.id)}/${encodeURIComponent(mobile.screenshot)}" target="_blank"><img src="/artifacts/${encodeURIComponent(job.id)}/${encodeURIComponent(mobile.screenshot)}?t=${Date.now()}" alt="Mobile QA screenshot"><span>Mobile</span></a>`);
   $('#screenshots').innerHTML = screenshots.join('');
 
-  $('#jobLog').textContent = (job.logs || []).slice(-80).join('\n') || 'Waiting for output…';
+  $('#jobLog').textContent = (job.logs || []).slice(-80).join('\n') || 'Waiting for worker output…';
   $('#jobLog').scrollTop = $('#jobLog').scrollHeight;
 
   if (job.diffStat) {
@@ -135,9 +137,7 @@ function renderJob(job) {
     $('#diffSection').classList.add('hidden');
   }
 
-  if (job.error) {
-    $('#jobLog').textContent += `\n\nERROR: ${job.error}`;
-  }
+  if (job.error) $('#jobLog').textContent += `\n\nERROR: ${job.error}`;
 
   const terminal = ['passed', 'needs-review', 'failed'].includes(job.status);
   if (terminal && state.lastJobStatus !== job.status && state.selectedGame?.id === job.game) {
@@ -167,19 +167,25 @@ function renderHistory(jobs) {
   });
 }
 
-async function refresh() {
+async function refreshJobOnly() {
+  if (!state.activeJobId) return;
+  try {
+    const job = await api(`/api/jobs/${encodeURIComponent(state.activeJobId)}?t=${Date.now()}`);
+    renderJob(job);
+  } catch (error) {
+    console.error('Active job refresh failed', error);
+    $('#commandHint').textContent = `Job connection error: ${error.message}`;
+  }
+}
+
+async function refreshOverview() {
   try {
     const [status, jobsData] = await Promise.all([api('/api/status'), api('/api/jobs')]);
     setCodexStatus(status.codex);
     renderHistory(jobsData.jobs || []);
-
     if (!state.activeJobId && jobsData.jobs?.length) state.activeJobId = jobsData.jobs[0].id;
-    if (state.activeJobId) {
-      const job = await api(`/api/jobs/${encodeURIComponent(state.activeJobId)}`);
-      renderJob(job);
-    }
   } catch (error) {
-    console.error(error);
+    console.error('Factory overview refresh failed', error);
   }
 }
 
@@ -203,7 +209,9 @@ async function startBuild() {
     state.activeJobId = job.id;
     state.lastJobStatus = null;
     renderJob(job);
-    $('#commandHint').textContent = `Running ${job.id.slice(-8)} on ${job.game}`;
+    $('#commandHint').textContent = `${job.stage || 'Running'} · ${job.id.slice(-8)} · ${job.game}`;
+    setTimeout(refreshJobOnly, 250);
+    setTimeout(refreshOverview, 500);
   } catch (error) {
     $('#commandHint').textContent = error.message;
     $('#runBuild').disabled = false;
@@ -260,8 +268,10 @@ try {
   state.games = data.games || [];
   renderGames();
   if (state.games.length) selectGame(state.games[0].id);
-  await refresh();
-  setInterval(refresh, 2500);
+  await refreshOverview();
+  await refreshJobOnly();
+  setInterval(refreshJobOnly, 1000);
+  setInterval(refreshOverview, 5000);
 } catch (error) {
   $('#commandHint').textContent = `Factory startup error: ${error.message}`;
 }
