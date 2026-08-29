@@ -22,9 +22,7 @@ function selectedGameUrl() {
   return game ? `/game/${encodeURIComponent(game)}/` : null;
 }
 
-function setCommandMessage(text) {
-  if (commandHint) commandHint.textContent = text;
-}
+function setCommandMessage(text) { if (commandHint) commandHint.textContent = text; }
 
 async function refreshSnapshotCount() {
   const game = selectedGameId();
@@ -32,10 +30,7 @@ async function refreshSnapshotCount() {
   const { undo, save } = snapshotButtons;
   undo.disabled = !game;
   save.disabled = !game;
-  if (!game) {
-    undo.textContent = 'Undo';
-    return;
-  }
+  if (!game) { undo.textContent = 'Undo'; return; }
   try {
     const response = await fetch(`/api/games/${encodeURIComponent(game)}/snapshots?t=${Date.now()}`);
     const data = await response.json().catch(() => ({}));
@@ -43,9 +38,7 @@ async function refreshSnapshotCount() {
     undo.disabled = count === 0;
     undo.textContent = count ? `Undo · ${count}` : 'Undo';
     undo.title = count ? `${count} restore point${count === 1 ? '' : 's'} available` : 'No restore points yet';
-  } catch {
-    undo.textContent = 'Undo';
-  }
+  } catch { undo.textContent = 'Undo'; }
 }
 
 function reloadSelectedGame() {
@@ -67,12 +60,8 @@ async function saveRestorePoint() {
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
     setCommandMessage(`Restore point saved · ${data.snapshot?.id?.slice(-8) || 'ready'}`);
-  } catch (error) {
-    setCommandMessage(error.message);
-  } finally {
-    save.textContent = original;
-    await refreshSnapshotCount();
-  }
+  } catch (error) { setCommandMessage(error.message); }
+  finally { save.textContent = original; await refreshSnapshotCount(); }
 }
 
 async function undoLastChange() {
@@ -92,12 +81,8 @@ async function undoLastChange() {
     reloadSelectedGame();
     const label = data.restored?.label || data.restored?.id || 'restore point';
     setCommandMessage(`Restored: ${label}. Your pre-restore version was also saved.`);
-  } catch (error) {
-    setCommandMessage(error.message);
-  } finally {
-    undo.textContent = original;
-    await refreshSnapshotCount();
-  }
+  } catch (error) { setCommandMessage(error.message); }
+  finally { undo.textContent = original; await refreshSnapshotCount(); }
 }
 
 function ensureSnapshotControls() {
@@ -111,7 +96,6 @@ function ensureSnapshotControls() {
   save.textContent = 'Save Point';
   save.title = 'Save the current game as a manual restore point';
   save.disabled = true;
-
   const undo = document.createElement('button');
   undo.id = 'undoLastChange';
   undo.className = 'ghost-button';
@@ -119,7 +103,6 @@ function ensureSnapshotControls() {
   undo.textContent = 'Undo';
   undo.title = 'Restore the latest safe version';
   undo.disabled = true;
-
   actions.insertBefore(undo, actions.firstChild);
   actions.insertBefore(save, undo);
   save.addEventListener('click', saveRestorePoint);
@@ -184,15 +167,28 @@ function ensureRetentionUi() {
   }
 }
 
+function ensureAdUi() {
+  const scores = document.querySelector('.quality-scores');
+  if (scores && !document.querySelector('#qualityAdReady')) {
+    const card = document.createElement('div');
+    card.className = 'quality-score ad-ready-score';
+    card.innerHTML = '<span>Ad Ready</span><strong id="qualityAdReady">—</strong>';
+    scores.append(card);
+  }
+  const grid = document.querySelector('.quality-grid');
+  if (grid && !document.querySelector('#qualityAdNotes')) {
+    const section = document.createElement('section');
+    section.className = 'quality-section quality-ad-section';
+    section.innerHTML = '<h3>Ad readiness gate</h3><pre id="qualityAdNotes">Commercial and rewarded-ad opportunities will appear here.</pre>';
+    grid.append(section);
+  }
+}
+
 function setVisualFloor(floor) {
   ensureVisualFloorUi();
   const el = document.querySelector('#qualityVisualFloor');
   if (!el) return;
-  if (!floor) {
-    el.textContent = '—';
-    el.className = '';
-    return;
-  }
+  if (!floor) { el.textContent = '—'; el.className = ''; return; }
   const label = floor.status === 'PASS' ? 'PASS' : floor.status === 'NEEDS_POLISH' ? 'POLISH' : 'FAIL';
   el.textContent = `${label} · ${floor.score}/100`;
   el.className = floor.status === 'PASS' ? 'good' : floor.status === 'NEEDS_POLISH' ? 'warn' : 'bad';
@@ -254,15 +250,37 @@ function retentionText(audit) {
     `Save/progression code detected: ${source.persistence ? 'yes' : 'no'}`,
     `Storage changed during run: ${r.storageMutated ? 'yes' : 'no'}`,
     `Storage survived reload: ${r.persistedAfterReload ? 'yes' : 'no'}`,
-    '',
-    'REPLAY SYSTEMS',
+    '', 'REPLAY SYSTEMS',
     `Upgrades/unlocks: ${source.upgrades ? 'yes' : 'no'}`,
     `Score/best-run chase: ${source.scoreChase ? 'yes' : 'no'}`,
     `Missions/challenges: ${source.missions ? 'yes' : 'no'}`,
     `Progression/levels/currency: ${source.progression ? 'yes' : 'no'}`,
     `Run variation/difficulty scaling: ${source.variation ? 'yes' : 'no'}`,
+    '', ...(r.notes || []).map(note => `• ${note}`)
+  ].join('\n');
+}
+
+function adText(audit) {
+  const ad = audit.adReadiness;
+  if (!ad) return 'Ad readiness audit was not available.';
+  if (ad.applicable === false) return 'STATUS: N/A\nGeneral Web target: Poki ad readiness is not required.';
+  const source = ad.source || {};
+  const runtime = ad.runtime || {};
+  return [
+    `STATUS: ${ad.passed ? 'PASS' : 'NEEDS AD WORK'}`,
+    `Score: ${ad.score}/100`,
+    `First-prototype minimum: ${ad.minimumPrototypeScore}/100`,
     '',
-    ...(r.notes || []).map(note => `• ${note}`)
+    `commercialBreak implemented: ${source.commercial ? 'yes' : 'no'}`,
+    `Natural commercial moment: ${source.naturalCommercialContext || runtime.commercialRuntime ? 'verified' : 'not verified'}`,
+    `rewardedBreak implemented: ${source.rewarded ? 'yes' : 'no'}`,
+    `Explicit rewarded opt-in: ${source.explicitRewardChoice || runtime.rewardedButton ? 'verified' : 'not verified'}`,
+    `Reward only on success: ${source.rewardSuccessGuard ? 'verified' : 'not verified'}`,
+    `No ad before player intent: ${runtime.noAdBeforeInput ? 'PASS' : 'FAIL'}`,
+    `Input/audio pause hooks: ${source.adPauseHooks ? 'detected' : 'not detected'}`,
+    `Gameplay start/stop hooks: ${source.gameplayEvents ? 'detected' : 'not detected'}`,
+    `Other ad SDK detected: ${source.otherAds ? 'YES' : 'no'}`,
+    '', ...(ad.notes || []).map(note => `• ${note}`)
   ].join('\n');
 }
 
@@ -271,9 +289,7 @@ function formatBytes(bytes = 0) {
   return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
 }
 
-function artifactUrl(audit, file) {
-  return `/quality-artifacts/${encodeURIComponent(audit.id)}/${encodeURIComponent(file)}`;
-}
+function artifactUrl(audit, file) { return `/quality-artifacts/${encodeURIComponent(audit.id)}/${encodeURIComponent(file)}`; }
 
 function playtestText(audit) {
   const playtest = audit.playtest;
@@ -327,6 +343,7 @@ function renderAudit(audit) {
   lastAudit = audit;
   ensureVisualFloorUi();
   ensureRetentionUi();
+  ensureAdUi();
   setScore('#qualityOverall', audit.overallScore);
   setScore('#qualityTechnical', audit.technicalScore);
   setScore('#qualityInteraction', audit.playtestScore ?? audit.interactionScore);
@@ -334,6 +351,7 @@ function renderAudit(audit) {
   setScore('#qualityPerformance', audit.performanceScore);
   setScore('#qualityPoki', audit.pokiScore);
   setScore('#qualityRetention', audit.retentionScore);
+  setScore('#qualityAdReady', audit.adScore);
   setVisualFloor(audit.visualFloor);
 
   const report = document.querySelector('#qualityReport');
@@ -342,6 +360,8 @@ function renderAudit(audit) {
   if (floorNotes) floorNotes.textContent = visualFloorText(audit);
   const retentionNotes = document.querySelector('#qualityRetentionNotes');
   if (retentionNotes) retentionNotes.textContent = retentionText(audit);
+  const adNotes = document.querySelector('#qualityAdNotes');
+  if (adNotes) adNotes.textContent = adText(audit);
   const readiness = document.querySelector('#qualityReadinessNotes');
   if (readiness) readiness.textContent = readinessText(audit);
 
@@ -363,7 +383,8 @@ function renderAudit(audit) {
 
   const floorLabel = audit.visualFloor?.status === 'PASS' ? 'visual floor passed' : audit.visualFloor?.status === 'NEEDS_POLISH' ? 'visual polish required' : 'VISUAL FAIL';
   const retentionLabel = audit.retentionPassed ? 'retention passed' : 'retention needs work';
-  setStatus(`Audit complete · ${floorLabel} · ${retentionLabel} · ${new Date(audit.finishedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
+  const adLabel = audit.adReadiness?.applicable === false ? 'ads n/a' : audit.adPassed ? 'ads ready' : 'ads need work';
+  setStatus(`Audit complete · ${floorLabel} · ${retentionLabel} · ${adLabel} · ${new Date(audit.finishedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
   if (applyButton) applyButton.disabled = false;
   if (rerunButton) rerunButton.disabled = false;
 }
@@ -371,6 +392,7 @@ function renderAudit(audit) {
 function resetAuditView(game) {
   ensureVisualFloorUi();
   ensureRetentionUi();
+  ensureAdUi();
   setScore('#qualityOverall', null);
   setScore('#qualityTechnical', null);
   setScore('#qualityInteraction', null);
@@ -378,6 +400,7 @@ function resetAuditView(game) {
   setScore('#qualityPerformance', null);
   setScore('#qualityPoki', null);
   setScore('#qualityRetention', null);
+  setScore('#qualityAdReady', null);
   setVisualFloor(null);
   const report = document.querySelector('#qualityReport');
   const gallery = document.querySelector('#qualityGallery');
@@ -385,12 +408,14 @@ function resetAuditView(game) {
   const readiness = document.querySelector('#qualityReadinessNotes');
   const floorNotes = document.querySelector('#qualityVisualFloorNotes');
   const retentionNotes = document.querySelector('#qualityRetentionNotes');
+  const adNotes = document.querySelector('#qualityAdNotes');
   if (report) report.textContent = 'Visual Director is waiting for QA and AI playtest screenshots…';
   if (gallery) gallery.innerHTML = '';
   if (technical) technical.textContent = 'AI Playtester will inspect the game, infer controls/objective, then run desktop and phone sessions…';
   if (readiness) readiness.textContent = 'Measuring cold load, payload size, requests, frame pacing, Poki events, and ad-block resilience…';
   if (floorNotes) floorNotes.textContent = 'Scoring art direction, UI/typography, composition, world richness, game feel, readability, and professional finish…';
   if (retentionNotes) retentionNotes.textContent = 'Testing quick replay, save persistence, upgrades/progression, score chase, missions, and run variation…';
+  if (adNotes) adNotes.textContent = 'Checking commercial-break timing, optional rewarded ads, reward success guards, player intent, and input/audio pause handling…';
   const title = document.querySelector('#qualityTitle');
   if (title) title.textContent = `Game Doctor · ${game}`;
   if (applyButton) applyButton.disabled = true;
@@ -403,7 +428,7 @@ async function runDoctor() {
   overlay?.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   resetAuditView(game);
-  setStatus('Running Performance/Poki → Desktop/Phone QA → AI Playtester → Retention/Replay → strict Visual Floor…');
+  setStatus('Running Performance/Poki → Desktop/Phone QA → AI Playtester → Retention/Replay → Ad Readiness → strict Visual Floor…');
   doctorButton.disabled = true;
   try {
     const response = await fetch(`/api/games/${encodeURIComponent(game)}/doctor`, { method: 'POST' });
@@ -415,9 +440,7 @@ async function runDoctor() {
     const report = document.querySelector('#qualityReport');
     if (report) report.textContent = `Game Doctor could not finish: ${error.message}`;
     if (rerunButton) rerunButton.disabled = false;
-  } finally {
-    syncButton();
-  }
+  } finally { syncButton(); }
 }
 
 function closeQuality() {
@@ -430,7 +453,7 @@ function sendFixesToDirector() {
   const floor = lastAudit.visualFloor || {};
   const hardFails = (floor.hardFails || []).map(id => HARD_FAIL_LABELS[id] || id).join('\n') || 'None.';
   const categoryScores = Object.entries(FLOOR_LABELS).map(([id, label]) => `${label}: ${floor.categories?.[id] ?? '—'}/100`).join('\n');
-  const request = `Improve this game using the latest Game Doctor audit. Prioritize the highest-value player-facing, visual-floor, retention/replay, AI-playtest, and Poki/web-performance fixes. Preserve working gameplay, controls, Poki hooks, and existing features. Fix desktop and phone issues together. Do not trade away core fun merely to improve a synthetic score.\n\nGAME DOCTOR SCORE: ${lastAudit.overallScore}/100\nTECHNICAL: ${lastAudit.technicalScore}/100\nAI PLAYTEST: ${lastAudit.playtestScore ?? lastAudit.interactionScore ?? 'unavailable'}/100\nRETENTION / REPLAY: ${lastAudit.retentionScore ?? 'unavailable'}/100\nVISUAL: ${lastAudit.visualScore ?? 'unavailable'}/100\nVISUAL FLOOR: ${floor.status || 'unknown'} · ${floor.score ?? '—'}/100 (minimum ${floor.minimumPrototypeScore ?? 70})\nPERFORMANCE: ${lastAudit.performanceScore ?? 'unavailable'}/100\nPOKI READINESS: ${lastAudit.pokiScore ?? 'unavailable'}/100\n\nRETENTION / REPLAY FINDINGS\n${(lastAudit.retention?.notes || []).join('\n') || 'None.'}\n\nVISUAL FLOOR CATEGORY SCORES\n${categoryScores}\n\nVISUAL HARD FAILS\n${hardFails}\n\nAI PLAYTEST PLAN\nObjective: ${lastAudit.playtest?.plan?.objective || 'unknown'}\nControls: ${lastAudit.playtest?.plan?.summary || 'unknown'}\nConfidence: ${lastAudit.playtest?.plan?.confidence || 'unknown'}\n\nAI PLAYTEST FINDINGS\n${(lastAudit.playtest?.notes || []).join('\n') || 'None.'}\n\nVISUAL DIRECTOR REPORT\n${lastAudit.visualReport}\n\nPERFORMANCE FINDINGS\n${(lastAudit.readiness?.performanceNotes || []).join('\n') || 'None.'}\n\nPOKI FINDINGS\n${(lastAudit.readiness?.pokiNotes || []).join('\n') || 'None.'}\n\nAUTOMATED ISSUES\n${(lastAudit.qa?.issues || []).join('\n') || 'None.'}`;
+  const request = `Improve this game using the latest Game Doctor audit. Prioritize the highest-value player-facing, visual-floor, retention/replay, ad-readiness, AI-playtest, and Poki/web-performance fixes. Preserve working gameplay, controls, Poki hooks, and existing features. Fix desktop and phone issues together. Do not trade away core fun merely to improve a synthetic score.\n\nGAME DOCTOR SCORE: ${lastAudit.overallScore}/100\nTECHNICAL: ${lastAudit.technicalScore}/100\nAI PLAYTEST: ${lastAudit.playtestScore ?? lastAudit.interactionScore ?? 'unavailable'}/100\nRETENTION / REPLAY: ${lastAudit.retentionScore ?? 'unavailable'}/100\nAD READINESS: ${lastAudit.adScore ?? (lastAudit.adReadiness?.applicable === false ? 'N/A' : 'unavailable')}/100\nVISUAL: ${lastAudit.visualScore ?? 'unavailable'}/100\nVISUAL FLOOR: ${floor.status || 'unknown'} · ${floor.score ?? '—'}/100 (minimum ${floor.minimumPrototypeScore ?? 70})\nPERFORMANCE: ${lastAudit.performanceScore ?? 'unavailable'}/100\nPOKI READINESS: ${lastAudit.pokiScore ?? 'unavailable'}/100\n\nRETENTION / REPLAY FINDINGS\n${(lastAudit.retention?.notes || []).join('\n') || 'None.'}\n\nAD READINESS FINDINGS\n${(lastAudit.adReadiness?.notes || []).join('\n') || 'None.'}\n\nVISUAL FLOOR CATEGORY SCORES\n${categoryScores}\n\nVISUAL HARD FAILS\n${hardFails}\n\nAI PLAYTEST PLAN\nObjective: ${lastAudit.playtest?.plan?.objective || 'unknown'}\nControls: ${lastAudit.playtest?.plan?.summary || 'unknown'}\nConfidence: ${lastAudit.playtest?.plan?.confidence || 'unknown'}\n\nAI PLAYTEST FINDINGS\n${(lastAudit.playtest?.notes || []).join('\n') || 'None.'}\n\nVISUAL DIRECTOR REPORT\n${lastAudit.visualReport}\n\nPERFORMANCE FINDINGS\n${(lastAudit.readiness?.performanceNotes || []).join('\n') || 'None.'}\n\nPOKI FINDINGS\n${(lastAudit.readiness?.pokiNotes || []).join('\n') || 'None.'}\n\nAUTOMATED ISSUES\n${(lastAudit.qa?.issues || []).join('\n') || 'None.'}`;
   instruction.value = request;
   instruction.dispatchEvent(new Event('input', { bubbles: true }));
   closeQuality();
@@ -447,5 +470,6 @@ overlay?.addEventListener('click', event => { if (event.target === overlay) clos
 if (openGame) new MutationObserver(syncButton).observe(openGame, { attributes: true, attributeFilter: ['href', 'class'] });
 ensureVisualFloorUi();
 ensureRetentionUi();
+ensureAdUi();
 ensureSnapshotControls();
 syncButton();
