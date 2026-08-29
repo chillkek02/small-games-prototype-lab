@@ -8,7 +8,7 @@ const START_PATTERN = /^(?:play(?:\s+now)?|start(?:\s+(?:game|shift|job|run|leve
 const CONTINUE_PATTERN = /^(?:retry|restart|replay|again|play again|try again|next|next level|next run|next shift|next job|continue|resume)$/i;
 const REWARDED_PATTERN = /(?:watch\s+(?:an?\s+)?ad|ad\s+for|rewarded|watch\s+video|revive.*ad|ad.*revive|double.*reward|reward.*x2|x2.*reward|bonus.*ad|ad.*bonus|extra\s+life.*ad)/i;
 const SOURCE_EXTENSIONS = new Set(['.html','.js','.mjs','.cjs','.ts','.tsx','.jsx','.json']);
-const SKIP_DIRS = new Set(['node_modules','.git','.cache','dist','build','vendor']);
+const SKIP_DIRS = new Set(['node_modules','.git','.cache','dist','build','vendor','starter']);
 
 async function launchBrowser() {
   if (process.platform === 'win32') {
@@ -53,7 +53,7 @@ function sourceAudit(source, metadata) {
   const naturalCommercialContext = /(?:retry|restart|replay|next\s+level|next\s+run|continue|resume|game\s+over|level\s+complete|mission\s+complete|round\s+complete)[\s\S]{0,900}(?:commercialBreak)|(?:commercialBreak)[\s\S]{0,900}(?:retry|restart|replay|next\s+level|next\s+run|continue|resume)/i.test(source);
   const rewardSuccessGuard = /if\s*\(\s*(?:await\s+)?(?:PokiSDK\.rewardedBreak|GutpopperCore\.poki\.rewardedBreak)\s*\(/i.test(source)
     || /(?:rewardedBreak)[\s\S]{0,500}(?:if\s*\(\s*(?:success|rewarded|shouldReward|granted)|=>\s*\{?[\s\S]{0,250}if\s*\()/i.test(source);
-  const adPauseHooks = /setAdHooks|adActive|(?:disable|pause)[A-Za-z]*(?:Input|Controls)|(?:mute|pause)[A-Za-z]*(?:Audio|Sound|Music)|input\.enabled\s*=\s*false|sound\.mute\s*=\s*true/i.test(source);
+  const adPauseHooks = /GutpopperCore\.poki\.setAdHooks\s*\(|(?:disable|pause)[A-Za-z]*(?:Input|Controls)|(?:mute|pause)[A-Za-z]*(?:Audio|Sound|Music)|input\.enabled\s*=\s*false|sound\.mute\s*=\s*true/i.test(source);
   const gameplayEvents = /(?:PokiSDK\.gameplayStop|GutpopperCore\.poki\.gameplayStop)\s*\(/.test(source)
     && /(?:PokiSDK\.gameplayStart|GutpopperCore\.poki\.gameplayStart)\s*\(/.test(source);
   const otherAds = /adsbygoogle|googlesyndication|adinplay|gamemonetize|gamepix|crazygames-sdk/i.test(source);
@@ -140,20 +140,20 @@ async function runtimeProbe(url, playtestPlan) {
     const rewarded = await findButton(page, REWARDED_PATTERN);
     if (rewarded) {
       rewardedButton = rewarded.text;
-      const before = (await page.evaluate(() => window.__POKI_AD_TEST__?.events?.length || 0).catch(() => 0));
+      const before = await page.evaluate(() => window.__POKI_AD_TEST__?.events?.length || 0).catch(() => 0);
       await rewarded.control.click({timeout:1200}).catch(() => {});
       await page.waitForTimeout(300);
-      const names = (await page.evaluate(() => (window.__POKI_AD_TEST__?.events || []).map(x=>x.name)).catch(() => []));
+      const names = await page.evaluate(() => (window.__POKI_AD_TEST__?.events || []).map(x=>x.name)).catch(() => []);
       rewardedRuntime = names.slice(before).includes('rewardedBreak');
     }
 
     const cont = await findButton(page, CONTINUE_PATTERN);
     if (cont) {
       continueButton = cont.text;
-      const before = (await page.evaluate(() => window.__POKI_AD_TEST__?.events?.length || 0).catch(() => 0));
+      const before = await page.evaluate(() => window.__POKI_AD_TEST__?.events?.length || 0).catch(() => 0);
       await cont.control.click({timeout:1200}).catch(() => {});
       await page.waitForTimeout(320);
-      const names = (await page.evaluate(() => (window.__POKI_AD_TEST__?.events || []).map(x=>x.name)).catch(() => []));
+      const names = await page.evaluate(() => (window.__POKI_AD_TEST__?.events || []).map(x=>x.name)).catch(() => []);
       commercialRuntime = names.slice(before).includes('commercialBreak');
     }
     afterRun = await page.evaluate(() => window.__POKI_AD_TEST__?.events || []).catch(() => []);
