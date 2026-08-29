@@ -6,7 +6,7 @@ import { chromium } from 'playwright';
 import { runQa } from './qa.js';
 
 const CODEX_COMMAND = process.env.GAME_FACTORY_CODEX_COMMAND || 'codex';
-const START_PATTERN = /^(play|start|begin|go|launch|continue|new game|start game)$/i;
+const START_PATTERN = /^(?:play(?:\s+now)?|start(?:\s+(?:game|shift|job|run|level|mission|round|race|day))?|begin(?:\s+(?:game|shift|job|run|level|mission|round))?|go|launch|continue|new game)$/i;
 
 function runProcess(command, args, { cwd, input = '', timeoutMs = 8 * 60 * 1000 } = {}) {
   return new Promise((resolve, reject) => {
@@ -55,13 +55,13 @@ async function launchBrowser() {
 
 async function clickStart(page) {
   const controls = page.locator('button, [role="button"], input[type="button"], input[type="submit"]');
-  const count = Math.min(await controls.count(), 30);
+  const count = Math.min(await controls.count(), 40);
   for (let i = 0; i < count; i += 1) {
     const control = controls.nth(i);
     const text = ((await control.innerText().catch(() => '')) || (await control.getAttribute('value')) || '').trim();
     if (!START_PATTERN.test(text)) continue;
     await control.click({ timeout: 1500 }).catch(() => {});
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(900);
     return text;
   }
   return null;
@@ -168,7 +168,7 @@ async function runVisualDirector({ gameDir, artifactDir, qa, interaction }) {
   ).join('\n');
   const technicalSummary = qa.views.map(view => `${view.name}: ${view.passed ? 'PASS' : 'FAIL'}; ${view.issues.join(' | ') || 'no technical issues'}`).join('\n');
 
-  const prompt = `model: terra\nYou are the VISUAL DIRECTOR and GAME DOCTOR inside Gutpopper Game Factory.\n\nThis is a READ-ONLY audit. Do not modify any files.\nThe attached images are, in order when present: desktop QA (1440x900), phone QA (390x844), desktop after interaction probe, phone after interaction probe.\nYou may inspect the game source in the current working directory when it helps explain what you see.\n\nTECHNICAL QA\n${technicalSummary}\n\nINTERACTION PROBE\n${interactionSummary}\n\nEvaluate this as a commercial browser/Poki-style casual game, not as a coding demo. Focus on what a real player sees and feels. Judge:\n- first-glance hook and clarity\n- visual polish and art-direction consistency\n- hierarchy/readability and HUD scale\n- desktop composition\n- phone composition, touch readability, safe margins, obstruction\n- game-feel signals visible in the interaction screenshots\n- whether the game looks like a prototype or a publishable casual game\n- the highest-value changes that would materially improve player response\n\nReturn concise markdown using EXACTLY these headings:\nOVERALL QUALITY SCORE: NN/100\n## What Works\n## Visual Problems\n## Phone Problems\n## Gameplay / Feel Concerns\n## Top 5 Fixes\n## Publish Verdict\nKeep the Top 5 Fixes concrete and implementation-ready. Do not praise weak work just to be agreeable.`;
+  const prompt = `model: terra\nYou are the VISUAL DIRECTOR and GAME DOCTOR inside Gutpopper Game Factory.\n\nThis is a READ-ONLY audit. Do not modify any files.\nThe attached images are, in order when present: desktop QA (1440x900), phone QA (390x844), desktop after interaction probe, phone after interaction probe.\nYou may inspect the game source in the current working directory when it helps explain what you see.\n\nTECHNICAL QA\n${technicalSummary}\n\nINTERACTION PROBE\n${interactionSummary}\n\nEvaluate this as a commercial browser/Poki-style casual game, not as a coding demo. Focus on what a real player sees and feels. Judge:\n- first-glance hook and clarity\n- visual polish and art-direction consistency\n- hierarchy/readability and HUD scale\n- desktop composition and screen utilization\n- phone composition, touch readability, safe margins, obstruction\n- game-feel signals visible in the interaction screenshots\n- whether the game looks like a prototype or a publishable casual game\n- the highest-value changes that would materially improve player response\n\nDESKTOP ADAPTATION IS A HARD QUALITY REQUIREMENT:\nA 1440x900 desktop build must look intentionally landscape and use the available screen area. Do not accept a narrow portrait/mobile game column centered between large empty or decorative side gutters. The desktop camera/playfield/menu/HUD may recompose differently from phone while preserving the same game. If desktop still looks like a phone screenshot placed in a desktop window, call it out as a major problem and lower the score substantially.\n\nReturn concise markdown using EXACTLY these headings:\nOVERALL QUALITY SCORE: NN/100\n## What Works\n## Visual Problems\n## Phone Problems\n## Gameplay / Feel Concerns\n## Top 5 Fixes\n## Publish Verdict\nKeep the Top 5 Fixes concrete and implementation-ready. Do not praise weak work just to be agreeable.`;
 
   const args = [
     'exec', '--ephemeral', '--sandbox', 'read-only',
