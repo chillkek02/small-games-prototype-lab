@@ -19,145 +19,58 @@
     <header class="topbar">
       <div class="brand">
         <div class="brand-mark">GF</div>
-        <div>
-          <div class="brand-title">Gutpopper Game Factory</div>
-          <div class="brand-subtitle">AI production line for Small Games</div>
-        </div>
+        <div><div class="brand-title">Gutpopper Game Factory</div><div class="brand-subtitle">AI production line for Small Games</div></div>
       </div>
       <div class="topbar-actions">
         <span id="clientMode" class="client-mode">PC Factory</span>
         <button id="phoneRemoteButton" class="ghost-button hidden" type="button">Phone Remote</button>
-        <div class="topbar-status">
-          <span id="codexDot" class="status-dot"></span>
-          <span id="codexStatus">Checking Codex…</span>
-        </div>
+        <div class="topbar-status"><span id="codexDot" class="status-dot"></span><span id="codexStatus">Checking Codex…</span></div>
       </div>
     </header>
 
     <section id="remotePanel" class="remote-panel hidden" aria-live="polite">
-      <div>
-        <span class="eyebrow">PHONE REMOTE</span>
-        <strong>Control this PC factory from your phone</strong>
-        <p id="remoteMessage">Use a private Tailscale connection so the factory never needs to be exposed to the public internet.</p>
-      </div>
-      <div id="remoteUrlWrap" class="remote-url-wrap hidden">
-        <span>Private phone address</span>
-        <a id="remoteUrl" href="#" target="_blank" rel="noreferrer"></a>
-        <small>Open this on a phone signed into the same Tailscale network, then use Add to Home Screen.</small>
-      </div>
-      <div class="remote-actions">
-        <button id="enableRemote" class="primary-button" type="button">Enable Phone Remote</button>
-        <button id="installTailscale" class="ghost-button hidden" type="button">Install Tailscale</button>
-        <button id="closeRemote" class="ghost-button" type="button">Close</button>
-      </div>
+      <div><span class="eyebrow">PHONE REMOTE</span><strong>Control this PC factory from your phone</strong><p id="remoteMessage">Use a private Tailscale connection so the factory never needs to be exposed to the public internet.</p></div>
+      <div id="remoteUrlWrap" class="remote-url-wrap hidden"><span>Private phone address</span><a id="remoteUrl" href="#" target="_blank" rel="noreferrer"></a><small>Open this on a phone signed into the same Tailscale network, then use Add to Home Screen.</small></div>
+      <div class="remote-actions"><button id="enableRemote" class="primary-button" type="button">Enable Phone Remote</button><button id="installTailscale" class="ghost-button hidden" type="button">Install Tailscale</button><button id="closeRemote" class="ghost-button" type="button">Close</button></div>
     </section>
 
     <main class="workspace">
       <aside class="projects-panel panel">
-        <div class="panel-heading projects-heading">
-          <div>
-            <span class="eyebrow">PROJECTS</span>
-            <h2>Prototype Lab</h2>
-          </div>
-          <span id="gameCount" class="count-badge">0</span>
-        </div>
-        <div class="studio-launchers">
-          <button id="scoutButton" class="studio-launch scout" type="button"><span>◆</span><strong>Find Opportunity</strong><small>Scout Poki niches</small></button>
-          <button id="newGameButton" class="studio-launch create" type="button"><span>＋</span><strong>New Game</strong><small>Build from an idea</small></button>
-        </div>
+        <div class="panel-heading projects-heading"><div><span class="eyebrow">PROJECTS</span><h2>Prototype Lab</h2></div><span id="gameCount" class="count-badge">0</span></div>
+        <div class="studio-launchers"><button id="scoutButton" class="studio-launch scout" type="button"><span>◆</span><strong>Find Opportunity</strong><small>Scout Poki niches</small></button><button id="newGameButton" class="studio-launch create" type="button"><span>＋</span><strong>New Game</strong><small>Build from an idea</small></button></div>
         <div id="gameList" class="game-list"></div>
       </aside>
 
       <section class="center-column">
         <div class="preview-panel panel">
           <div class="preview-toolbar">
-            <div>
-              <span class="eyebrow">DEVICE TEST CENTER</span>
-              <h1 id="selectedTitle">Select a game</h1>
-              <span id="previewViewportLabel" class="preview-viewport-label">Desktop · 1440×900</span>
-            </div>
+            <div><span class="eyebrow">DEVICE TEST CENTER</span><h1 id="selectedTitle">Select a game</h1><span id="previewViewportLabel" class="preview-viewport-label">Desktop · 1440×900</span></div>
             <div class="preview-actions-wrap">
-              <div class="device-switch" aria-label="Preview device">
-                <button id="previewDesktop" class="device-button active" type="button" aria-pressed="true">Desktop</button>
-                <button id="previewPhone" class="device-button" type="button" aria-pressed="false">Phone</button>
-              </div>
-              <div class="preview-actions">
-                <button id="gameDoctor" class="ghost-button" type="button" disabled>Game Doctor</button>
-                <button id="reloadPreview" class="ghost-button" type="button">Reload</button>
-                <a id="openGame" class="ghost-button disabled" href="#" target="_blank" rel="noreferrer">Play Fullscreen ↗</a>
-              </div>
+              <div class="device-switch" aria-label="Preview device"><button id="previewDesktop" class="device-button active" type="button" aria-pressed="true">Desktop</button><button id="previewPhone" class="device-button" type="button" aria-pressed="false">Phone</button></div>
+              <div class="preview-actions"><button id="gameDoctor" class="ghost-button" type="button" disabled>Game Doctor</button><button id="reloadPreview" class="ghost-button" type="button">Reload</button><a id="openGame" class="ghost-button disabled" href="#" target="_blank" rel="noreferrer">Play Fullscreen ↗</a></div>
             </div>
           </div>
-          <div class="screen-frame" data-device-mode="desktop">
-            <iframe id="gameFrame" title="Game preview"></iframe>
-            <div id="emptyPreview" class="empty-preview">
-              <div class="empty-icon">▶</div>
-              <strong>Choose a prototype</strong>
-              <span>Switch Desktop / Phone, then play it here.</span>
-            </div>
-          </div>
+          <div class="screen-frame" data-device-mode="desktop"><iframe id="gameFrame" title="Game preview"></iframe><div id="emptyPreview" class="empty-preview"><div class="empty-icon">▶</div><strong>Choose a prototype</strong><span>Switch Desktop / Phone, then play it here.</span></div></div>
         </div>
 
         <div class="command-panel panel">
-          <div class="command-head">
-            <div>
-              <span class="eyebrow">DIRECTOR</span>
-              <h2>What should we build?</h2>
-            </div>
-            <span class="mode-pill">Factory → QA → Repair</span>
-          </div>
+          <div class="command-head"><div><span class="eyebrow">DIRECTOR</span><h2>What should we build?</h2></div><span class="mode-pill">Factory → QA → Repair</span></div>
           <textarea id="instruction" rows="5" placeholder="Example: Polish the fire truck, make steering feel tighter on mobile, improve the mission-complete celebration, and preserve the existing Poki ad hooks."></textarea>
-          <div class="command-footer">
-            <span id="commandHint">Select a game, then describe the change.</span>
-            <button id="runBuild" class="primary-button" type="button" disabled>Run Factory Build</button>
-          </div>
+          <div class="command-footer"><span id="commandHint">Select a game, then describe the change.</span><button id="runBuild" class="primary-button" type="button" disabled>Run Factory Build</button></div>
         </div>
       </section>
 
       <aside class="activity-panel panel">
-        <div class="panel-heading">
-          <div>
-            <span class="eyebrow">FACTORY RUN</span>
-            <h2>Build status</h2>
-          </div>
-          <span id="jobStatusBadge" class="job-badge idle">Idle</span>
-        </div>
-
-        <div id="noJob" class="no-job">
-          <div class="no-job-orb">AI</div>
-          <strong>No build running</strong>
-          <span>Your latest run will appear here with QA results and screenshots.</span>
-        </div>
-
+        <div class="panel-heading"><div><span class="eyebrow">FACTORY RUN</span><h2>Build status</h2></div><span id="jobStatusBadge" class="job-badge idle">Idle</span></div>
+        <div id="noJob" class="no-job"><div class="no-job-orb">AI</div><strong>No build running</strong><span>Your latest run will appear here with QA results and screenshots.</span></div>
         <div id="jobView" class="job-view hidden">
-          <div class="stage-card">
-            <span class="eyebrow">CURRENT STAGE</span>
-            <strong id="jobStage">Queued</strong>
-            <span id="jobAttempt">Attempt 0</span>
-          </div>
-
-          <div class="qa-grid">
-            <div class="qa-card"><span>Desktop QA</span><strong id="desktopResult">—</strong></div>
-            <div class="qa-card"><span>Phone QA</span><strong id="mobileResult">—</strong></div>
-          </div>
-
+          <div class="stage-card"><span class="eyebrow">CURRENT STAGE</span><strong id="jobStage">Queued</strong><span id="jobAttempt">Attempt 0</span></div>
+          <div class="qa-grid"><div class="qa-card"><span>Desktop QA</span><strong id="desktopResult">—</strong></div><div class="qa-card"><span>Phone QA</span><strong id="mobileResult">—</strong></div></div>
           <div id="screenshots" class="screenshots"></div>
-
-          <div class="log-section">
-            <div class="section-title">Agent log</div>
-            <pre id="jobLog">Waiting for output…</pre>
-          </div>
-
-          <div id="diffSection" class="log-section hidden">
-            <div class="section-title">Changed files</div>
-            <pre id="diffStat"></pre>
-          </div>
+          <div class="log-section"><div class="section-title">Agent log</div><pre id="jobLog">Waiting for output…</pre></div>
+          <div id="diffSection" class="log-section hidden"><div class="section-title">Changed files</div><pre id="diffStat"></pre></div>
         </div>
-
-        <div class="history-section">
-          <div class="section-title">Recent runs</div>
-          <div id="historyList" class="history-list"></div>
-        </div>
+        <div class="history-section"><div class="section-title">Recent runs</div><div id="historyList" class="history-list"></div></div>
       </aside>
     </main>
   </div>
@@ -165,46 +78,25 @@
   <section id="studioOverlay" class="studio-overlay hidden" aria-modal="true" role="dialog" aria-labelledby="studioTitle">
     <div class="studio-modal">
       <header class="studio-modal-head">
-        <div>
-          <span class="eyebrow">GAME CREATOR · v0.6</span>
-          <h2 id="studioTitle">Create the next Gutpopper game</h2>
-          <p>Scout Poki opportunities or start with your own idea. The PC builds and QA-tests it while you control the process here.</p>
-        </div>
+        <div><span class="eyebrow">GAME CREATOR · v0.12 VISUAL OVERHAUL</span><h2 id="studioTitle">Create the next Gutpopper game</h2><p>House Style → playable build → desktop/phone QA → Studio Visual Director → visual, retention and ad-readiness gates.</p></div>
         <button id="closeStudio" class="ghost-button" type="button">Close</button>
       </header>
-
-      <div class="studio-mode-tabs">
-        <button id="showScout" class="studio-tab active" type="button">◆ Opportunity Scout</button>
-        <button id="showCreator" class="studio-tab" type="button">＋ My Own Idea</button>
-      </div>
-
+      <div class="studio-mode-tabs"><button id="showScout" class="studio-tab active" type="button">◆ Opportunity Scout</button><button id="showCreator" class="studio-tab" type="button">＋ My Own Idea</button></div>
       <div id="scoutPane" class="studio-pane">
-        <div class="scout-hero">
-          <div>
-            <span class="eyebrow">POKI MARKET SCOUT</span>
-            <h3>Find the strongest buildable opportunity</h3>
-            <p>The Factory checks Poki popular/new/category pages, then scores whitespace, mobile fit, monetization fit, and production fit.</p>
-          </div>
-          <button id="runScout" class="primary-button" type="button">Run Market Scout</button>
-        </div>
-        <div id="scoutStatus" class="scout-status">Ready to research.</div>
-        <div id="opportunityList" class="opportunity-list"></div>
+        <div class="scout-hero"><div><span class="eyebrow">POKI MARKET SCOUT</span><h3>Find the strongest buildable opportunity</h3><p>The Factory checks Poki market signals and now weighs visual-production fit along with mobile, monetization and production fit.</p></div><button id="runScout" class="primary-button" type="button">Run Market Scout</button></div>
+        <div id="scoutStatus" class="scout-status">Ready to research.</div><div id="opportunityList" class="opportunity-list"></div>
       </div>
-
       <div id="creatorPane" class="studio-pane hidden">
         <div class="creator-grid">
           <label class="field wide"><span>Game title</span><input id="newGameTitle" maxlength="70" placeholder="Tow Truck Trouble" /></label>
           <label class="field wide"><span>Core concept</span><textarea id="newGameConcept" rows="5" placeholder="Describe the core loop, fantasy, and what the player actually does…"></textarea></label>
-          <label class="field"><span>Engine</span><select id="engineSelect"></select><small id="engineHelp">Factory can choose automatically.</small></label>
-          <label class="field"><span>Art style</span><select id="artSelect"></select><small>Choose a visual language or use the recommendation.</small></label>
-          <label class="field"><span>Target</span><select id="targetSelect"><option value="Poki">Poki</option><option value="General Web">General Web</option></select><small>Poki keeps SDK/ad hooks in the build brief.</small></label>
-          <div class="field recommendation-card"><span>Factory recommendation</span><strong id="recommendationText">Phaser 3 + Bright Vector Casual</strong><small>Updates from your concept or selected opportunity.</small></div>
+          <label class="field"><span>Engine</span><select id="engineSelect"></select><small id="engineHelp">Factory chooses for gameplay + visual quality.</small></label>
+          <label class="field"><span>Art style</span><select id="artSelect"></select><small>Default is bright professional casual presentation; override when the concept truly needs another style.</small></label>
+          <label class="field"><span>Target</span><select id="targetSelect"><option value="Poki">Poki</option><option value="General Web">General Web</option></select><small>Poki includes SDK, ad-readiness and performance gates.</small></label>
+          <div class="field recommendation-card"><span>Factory recommendation</span><strong id="recommendationText">Three.js + Gutpopper Bright Toy 3D</strong><small>Updates from your concept or selected opportunity.</small></div>
         </div>
         <input id="selectedOpportunity" type="hidden" />
-        <div class="creator-footer">
-          <div><strong>Auto-routed build</strong><span>Creates the next numbered folder, builds a real playable v1, then runs desktop + phone QA.</span></div>
-          <button id="createGame" class="primary-button build-game-button" type="button">Build Playable Prototype</button>
-        </div>
+        <div class="creator-footer"><div><strong>Studio-quality routed build</strong><span>Creates the game with the house style, runs QA, then automatically invokes Studio Visual Director below the 85/100 commercial visual target.</span></div><button id="createGame" class="primary-button build-game-button" type="button">Build Playable Prototype</button></div>
         <div id="creatorStatus" class="creator-status"></div>
       </div>
     </div>
@@ -212,49 +104,22 @@
 
   <section id="qualityOverlay" class="quality-overlay hidden" aria-modal="true" role="dialog" aria-labelledby="qualityTitle">
     <div class="quality-modal">
-      <header class="quality-head">
-        <div>
-          <span class="eyebrow">QUALITY LAB · GAME DOCTOR</span>
-          <h2 id="qualityTitle">Game Doctor</h2>
-          <p>Desktop + phone QA, play probes, screenshot review, fast-load/frame-pacing tests, and Poki readiness checks. This audit does not edit the game.</p>
-        </div>
-        <button id="closeQuality" class="ghost-button" type="button">Close</button>
-      </header>
+      <header class="quality-head"><div><span class="eyebrow">QUALITY LAB · GAME DOCTOR</span><h2 id="qualityTitle">Game Doctor</h2><p>Desktop + phone QA, AI playtesting, retention, ad readiness, fast-load/frame pacing and strict professional visual benchmarking. This audit does not edit the game.</p></div><button id="closeQuality" class="ghost-button" type="button">Close</button></header>
       <div id="qualityStatus" class="quality-status">Ready.</div>
       <div class="quality-body">
         <div class="quality-scores">
-          <div class="quality-score"><span>Overall</span><strong id="qualityOverall">—</strong></div>
-          <div class="quality-score"><span>Technical</span><strong id="qualityTechnical">—</strong></div>
-          <div class="quality-score"><span>Interaction</span><strong id="qualityInteraction">—</strong></div>
-          <div class="quality-score"><span>Visual</span><strong id="qualityVisual">—</strong></div>
-          <div class="quality-score"><span>Performance</span><strong id="qualityPerformance">—</strong></div>
-          <div class="quality-score"><span>Poki Ready</span><strong id="qualityPoki">—</strong></div>
+          <div class="quality-score"><span>Overall</span><strong id="qualityOverall">—</strong></div><div class="quality-score"><span>Technical</span><strong id="qualityTechnical">—</strong></div><div class="quality-score"><span>AI Playtest</span><strong id="qualityInteraction">—</strong></div><div class="quality-score"><span>Visual</span><strong id="qualityVisual">—</strong></div><div class="quality-score"><span>Performance</span><strong id="qualityPerformance">—</strong></div><div class="quality-score"><span>Poki Ready</span><strong id="qualityPoki">—</strong></div>
         </div>
         <div class="quality-grid">
-          <section class="quality-section quality-visual-section">
-            <h3>Visual Director report</h3>
-            <pre id="qualityReport">Visual Director is waiting for screenshots…</pre>
-          </section>
-          <section class="quality-section">
-            <h3>Technical / interaction notes</h3>
-            <pre id="qualityTechnicalNotes">Run Game Doctor to inspect the selected game.</pre>
-            <div id="qualityGallery" class="quality-gallery"></div>
-          </section>
-          <section class="quality-section quality-readiness-section">
-            <h3>Poki / performance gate</h3>
-            <pre id="qualityReadinessNotes">Cold load, payload size, requests, frame pacing, SDK events, ad-block resilience, and onboarding will be checked here.</pre>
-          </section>
+          <section class="quality-section quality-visual-section"><h3>Visual Director report</h3><pre id="qualityReport">Visual Director is waiting for screenshots…</pre></section>
+          <section class="quality-section"><h3>Technical / playtest notes</h3><pre id="qualityTechnicalNotes">Run Game Doctor to inspect the selected game.</pre><div id="qualityGallery" class="quality-gallery"></div></section>
+          <section class="quality-section quality-readiness-section"><h3>Poki / performance gate</h3><pre id="qualityReadinessNotes">Cold load, payload size, requests, frame pacing, SDK events, ad-block resilience, and onboarding will be checked here.</pre></section>
         </div>
       </div>
-      <div class="quality-actions">
-        <button id="rerunDoctor" class="ghost-button" type="button" disabled>Run Again</button>
-        <button id="applyDoctorFixes" class="primary-button" type="button" disabled>Send Fixes to Director</button>
-      </div>
+      <div class="quality-actions"><button id="rerunDoctor" class="ghost-button" type="button" disabled>Run Again</button><button id="applyDoctorFixes" class="primary-button" type="button" disabled>Send Fixes to Director</button></div>
     </div>
   </section>
 
-  <script type="module" src="/app.js"></script>
-  <script type="module" src="/device-preview.js"></script>
-  <script type="module" src="/quality-lab.js"></script>
+  <script type="module" src="/app.js"></script><script type="module" src="/device-preview.js"></script><script type="module" src="/quality-lab.js"></script>
 </body>
 </html>
