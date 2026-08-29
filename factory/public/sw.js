@@ -1,5 +1,5 @@
-const CACHE = 'gutpopper-factory-shell-v0.3';
-const SHELL = ['/', '/styles.css', '/platform.css', '/app.js', '/manifest.webmanifest', '/factory-icon.svg'];
+const CACHE = 'gutpopper-factory-shell-v0.4-device-test';
+const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/app.js', '/device-preview.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
