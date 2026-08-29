@@ -50,3 +50,7 @@ if (frame && iframe && desktopButton && phoneButton) {
   window.addEventListener('resize', fitPreview);
   fitPreview();
 }
+
+// v0.14 real-player promotion funnel. Loaded here so the feature is available
+// on both desktop and the phone PWA without another blocking script tag.
+void import('./test-funnel.js').catch(error => console.debug('Poki Test Funnel unavailable', error));
