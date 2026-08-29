@@ -228,17 +228,42 @@ function createWindow() {
   mainWindow.once('ready-to-show', () => mainWindow.show());
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith(`${factoryOrigin}/game/`) || url.startsWith(`${factoryOrigin}/artifacts/`)) {
+    if (url.startsWith(`${factoryOrigin}/game/`)) {
       const child = new BrowserWindow({
-        width: 1180,
-        height: 820,
-        parent: mainWindow,
+        width: 1440,
+        height: 900,
+        minWidth: 900,
+        minHeight: 600,
+        backgroundColor: '#000000',
+        autoHideMenuBar: true,
+        show: false,
         webPreferences: {
           contextIsolation: true,
           nodeIntegration: false,
           sandbox: true
         }
       });
+      child.setMenuBarVisibility(false);
+      child.loadURL(url);
+      child.once('ready-to-show', () => {
+        child.maximize();
+        child.show();
+      });
+      return { action: 'deny' };
+    }
+    if (url.startsWith(`${factoryOrigin}/artifacts/`) || url.startsWith(`${factoryOrigin}/quality-artifacts/`)) {
+      const child = new BrowserWindow({
+        width: 1180,
+        height: 820,
+        parent: mainWindow,
+        autoHideMenuBar: true,
+        webPreferences: {
+          contextIsolation: true,
+          nodeIntegration: false,
+          sandbox: true
+        }
+      });
+      child.setMenuBarVisibility(false);
       child.loadURL(url);
       return { action: 'deny' };
     }
