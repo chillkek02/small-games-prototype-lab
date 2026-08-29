@@ -5,6 +5,8 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { JobStore } from './lib/store.js';
 import { probeCodex, runJob } from './lib/runner.js';
+import { getOpportunityReport, getCreatorOptions } from './lib/opportunity.js';
+import { createGameProject } from './lib/new-game.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(process.env.GAME_FACTORY_REPO_ROOT || path.resolve(__dirname, '..'));
@@ -15,6 +17,7 @@ const PORT = Number(process.env.GAME_FACTORY_PORT || 4177);
 const HOST = process.env.GAME_FACTORY_HOST || '127.0.0.1';
 const store = new JobStore(STATE_DIR);
 const activeByGame = new Map();
+let creatingGame = false;
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -22,17 +25,8 @@ const MIME = {
   '.css': 'text/css; charset=utf-8',
   '.json': 'application/json; charset=utf-8',
   '.webmanifest': 'application/manifest+json; charset=utf-8',
-  '.png': 'image/png',
-  '.jpg': 'image/jpeg',
-  '.jpeg': 'image/jpeg',
-  '.svg': 'image/svg+xml',
-  '.webp': 'image/webp',
-  '.mp3': 'audio/mpeg',
-  '.wav': 'audio/wav',
-  '.ogg': 'audio/ogg',
-  '.glb': 'model/gltf-binary',
-  '.gltf': 'model/gltf+json',
-  '.wasm': 'application/wasm'
+  '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml', '.webp': 'image/webp',
+  '.mp3': 'audio/mpeg', '.wav': 'audio/wav', '.ogg': 'audio/ogg', '.glb': 'model/gltf-binary', '.gltf': 'model/gltf+json', '.wasm': 'application/wasm'
 };
 
 function sendJson(res, status, data) {
@@ -74,11 +68,9 @@ async function listGames() {
     try {
       const html = await fsp.readFile(indexPath, 'utf8');
       const title = html.match(/<title[^>]*>([^<]+)<\/title>/i)?.[1]?.trim() || entry.name;
-      games.push({
-        id: entry.name,
-        title,
-        url: `/game/${encodeURIComponent(entry.name)}/`
-      });
+      let metadata = null;
+      try { metadata = JSON.parse(await fsp.readFile(path.join(GAMES_DIR, entry.name, 'factory-game.json'), 'utf8')); } catch {}
+      games.push({ id: entry.name, title, url: `/game/${encodeURIComponent(entry.name)}/`, metadata });
     } catch {
       // Only folders with an index.html are factory targets.
     }
@@ -107,10 +99,7 @@ async function markDispatchFailure(jobId, error) {
   try {
     await store.appendLog(jobId, `DISPATCH ERROR: ${error.message}`);
     await store.patch(jobId, {
-      status: 'failed',
-      stage: 'Dispatch failed',
-      finishedAt: new Date().toISOString(),
-      error: error.message
+      status: 'failed', stage: 'Dispatch failed', finishedAt: new Date().toISOString(), error: error.message
     });
   } catch (storeError) {
     console.error('Failed to record factory dispatch error', storeError);
@@ -123,30 +112,50 @@ async function recoverInterruptedJobs() {
   for (const job of interrupted) {
     await store.appendLog(job.id, 'Factory restarted before this job reached a terminal state.');
     await store.patch(job.id, {
-      status: 'failed',
-      stage: 'Interrupted by restart',
-      finishedAt: new Date().toISOString(),
+      status: 'failed', stage: 'Interrupted by restart', finishedAt: new Date().toISOString(),
       error: 'Factory restarted while this job was active. Start a new run to retry it.'
     });
   }
   if (interrupted.length) console.log(`Recovered ${interrupted.length} interrupted factory job(s).`);
 }
 
+function dispatchWorker({ job, game, gameDir }) {
+  const gameRelativePath = path.relative(REPO_ROOT, gameDir);
+  const gameUrl = `http://${HOST}:${PORT}/game/${encodeURIComponent(game)}/`;
+  const worker = new Promise(resolve => setImmediate(resolve))
+    .then(() => runJob({ job, store, repoRoot: REPO_ROOT, gameDir, gameRelativePath, gameUrl }))
+    .catch(async error => {
+      console.error(`Factory worker failed for ${game}`, error);
+      await markDispatchFailure(job.id, error);
+    })
+    .finally(() => activeByGame.delete(game));
+  activeByGame.set(game, { jobId: job.id, worker });
+}
+
 async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/status') {
     const [codex, jobs] = await Promise.all([probeCodex(REPO_ROOT), store.list(5)]);
     return sendJson(res, 200, {
-      name: 'Gutpopper Game Factory',
-      version: '0.2.2',
-      repoRoot: REPO_ROOT,
-      codex,
-      activeGames: [...activeByGame.keys()],
-      recentJobs: jobs.length
+      name: 'Gutpopper Game Factory', version: '0.3.0', repoRoot: REPO_ROOT, codex,
+      engines: { phaser3: '3.90.0', phaser4: '4.2.1', three: '0.185.1' },
+      activeGames: [...activeByGame.keys()], recentJobs: jobs.length
     });
   }
 
   if (req.method === 'GET' && url.pathname === '/api/games') {
     return sendJson(res, 200, { games: await listGames() });
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/creator-options') {
+    return sendJson(res, 200, getCreatorOptions());
+  }
+
+  if (req.method === 'GET' && url.pathname === '/api/opportunities') {
+    try {
+      return sendJson(res, 200, await getOpportunityReport());
+    } catch (error) {
+      return sendJson(res, 500, { error: `Opportunity Scout failed: ${error.message}` });
+    }
   }
 
   if (req.method === 'GET' && url.pathname === '/api/jobs') {
@@ -159,17 +168,50 @@ async function handleApi(req, res, url) {
     return job ? sendJson(res, 200, job) : sendJson(res, 404, { error: 'Job not found' });
   }
 
-  if (req.method === 'POST' && url.pathname === '/api/jobs') {
+  if (req.method === 'POST' && url.pathname === '/api/new-games') {
+    if (creatingGame) return sendJson(res, 409, { error: 'The Factory is already creating a new game. Wait for the scaffold to finish.' });
     let body;
+    try { body = await readBody(req); } catch (error) { return sendJson(res, 400, { error: error.message }); }
+    creatingGame = true;
     try {
-      body = await readBody(req);
+      const project = await createGameProject({
+        gamesDir: GAMES_DIR,
+        factoryDir: __dirname,
+        title: body.title,
+        concept: body.concept,
+        engine: body.engine || 'auto',
+        artStyle: body.artStyle || 'auto',
+        opportunity: body.opportunity || '',
+        target: body.target || 'Poki'
+      });
+
+      const created = await store.create({ game: project.id, instruction: project.instruction });
+      const job = await store.patch(created.id, {
+        status: 'running',
+        stage: 'New game build',
+        attempt: 1,
+        kind: 'new-game',
+        creator: project.metadata,
+        error: null
+      });
+      await store.appendLog(job.id, `New Game Creator scaffolded ${project.id} · ${project.engine} · ${project.artStyle}`);
+      await store.appendLog(job.id, 'Dispatching Standard Terra to build the first playable prototype.');
+      dispatchWorker({ job, game: project.id, gameDir: project.gameDir });
+      return sendJson(res, 202, { game: { id: project.id, title: project.title, url: `/game/${encodeURIComponent(project.id)}/`, metadata: project.metadata }, job: await store.get(job.id) });
     } catch (error) {
       return sendJson(res, 400, { error: error.message });
+    } finally {
+      creatingGame = false;
     }
+  }
+
+  if (req.method === 'POST' && url.pathname === '/api/jobs') {
+    let body;
+    try { body = await readBody(req); } catch (error) { return sendJson(res, 400, { error: error.message }); }
     const game = String(body.game || '');
     const instruction = String(body.instruction || '').trim();
     if (!safeSegment(game)) return sendJson(res, 400, { error: 'Invalid game id' });
-    if (instruction.length < 4) return sendJson(res, 400, { error: 'Describe the change you want Codex to make.' });
+    if (instruction.length < 4) return sendJson(res, 400, { error: 'Describe the change you want the Factory to make.' });
     if (activeByGame.has(game)) return sendJson(res, 409, { error: `${game} already has a running factory job.` });
 
     const gameDir = path.join(GAMES_DIR, game);
@@ -182,25 +224,10 @@ async function handleApi(req, res, url) {
 
     const created = await store.create({ game, instruction });
     const job = await store.patch(created.id, {
-      status: 'running',
-      stage: 'Dispatching Codex',
-      attempt: 1,
-      error: null
+      status: 'running', stage: 'Dispatching Factory', attempt: 1, error: null
     });
     await store.appendLog(job.id, `Dispatcher accepted ${game}; starting worker.`);
-
-    const gameRelativePath = path.relative(REPO_ROOT, gameDir);
-    const gameUrl = `http://${HOST}:${PORT}/game/${encodeURIComponent(game)}/`;
-
-    const worker = new Promise(resolve => setImmediate(resolve))
-      .then(() => runJob({ job, store, repoRoot: REPO_ROOT, gameDir, gameRelativePath, gameUrl }))
-      .catch(async error => {
-        console.error(`Factory worker failed for ${game}`, error);
-        await markDispatchFailure(job.id, error);
-      })
-      .finally(() => activeByGame.delete(game));
-
-    activeByGame.set(game, { jobId: job.id, worker });
+    dispatchWorker({ job, game, gameDir });
     return sendJson(res, 202, await store.get(job.id));
   }
 
@@ -254,17 +281,14 @@ export async function startFactoryServer() {
 
   await new Promise((resolve, reject) => {
     server.once('error', reject);
-    server.listen(PORT, HOST, () => {
-      server.off('error', reject);
-      resolve();
-    });
+    server.listen(PORT, HOST, () => { server.off('error', reject); resolve(); });
   });
 
-  const url = `http://${HOST}:${PORT}`;
-  console.log(`\nGutpopper Game Factory v0.2.2`);
-  console.log(url);
+  const localUrl = `http://${HOST}:${PORT}`;
+  console.log(`\nGutpopper Game Factory v0.3.0`);
+  console.log(localUrl);
   console.log(`Repo: ${REPO_ROOT}\n`);
-  return { server, url, repoRoot: REPO_ROOT, stateDir: STATE_DIR, port: PORT, host: HOST };
+  return { server, url: localUrl, repoRoot: REPO_ROOT, stateDir: STATE_DIR, port: PORT, host: HOST };
 }
 
 if (process.env.GAME_FACTORY_EMBEDDED !== '1') {
