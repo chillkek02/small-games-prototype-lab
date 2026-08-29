@@ -11,6 +11,10 @@ on:
       - '.github/workflows/build-game-factory-windows.yml'
   workflow_dispatch:
 
+concurrency:
+  group: game-factory-windows-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   windows-installer:
     runs-on: windows-latest
