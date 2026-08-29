@@ -103,12 +103,26 @@ async function serveFile(res, filePath, { noCache = false } = {}) {
   }
 }
 
+async function markDispatchFailure(jobId, error) {
+  try {
+    await store.appendLog(jobId, `DISPATCH ERROR: ${error.message}`);
+    await store.patch(jobId, {
+      status: 'failed',
+      stage: 'Dispatch failed',
+      finishedAt: new Date().toISOString(),
+      error: error.message
+    });
+  } catch (storeError) {
+    console.error('Failed to record factory dispatch error', storeError);
+  }
+}
+
 async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/status') {
     const [codex, jobs] = await Promise.all([probeCodex(REPO_ROOT), store.list(5)]);
     return sendJson(res, 200, {
       name: 'Gutpopper Game Factory',
-      version: '0.2.0',
+      version: '0.2.2',
       repoRoot: REPO_ROOT,
       codex,
       activeGames: [...activeByGame.keys()],
@@ -151,13 +165,28 @@ async function handleApi(req, res, url) {
       return sendJson(res, 404, { error: 'Game target not found' });
     }
 
-    const job = await store.create({ game, instruction });
+    const created = await store.create({ game, instruction });
+    const job = await store.patch(created.id, {
+      status: 'running',
+      stage: 'Dispatching Codex',
+      attempt: 1,
+      error: null
+    });
+    await store.appendLog(job.id, `Dispatcher accepted ${game}; starting worker.`);
+
     const gameRelativePath = path.relative(REPO_ROOT, gameDir);
     const gameUrl = `http://${HOST}:${PORT}/game/${encodeURIComponent(game)}/`;
-    const promise = runJob({ job, store, repoRoot: REPO_ROOT, gameDir, gameRelativePath, gameUrl })
+
+    const worker = new Promise(resolve => setImmediate(resolve))
+      .then(() => runJob({ job, store, repoRoot: REPO_ROOT, gameDir, gameRelativePath, gameUrl }))
+      .catch(async error => {
+        console.error(`Factory worker failed for ${game}`, error);
+        await markDispatchFailure(job.id, error);
+      })
       .finally(() => activeByGame.delete(game));
-    activeByGame.set(game, promise);
-    return sendJson(res, 202, job);
+
+    activeByGame.set(game, { jobId: job.id, worker });
+    return sendJson(res, 202, await store.get(job.id));
   }
 
   return false;
@@ -216,7 +245,7 @@ export async function startFactoryServer() {
   });
 
   const url = `http://${HOST}:${PORT}`;
-  console.log(`\nGutpopper Game Factory v0.2.0`);
+  console.log(`\nGutpopper Game Factory v0.2.2`);
   console.log(url);
   console.log(`Repo: ${REPO_ROOT}\n`);
   return { server, url, repoRoot: REPO_ROOT, stateDir: STATE_DIR, port: PORT, host: HOST };
