@@ -1,17 +1,17 @@
 {
   "name": "gutpopper-game-factory",
   "productName": "Gutpopper Game Factory",
-  "version": "0.17.0",
+  "version": "0.18.0",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
-  "description": "Poki-first AI game discovery studio with reusable Character/Rig/Animation Forge, UI/Menu Forge, Model + Vector-to-3D Forge, Shader/VFX Forge, Asset Forge, live Trend + Theme Radar, Studio Loop, Poki Game Events, real-player funnel and quality gates.",
+  "description": "Poki-first AI game discovery studio with Image/Vector Import Lab, reusable Character/Rig/Animation, UI/Menu, Model/Vector-to-3D, Shader/VFX and Asset forges, live Trend + Theme Radar, Studio Loop, Poki Game Events and real-player quality funnel.",
   "author": "Gutpopper Games",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
     "desktop": "electron .",
-    "check": "node --check server.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check codex-router.cjs && node --check lib/qa.js && node --check lib/runner.js && node --check lib/opportunity.js && node --check lib/trend-radar.js && node --check lib/theme-radar.js && node --check lib/poki-discovery.js && node --check lib/poki-events-kit.js && node --check lib/test-funnel.js && node --check lib/new-game.js && node --check lib/quality.js && node --check lib/studio-loop.js && node --check lib/ui-menu-kit.js && node --check lib/asset-kit.js && node --check lib/shader-vfx-kit.js && node --check lib/model-forge-kit.js && node --check lib/character-rig-kit.js && node --check lib/production-library-selftest.js && node --check lib/house-style.js && node --check lib/visual-quality.js && node --check lib/visual-gate.js && node --check lib/retention.js && node --check lib/ad-readiness.js && node --check lib/poki-readiness.js && node --check lib/playtester.js && node --check lib/snapshots.js && node --check lib/game-trash.js && node --check lib/starter-kit.js && node --check public/app.js && node --check public/device-preview.js && node --check public/test-funnel.js && node --check public/quality-lab.js && node --check public/sw.js && node lib/production-library-selftest.js",
+    "check": "node --check server.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check codex-router.cjs && node --check lib/qa.js && node --check lib/runner.js && node --check lib/opportunity.js && node --check lib/trend-radar.js && node --check lib/theme-radar.js && node --check lib/poki-discovery.js && node --check lib/poki-events-kit.js && node --check lib/test-funnel.js && node --check lib/asset-import.js && node --check lib/asset-import-selftest.js && node --check lib/new-game.js && node --check lib/quality.js && node --check lib/studio-loop.js && node --check lib/ui-menu-kit.js && node --check lib/asset-kit.js && node --check lib/shader-vfx-kit.js && node --check lib/model-forge-kit.js && node --check lib/character-rig-kit.js && node --check lib/production-library-selftest.js && node --check lib/house-style.js && node --check lib/visual-quality.js && node --check lib/visual-gate.js && node --check lib/retention.js && node --check lib/ad-readiness.js && node --check lib/poki-readiness.js && node --check lib/playtester.js && node --check lib/snapshots.js && node --check lib/game-trash.js && node --check lib/starter-kit.js && node --check public/app.js && node --check public/device-preview.js && node --check public/test-funnel.js && node --check public/asset-lab.js && node --check public/quality-lab.js && node --check public/sw.js && node lib/production-library-selftest.js && node lib/asset-import-selftest.js",
     "package:win": "npm run check && electron-builder --win dir --x64",
     "make:win": "npm run check && electron-builder --win nsis --x64"
   },
