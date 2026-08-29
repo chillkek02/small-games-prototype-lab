@@ -32,7 +32,7 @@ function buildPrompt(job) {
 
 function buildRepairPrompt(job, qa) {
   const issueText = qa.issues.length ? qa.issues.map((issue, i) => `${i + 1}. ${issue}`).join('\n') : 'No machine-readable issues were reported.';
-  return `${studioRules(job.game)}\n\nAUTOMATED QA FAILED\nThe previous implementation was smoke-tested in desktop and mobile Chromium. Fix the failures below, then retest locally.\n\n${issueText}\n\nDo not undo the original requested change: ${job.instruction}`;
+  return `${studioRules(job.game)}\n\nAUTOMATED QA FAILED\nThe previous implementation was smoke-tested in desktop and mobile browser QA. Fix the failures below, then retest locally.\n\n${issueText}\n\nDo not undo the original requested change: ${job.instruction}`;
 }
 
 async function runProcess(command, args, { cwd, input = '', timeoutMs = 20 * 60 * 1000, onLine = () => {} } = {}) {
@@ -100,9 +100,18 @@ async function runProcess(command, args, { cwd, input = '', timeoutMs = 20 * 60 
 }
 
 async function runCodex({ cwd, prompt, onLine }) {
+  onLine('Codex automation mode: workspace-write sandbox · approvals=never · ephemeral session', false);
   const result = await runProcess(
     CODEX_COMMAND,
-    ['exec', '--full-auto', '--color', 'never', '-C', cwd, '-'],
+    [
+      'exec',
+      '--ephemeral',
+      '--sandbox', 'workspace-write',
+      '-c', 'approval_policy=never',
+      '--color', 'never',
+      '-C', cwd,
+      '-'
+    ],
     { cwd, input: prompt, onLine }
   );
   if (result.code !== 0) {
@@ -144,7 +153,7 @@ export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, 
     let qa = null;
     for (let repair = 0; repair <= MAX_REPAIR_PASSES; repair += 1) {
       await store.patch(job.id, { stage: repair === 0 ? 'Automated QA' : `QA after repair ${repair}` });
-      await log('Running Chromium desktop/mobile smoke tests');
+      await log('Running desktop/mobile browser smoke tests');
       const { runQa } = await import('./qa.js');
       qa = await runQa({ url: gameUrl, artifactDir: store.jobDir(job.id) });
       await store.patch(job.id, { qa });
