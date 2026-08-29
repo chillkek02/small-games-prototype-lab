@@ -11,7 +11,7 @@ import { createPrototypePlan, discoveryBrief } from './poki-discovery.js';
 
 const POKI_SDK='https://game-cdn.poki.com/scripts/v2/poki-sdk.js';
 function slugify(value=''){return String(value).toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9]+/g,'-').replace(/^-+|-+$/g,'').slice(0,48)||'new-game'}
-function escapeHtml(value=''){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot',"'":'&#39;'})[ch])}
+function escapeHtml(value=''){return String(value).replace(/[&<>"']/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[ch])}
 async function nextGameNumber(gamesDir){const entries=await fsp.readdir(gamesDir,{withFileTypes:true});let max=0;for(const entry of entries){if(!entry.isDirectory())continue;const match=entry.name.match(/^(\d+)-/);if(match)max=Math.max(max,Number(match[1]))}return max+1}
 function engineLabel(engine){return({vanilla:'Vanilla Canvas / SVG / JavaScript',phaser3:'Phaser 3.90',phaser4:'Phaser 4.2.1',three:'Three.js 0.185.1',dom:'HTML / CSS / SVG'})[engine]||engine}
 function artLabel(art){return({toy3d:'Gutpopper Bright Toy 3D',pixel:'Pixel Arcade',vector:'Bright Layered Vector Casual',voxel:'Bright Blocky / Voxel 3D',paper:'Paper Cutout',outline:'Cartoon Outline',retro:'Retro 16-bit',pastel:'Soft Pastel Casual',neon:'Neon Arcade',isometric:'Polished Isometric 2.5D',minimal:'Minimal Clean',industrial:'Industrial / Mechanical'})[art]||art}
