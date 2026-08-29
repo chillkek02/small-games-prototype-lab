@@ -7,7 +7,7 @@ Gutpopper Game Factory is a local AI game-production app for `small-games-protot
 1. Discovers playable projects under `games/*/index.html`.
 2. Lets you choose a game and describe a change in natural language.
 3. Runs Codex non-interactively inside only that game's directory.
-4. Runs Playwright Chromium QA at desktop (1440×900) and mobile (390×844).
+4. Runs Playwright QA through Microsoft Edge at desktop (1440×900) and mobile-emulated (390×844) sizes.
 5. Captures page errors, console errors, obvious horizontal overflow, and screenshots.
 6. Sends QA failures back to Codex for an automatic repair pass.
 7. Shows the live game, build stage, agent log, screenshots, QA status, changed-file summary, and job history.
@@ -23,7 +23,7 @@ Do not switch branches if the current Prototype Lab contains uncommitted game wo
 
 ```powershell
 git fetch origin
-git restore --source=origin/game-factory-v1 -- factory "Start Game Factory Desktop.bat" "Build Game Factory Windows App.bat"
+git restore --source=origin/game-factory-v1 -- factory "Start Game Factory Desktop.bat" "Build Game Factory Windows App.bat" "Start Game Factory.bat"
 ```
 
 This copies the factory tooling without replacing files under `games/`.
@@ -34,7 +34,7 @@ Double-click:
 
 `Start Game Factory Desktop.bat`
 
-The first run installs the desktop dependencies and Chromium QA runtime, then opens the Electron application.
+The first run installs the desktop dependencies and opens the Electron application. Automated QA uses Microsoft Edge already installed on Windows 11 rather than bundling a second Chromium browser.
 
 You can also run it from PowerShell:
 
@@ -58,13 +58,13 @@ The Windows installer is generated under:
 
 `factory\out\make\squirrel.windows\x64\Gutpopper-Game-Factory-Setup.exe`
 
-A portable ZIP is also produced. The installer is currently unsigned, so Windows SmartScreen may warn when it is first opened. Code signing can be added before public distribution.
+The installer is currently unsigned, so Windows SmartScreen may warn when it is first opened. Code signing can be added before public distribution.
 
 The `game-factory-v1` branch also contains a GitHub Actions workflow that builds the same Windows installer automatically and uploads it as the `Gutpopper-Game-Factory-Windows` workflow artifact.
 
 ## Phone Remote
 
-The PC remains the worker. Codex, Git, game files, Chromium QA, and builds stay on the PC. The phone only controls the factory through its web API and can play the current game build.
+The PC remains the worker. Codex, Git, game files, Edge-based QA, and builds stay on the PC. The phone only controls the factory through its web API and can play the current game build.
 
 Recommended private connection: Tailscale Serve.
 
@@ -95,6 +95,7 @@ For AI build jobs:
 
 - Codex CLI installed and signed in.
 - Git available in PATH.
+- Microsoft Edge installed/updated for automated QA.
 
 For source/development launch or building an installer:
 
@@ -104,7 +105,7 @@ For remote phone access:
 
 - Tailscale on the PC and phone.
 
-The installed Electron app bundles its UI/runtime and the Playwright Chromium QA browser, but it intentionally does not bundle your Codex credentials.
+The installed Electron app bundles its own application runtime, but intentionally does not bundle your Codex credentials or a duplicate Chromium browser.
 
 ## Next targets
 
