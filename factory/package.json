@@ -1,17 +1,17 @@
 {
   "name": "gutpopper-game-factory",
   "productName": "Gutpopper Game Factory",
-  "version": "0.9.0",
+  "version": "0.10.0",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
-  "description": "AI browser-game studio with automated first-prototype visual polish, Poki opportunity scouting, strict visual-quality floor, AI playtesting, performance/readiness gates, safe snapshots, production starter kits, desktop testing and private phone remote for Gutpopper Games.",
+  "description": "AI browser-game studio with automated first-prototype visual and retention polish, Poki opportunity scouting, strict quality gates, AI playtesting, performance/readiness checks, safe snapshots, production starter kits, desktop testing and private phone remote for Gutpopper Games.",
   "author": "Gutpopper Games",
   "scripts": {
     "start": "node server.js",
     "dev": "node --watch server.js",
     "desktop": "electron .",
-    "check": "node --check server.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check codex-router.cjs && node --check lib/qa.js && node --check lib/runner.js && node --check lib/opportunity.js && node --check lib/new-game.js && node --check lib/quality.js && node --check lib/visual-quality.js && node --check lib/visual-gate.js && node --check lib/poki-readiness.js && node --check lib/playtester.js && node --check lib/snapshots.js && node --check lib/starter-kit.js && node --check public/app.js && node --check public/device-preview.js && node --check public/quality-lab.js && node --check public/sw.js",
+    "check": "node --check server.js && node --check electron/main.cjs && node --check electron/preload.cjs && node --check codex-router.cjs && node --check lib/qa.js && node --check lib/runner.js && node --check lib/opportunity.js && node --check lib/new-game.js && node --check lib/quality.js && node --check lib/visual-quality.js && node --check lib/visual-gate.js && node --check lib/retention.js && node --check lib/poki-readiness.js && node --check lib/playtester.js && node --check lib/snapshots.js && node --check lib/starter-kit.js && node --check public/app.js && node --check public/device-preview.js && node --check public/quality-lab.js && node --check public/sw.js",
     "package:win": "npm run check && electron-builder --win dir --x64",
     "make:win": "npm run check && electron-builder --win nsis --x64"
   },
