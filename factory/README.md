@@ -14,7 +14,7 @@ V0.1 deliberately focuses on one complete production loop instead of trying to s
 
 Codex is instructed not to commit or push. The factory edits the existing local working tree so you can review the changes before publishing.
 
-## Install on the current Prototype Lab machine
+## Fastest setup on the current Prototype Lab machine
 
 Open PowerShell in the repository and run:
 
@@ -22,16 +22,25 @@ Open PowerShell in the repository and run:
 cd "C:\Users\chill\OneDrive\Documents\GitHub\small-games-prototype-lab"
 git fetch origin
 git switch game-factory-v1
-cd factory
+```
+
+After that, double-click **Start Game Factory.bat** in the repository root. On the first launch it installs the factory's npm dependencies and Chromium automatically, starts the local server, and opens the dashboard.
+
+The dashboard runs at:
+
+`http://127.0.0.1:4177`
+
+## Manual setup
+
+If you prefer to run it manually:
+
+```powershell
+cd "C:\Users\chill\OneDrive\Documents\GitHub\small-games-prototype-lab\factory"
 npm install
 npx playwright install chromium
 codex --version
 npm start
 ```
-
-Then open:
-
-`http://127.0.0.1:4177`
 
 The factory uses your already-installed/logged-in Codex CLI. It does not require an OpenAI API key in V0.1.
 
