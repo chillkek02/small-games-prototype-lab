@@ -62,9 +62,7 @@ async function saveRestorePoint() {
   save.textContent = 'Saving…';
   try {
     const response = await fetch(`/api/games/${encodeURIComponent(game)}/snapshots`, {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ label: 'Manual restore point' })
+      method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ label: 'Manual restore point' })
     });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) throw new Error(data.error || `HTTP ${response.status}`);
@@ -169,6 +167,23 @@ function ensureVisualFloorUi() {
   }
 }
 
+function ensureRetentionUi() {
+  const scores = document.querySelector('.quality-scores');
+  if (scores && !document.querySelector('#qualityRetention')) {
+    const card = document.createElement('div');
+    card.className = 'quality-score retention-score';
+    card.innerHTML = '<span>Retention</span><strong id="qualityRetention">—</strong>';
+    scores.append(card);
+  }
+  const grid = document.querySelector('.quality-grid');
+  if (grid && !document.querySelector('#qualityRetentionNotes')) {
+    const section = document.createElement('section');
+    section.className = 'quality-section quality-retention-section';
+    section.innerHTML = '<h3>Retention / replay gate</h3><pre id="qualityRetentionNotes">Replay route, persistence, progression and one-more-run systems will appear here.</pre>';
+    grid.append(section);
+  }
+}
+
 function setVisualFloor(floor) {
   ensureVisualFloorUi();
   const el = document.querySelector('#qualityVisualFloor');
@@ -213,22 +228,42 @@ function visualFloorText(audit) {
     `First-prototype minimum: ${floor.minimumPrototypeScore}/100`,
     `Publish-candidate target: ${floor.publishCandidateScore}/100`,
     floor.summary ? `Summary: ${floor.summary}` : '',
-    '',
-    'CATEGORY SCORES'
+    '', 'CATEGORY SCORES'
   ].filter(Boolean);
-  for (const [id, label] of Object.entries(FLOOR_LABELS)) {
-    lines.push(`${label}: ${floor.categories?.[id] ?? '—'}/100`);
-  }
+  for (const [id, label] of Object.entries(FLOOR_LABELS)) lines.push(`${label}: ${floor.categories?.[id] ?? '—'}/100`);
   lines.push('', 'HARD FAILS');
-  if (floor.hardFails?.length) {
-    for (const id of floor.hardFails) lines.push(`• ${HARD_FAIL_LABELS[id] || id}`);
-  } else {
-    lines.push('• None detected.');
-  }
-  if (!floor.passed) {
-    lines.push('', 'This game does not meet the Gutpopper minimum visual bar for a first playable prototype.');
-  }
+  if (floor.hardFails?.length) for (const id of floor.hardFails) lines.push(`• ${HARD_FAIL_LABELS[id] || id}`);
+  else lines.push('• None detected.');
+  if (!floor.passed) lines.push('', 'This game does not meet the Gutpopper minimum visual bar for a first playable prototype.');
   return lines.join('\n');
+}
+
+function retentionText(audit) {
+  const r = audit.retention;
+  if (!r) return 'Retention/replay audit was not available.';
+  const source = r.source || {};
+  return [
+    `STATUS: ${r.passed ? 'PASS' : 'NEEDS RETENTION WORK'}`,
+    `Score: ${r.score}/100`,
+    `First-prototype minimum: ${r.minimumPrototypeScore}/100`,
+    '',
+    `Replay/restart route: ${r.restartAvailable ? `verified · ${r.restartControl || 'restart'}` : r.secondRunStarted ? 'second run can start' : 'not verified'}`,
+    `Visible terminal state: ${r.terminal ? `${r.terminal.type} · ${r.terminal.term}` : 'not reached in bounded probe'}`,
+    `Upgrade/shop visible: ${r.upgradeVisible ? 'yes' : 'no'}`,
+    `Upgrade interaction tested: ${r.upgradeClicked ? 'yes' : 'no'}`,
+    `Save/progression code detected: ${source.persistence ? 'yes' : 'no'}`,
+    `Storage changed during run: ${r.storageMutated ? 'yes' : 'no'}`,
+    `Storage survived reload: ${r.persistedAfterReload ? 'yes' : 'no'}`,
+    '',
+    'REPLAY SYSTEMS',
+    `Upgrades/unlocks: ${source.upgrades ? 'yes' : 'no'}`,
+    `Score/best-run chase: ${source.scoreChase ? 'yes' : 'no'}`,
+    `Missions/challenges: ${source.missions ? 'yes' : 'no'}`,
+    `Progression/levels/currency: ${source.progression ? 'yes' : 'no'}`,
+    `Run variation/difficulty scaling: ${source.variation ? 'yes' : 'no'}`,
+    '',
+    ...(r.notes || []).map(note => `• ${note}`)
+  ].join('\n');
 }
 
 function formatBytes(bytes = 0) {
@@ -244,13 +279,7 @@ function playtestText(audit) {
   const playtest = audit.playtest;
   if (!playtest) return 'AI Playtester was not available.';
   const plan = playtest.plan || {};
-  const lines = [
-    'AI PLAYTESTER',
-    `Planner confidence: ${plan.confidence || '—'}`,
-    `Objective: ${plan.objective || '—'}`,
-    `Control plan: ${plan.summary || '—'}`,
-    ''
-  ];
+  const lines = ['AI PLAYTESTER', `Planner confidence: ${plan.confidence || '—'}`, `Objective: ${plan.objective || '—'}`, `Control plan: ${plan.summary || '—'}`, ''];
   for (const device of ['desktop', 'phone']) {
     const runs = (playtest.sessions || []).filter(run => run.device === device);
     const changes = runs.reduce((sum, run) => sum + (run.visualChanges || 0), 0);
@@ -280,10 +309,7 @@ function readinessText(audit) {
     `Initial local requests: ${m.initialRequests ?? '—'}`,
     `Factory 4 Mbps estimate: ${m.estimated4MbpsReadyMs ? `${(m.estimated4MbpsReadyMs / 1000).toFixed(1)} s` : '—'}`,
     `Sampled FPS: ${frame.fps || '—'} · long frames: ${Math.round((frame.longFrameRatio || 0) * 100)}%`,
-    '',
-    ...(readiness.performanceNotes || []).map(note => `• ${note}`),
-    '',
-    'POKI READINESS',
+    '', ...(readiness.performanceNotes || []).map(note => `• ${note}`), '', 'POKI READINESS',
     `SDK detected: ${source.hasPokiSdk ? 'yes' : 'no'}`,
     `gameLoadingFinished: ${source.loadingFinished ? 'yes' : 'no'}`,
     `gameplayStart: ${source.gameplayStart ? 'yes' : 'no'}`,
@@ -292,10 +318,7 @@ function readinessText(audit) {
     `rewardedBreak: ${source.rewardedBreak ? 'yes' : 'no'}`,
     `SDK event-order probe: ${sdkEvents.passed ? 'PASS' : 'FAIL'}`,
     `Ad-block resilience: ${readiness.adBlock?.passed ? 'PASS' : 'FAIL'}`,
-    '',
-    ...(sdkEvents.violations || []).map(note => `• SDK: ${note}`),
-    ...(readiness.pokiNotes || []).map(note => `• ${note}`),
-    '',
+    '', ...(sdkEvents.violations || []).map(note => `• SDK: ${note}`), ...(readiness.pokiNotes || []).map(note => `• ${note}`), '',
     'Note: numeric load/size/FPS targets are Gutpopper Factory internal targets, not official Poki pass/fail thresholds.'
   ].join('\n');
 }
@@ -303,36 +326,32 @@ function readinessText(audit) {
 function renderAudit(audit) {
   lastAudit = audit;
   ensureVisualFloorUi();
+  ensureRetentionUi();
   setScore('#qualityOverall', audit.overallScore);
   setScore('#qualityTechnical', audit.technicalScore);
   setScore('#qualityInteraction', audit.playtestScore ?? audit.interactionScore);
   setScore('#qualityVisual', audit.visualScore);
   setScore('#qualityPerformance', audit.performanceScore);
   setScore('#qualityPoki', audit.pokiScore);
+  setScore('#qualityRetention', audit.retentionScore);
   setVisualFloor(audit.visualFloor);
 
   const report = document.querySelector('#qualityReport');
   if (report) report.textContent = audit.visualReport || 'No visual report returned.';
-
   const floorNotes = document.querySelector('#qualityVisualFloorNotes');
   if (floorNotes) floorNotes.textContent = visualFloorText(audit);
-
+  const retentionNotes = document.querySelector('#qualityRetentionNotes');
+  if (retentionNotes) retentionNotes.textContent = retentionText(audit);
   const readiness = document.querySelector('#qualityReadinessNotes');
   if (readiness) readiness.textContent = readinessText(audit);
 
   const gallery = document.querySelector('#qualityGallery');
   if (gallery) {
     const items = [
-      ['Desktop QA', audit.artifacts?.desktop],
-      ['Phone QA', audit.artifacts?.phone],
-      ['AI Playtest · Desktop', audit.artifacts?.desktopPlay],
-      ['AI Playtest · Phone', audit.artifacts?.phonePlay]
+      ['Desktop QA', audit.artifacts?.desktop], ['Phone QA', audit.artifacts?.phone],
+      ['AI Playtest · Desktop', audit.artifacts?.desktopPlay], ['AI Playtest · Phone', audit.artifacts?.phonePlay]
     ].filter(([, file]) => file);
-    gallery.innerHTML = items.map(([label, file]) => `
-      <a href="${artifactUrl(audit, file)}" target="_blank" rel="noreferrer">
-        <img src="${artifactUrl(audit, file)}?t=${Date.now()}" alt="${label}">
-        <span>${label}</span>
-      </a>`).join('');
+    gallery.innerHTML = items.map(([label, file]) => `<a href="${artifactUrl(audit, file)}" target="_blank" rel="noreferrer"><img src="${artifactUrl(audit, file)}?t=${Date.now()}" alt="${label}"><span>${label}</span></a>`).join('');
   }
 
   const issues = [...(audit.qa?.issues || [])];
@@ -343,30 +362,35 @@ function renderAudit(audit) {
   }
 
   const floorLabel = audit.visualFloor?.status === 'PASS' ? 'visual floor passed' : audit.visualFloor?.status === 'NEEDS_POLISH' ? 'visual polish required' : 'VISUAL FAIL';
-  setStatus(`Audit complete · ${floorLabel} · ${new Date(audit.finishedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
+  const retentionLabel = audit.retentionPassed ? 'retention passed' : 'retention needs work';
+  setStatus(`Audit complete · ${floorLabel} · ${retentionLabel} · ${new Date(audit.finishedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}`);
   if (applyButton) applyButton.disabled = false;
   if (rerunButton) rerunButton.disabled = false;
 }
 
 function resetAuditView(game) {
   ensureVisualFloorUi();
+  ensureRetentionUi();
   setScore('#qualityOverall', null);
   setScore('#qualityTechnical', null);
   setScore('#qualityInteraction', null);
   setScore('#qualityVisual', null);
   setScore('#qualityPerformance', null);
   setScore('#qualityPoki', null);
+  setScore('#qualityRetention', null);
   setVisualFloor(null);
   const report = document.querySelector('#qualityReport');
   const gallery = document.querySelector('#qualityGallery');
   const technical = document.querySelector('#qualityTechnicalNotes');
   const readiness = document.querySelector('#qualityReadinessNotes');
   const floorNotes = document.querySelector('#qualityVisualFloorNotes');
+  const retentionNotes = document.querySelector('#qualityRetentionNotes');
   if (report) report.textContent = 'Visual Director is waiting for QA and AI playtest screenshots…';
   if (gallery) gallery.innerHTML = '';
   if (technical) technical.textContent = 'AI Playtester will inspect the game, infer controls/objective, then run desktop and phone sessions…';
   if (readiness) readiness.textContent = 'Measuring cold load, payload size, requests, frame pacing, Poki events, and ad-block resilience…';
   if (floorNotes) floorNotes.textContent = 'Scoring art direction, UI/typography, composition, world richness, game feel, readability, and professional finish…';
+  if (retentionNotes) retentionNotes.textContent = 'Testing quick replay, save persistence, upgrades/progression, score chase, missions, and run variation…';
   const title = document.querySelector('#qualityTitle');
   if (title) title.textContent = `Game Doctor · ${game}`;
   if (applyButton) applyButton.disabled = true;
@@ -379,7 +403,7 @@ async function runDoctor() {
   overlay?.classList.remove('hidden');
   document.body.style.overflow = 'hidden';
   resetAuditView(game);
-  setStatus('Running Performance/Poki gate → Desktop/Phone QA → AI Playtester → strict Visual Quality Floor…');
+  setStatus('Running Performance/Poki → Desktop/Phone QA → AI Playtester → Retention/Replay → strict Visual Floor…');
   doctorButton.disabled = true;
   try {
     const response = await fetch(`/api/games/${encodeURIComponent(game)}/doctor`, { method: 'POST' });
@@ -406,7 +430,7 @@ function sendFixesToDirector() {
   const floor = lastAudit.visualFloor || {};
   const hardFails = (floor.hardFails || []).map(id => HARD_FAIL_LABELS[id] || id).join('\n') || 'None.';
   const categoryScores = Object.entries(FLOOR_LABELS).map(([id, label]) => `${label}: ${floor.categories?.[id] ?? '—'}/100`).join('\n');
-  const request = `Improve this game using the latest Game Doctor audit. Prioritize the highest-value player-facing, visual-floor, AI-playtest, and Poki/web-performance fixes. Preserve working gameplay, controls, Poki hooks, and existing features. Fix desktop and phone issues together. Do not trade away core fun merely to improve a synthetic score.\n\nGAME DOCTOR SCORE: ${lastAudit.overallScore}/100\nTECHNICAL: ${lastAudit.technicalScore}/100\nAI PLAYTEST: ${lastAudit.playtestScore ?? lastAudit.interactionScore ?? 'unavailable'}/100\nVISUAL: ${lastAudit.visualScore ?? 'unavailable'}/100\nVISUAL FLOOR: ${floor.status || 'unknown'} · ${floor.score ?? '—'}/100 (minimum ${floor.minimumPrototypeScore ?? 70})\nPERFORMANCE: ${lastAudit.performanceScore ?? 'unavailable'}/100\nPOKI READINESS: ${lastAudit.pokiScore ?? 'unavailable'}/100\n\nVISUAL FLOOR CATEGORY SCORES\n${categoryScores}\n\nVISUAL HARD FAILS\n${hardFails}\n\nAI PLAYTEST PLAN\nObjective: ${lastAudit.playtest?.plan?.objective || 'unknown'}\nControls: ${lastAudit.playtest?.plan?.summary || 'unknown'}\nConfidence: ${lastAudit.playtest?.plan?.confidence || 'unknown'}\n\nAI PLAYTEST FINDINGS\n${(lastAudit.playtest?.notes || []).join('\n') || 'None.'}\n\nVISUAL DIRECTOR REPORT\n${lastAudit.visualReport}\n\nPERFORMANCE FINDINGS\n${(lastAudit.readiness?.performanceNotes || []).join('\n') || 'None.'}\n\nPOKI FINDINGS\n${(lastAudit.readiness?.pokiNotes || []).join('\n') || 'None.'}\n\nAUTOMATED ISSUES\n${(lastAudit.qa?.issues || []).join('\n') || 'None.'}`;
+  const request = `Improve this game using the latest Game Doctor audit. Prioritize the highest-value player-facing, visual-floor, retention/replay, AI-playtest, and Poki/web-performance fixes. Preserve working gameplay, controls, Poki hooks, and existing features. Fix desktop and phone issues together. Do not trade away core fun merely to improve a synthetic score.\n\nGAME DOCTOR SCORE: ${lastAudit.overallScore}/100\nTECHNICAL: ${lastAudit.technicalScore}/100\nAI PLAYTEST: ${lastAudit.playtestScore ?? lastAudit.interactionScore ?? 'unavailable'}/100\nRETENTION / REPLAY: ${lastAudit.retentionScore ?? 'unavailable'}/100\nVISUAL: ${lastAudit.visualScore ?? 'unavailable'}/100\nVISUAL FLOOR: ${floor.status || 'unknown'} · ${floor.score ?? '—'}/100 (minimum ${floor.minimumPrototypeScore ?? 70})\nPERFORMANCE: ${lastAudit.performanceScore ?? 'unavailable'}/100\nPOKI READINESS: ${lastAudit.pokiScore ?? 'unavailable'}/100\n\nRETENTION / REPLAY FINDINGS\n${(lastAudit.retention?.notes || []).join('\n') || 'None.'}\n\nVISUAL FLOOR CATEGORY SCORES\n${categoryScores}\n\nVISUAL HARD FAILS\n${hardFails}\n\nAI PLAYTEST PLAN\nObjective: ${lastAudit.playtest?.plan?.objective || 'unknown'}\nControls: ${lastAudit.playtest?.plan?.summary || 'unknown'}\nConfidence: ${lastAudit.playtest?.plan?.confidence || 'unknown'}\n\nAI PLAYTEST FINDINGS\n${(lastAudit.playtest?.notes || []).join('\n') || 'None.'}\n\nVISUAL DIRECTOR REPORT\n${lastAudit.visualReport}\n\nPERFORMANCE FINDINGS\n${(lastAudit.readiness?.performanceNotes || []).join('\n') || 'None.'}\n\nPOKI FINDINGS\n${(lastAudit.readiness?.pokiNotes || []).join('\n') || 'None.'}\n\nAUTOMATED ISSUES\n${(lastAudit.qa?.issues || []).join('\n') || 'None.'}`;
   instruction.value = request;
   instruction.dispatchEvent(new Event('input', { bubbles: true }));
   closeQuality();
@@ -422,5 +446,6 @@ overlay?.addEventListener('click', event => { if (event.target === overlay) clos
 
 if (openGame) new MutationObserver(syncButton).observe(openGame, { attributes: true, attributeFilter: ['href', 'class'] });
 ensureVisualFloorUi();
+ensureRetentionUi();
 ensureSnapshotControls();
 syncButton();
