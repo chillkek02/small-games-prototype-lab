@@ -14,6 +14,10 @@ function slugify(value = '') {
     .slice(0, 48) || 'new-game';
 }
 
+function escapeHtml(value = '') {
+  return String(value).replace(/[&<>"']/g, ch => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[ch]);
+}
+
 async function nextGameNumber(gamesDir) {
   const entries = await fsp.readdir(gamesDir, { withFileTypes: true });
   let max = 0;
@@ -76,18 +80,24 @@ async function provisionEngine({ engine, factoryDir, gameDir }) {
   return null;
 }
 
-function scaffoldHtml({ title, engine, engineAsset }) {
+function scaffoldHtml({ title, engine, engineAsset, target }) {
+  const safeTitle = escapeHtml(title);
   const engineTag = engineAsset?.kind === 'script' ? `<script src="${engineAsset.script}"></script>` : '';
   const moduleHint = engineAsset?.kind === 'module' ? `<script type="module">import * as THREE from '${engineAsset.script}'; window.THREE = THREE;</script>` : '';
+  const poki = target === 'Poki';
+  const pokiTag = poki ? `<script src="${POKI_SDK}"></script>` : '';
+  const pokiBoot = poki
+    ? `window.__POKI_READY__=false;if(window.PokiSDK){PokiSDK.init().then(()=>{window.__POKI_READY__=true}).catch(()=>{});}`
+    : '';
   return `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
 <meta name="theme-color" content="#10141c">
-<title>${title}</title>
+<title>${safeTitle}</title>
 <link rel="icon" href="data:,">
-<script src="${POKI_SDK}"></script>
+${pokiTag}
 ${engineTag}
 ${moduleHint}
 <style>
@@ -95,17 +105,26 @@ ${moduleHint}
 </style>
 </head>
 <body oncontextmenu="return false">
-<div class="boot"><strong>${title}</strong><span>Gutpopper Game Factory is building the playable prototype…</span></div>
+<div class="boot"><strong>${safeTitle}</strong><span>Gutpopper Game Factory is building the playable prototype…</span></div>
 <script>
 window.__GUTPOPPER_ENGINE__=${JSON.stringify(engine)};
-window.__POKI_READY__=false;
-if(window.PokiSDK){PokiSDK.init().then(()=>{window.__POKI_READY__=true}).catch(()=>{});}
+${pokiBoot}
 </script>
 </body>
 </html>`;
 }
 
 export function buildNewGameInstruction({ title, concept, engine, artStyle, opportunityTitle = '', target = 'Poki' }) {
+  const pokiRules = target === 'Poki' ? `
+POKI PRODUCTION RULES
+- Keep PokiSDK initialization in the page and call gameLoadingFinished() when the actual game is ready.
+- Call gameplayStart() only when active gameplay begins and gameplayStop() on pause/end/menu transitions.
+- Create natural commercial-break opportunities between runs/levels, never during active play.
+- Create at least one optional rewarded-ad opportunity that is genuinely useful but not required for progression (retry, bonus reward, temporary boost, etc.).
+- If PokiSDK is unavailable locally, gameplay must still work normally.
+- Never fake ad success. Gracefully continue in local testing.
+` : '';
+
   return `CREATE A BRAND-NEW PRODUCTION PROTOTYPE
 
 GAME TITLE
@@ -134,15 +153,7 @@ GAME DESIGN TARGET
 - Support desktop controls AND excellent touch controls. Prefer one-thumb or simple two-thumb interaction.
 - Prevent text selection, long-press/callout, context menus, accidental browser gestures, and drag-selection on gameplay UI.
 - Fit 390x844 mobile and 1440x900 desktop without horizontal overflow.
-
-POKI PRODUCTION RULES
-- Keep PokiSDK initialization in the page and call gameLoadingFinished() when the actual game is ready.
-- Call gameplayStart() only when active gameplay begins and gameplayStop() on pause/end/menu transitions.
-- Create natural commercial-break opportunities between runs/levels, never during active play.
-- Create at least one optional rewarded-ad opportunity that is genuinely useful but not required for progression (retry, bonus reward, temporary boost, etc.).
-- If PokiSDK is unavailable locally, gameplay must still work normally.
-- Never fake ad success. Gracefully continue in local testing.
-
+${pokiRules}
 SCOPE
 Build the actual playable v1 prototype now, not a design document or placeholder. Keep it compact enough to iterate quickly, but complete enough to judge whether the core loop is fun. You may create supporting JS/CSS/SVG/data files inside this game folder. Do not edit any other game or Factory file.
 
@@ -153,6 +164,7 @@ The Factory will run desktop/mobile browser QA after you finish. Do not launch y
 export async function createGameProject({ gamesDir, factoryDir, title, concept, engine = 'auto', artStyle = 'auto', opportunity = '', target = 'Poki' }) {
   title = String(title || '').trim();
   concept = String(concept || '').trim();
+  target = target === 'General Web' ? 'General Web' : 'Poki';
   if (title.length < 2) throw new Error('Give the new game a title.');
   if (concept.length < 12) throw new Error('Describe the game concept in a little more detail.');
 
@@ -171,7 +183,7 @@ export async function createGameProject({ gamesDir, factoryDir, title, concept, 
       createdBy: 'Gutpopper Game Factory', createdAt: new Date().toISOString()
     };
     await Promise.all([
-      fsp.writeFile(path.join(gameDir, 'index.html'), scaffoldHtml({ title, engine, engineAsset }), 'utf8'),
+      fsp.writeFile(path.join(gameDir, 'index.html'), scaffoldHtml({ title, engine, engineAsset, target }), 'utf8'),
       fsp.writeFile(path.join(gameDir, 'factory-game.json'), JSON.stringify(metadata, null, 2), 'utf8')
     ]);
     return {
