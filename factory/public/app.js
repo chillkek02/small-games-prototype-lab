@@ -5,7 +5,9 @@ const state = {
   selectedGame: null,
   activeJobId: null,
   lastJobStatus: null,
-  lastJobUpdate: null
+  lastJobUpdate: null,
+  creatorOptions: null,
+  opportunityReport: null
 };
 
 const desktopBridge = window.factoryDesktop || null;
@@ -45,7 +47,6 @@ async function setupClientMode() {
 
   $('#clientMode').textContent = 'PC Factory';
   $('#phoneRemoteButton').classList.remove('hidden');
-
   try {
     const info = await desktopBridge.getInfo();
     if (info?.remote?.installed && info.remote.ready) {
@@ -58,16 +59,19 @@ async function setupClientMode() {
 
 function renderGames() {
   $('#gameCount').textContent = state.games.length;
-  $('#gameList').innerHTML = state.games.map(game => `
-    <button class="game-item ${state.selectedGame?.id === game.id ? 'selected' : ''}" data-game="${escapeHtml(game.id)}" type="button">
-      <span class="game-index">${escapeHtml(game.id.split('-')[0])}</span>
-      <span class="game-copy">
-        <strong>${escapeHtml(game.title)}</strong>
-        <small>${escapeHtml(game.id)}</small>
-      </span>
-      <span class="chevron">›</span>
-    </button>
-  `).join('');
+  $('#gameList').innerHTML = state.games.map(game => {
+    const meta = game.metadata;
+    const detail = meta ? `${game.id} · ${meta.engine || ''} · ${meta.artStyle || ''}` : game.id;
+    return `
+      <button class="game-item ${state.selectedGame?.id === game.id ? 'selected' : ''}" data-game="${escapeHtml(game.id)}" type="button">
+        <span class="game-index">${escapeHtml(game.id.split('-')[0])}</span>
+        <span class="game-copy">
+          <strong>${escapeHtml(game.title)}</strong>
+          <small>${escapeHtml(detail)}</small>
+        </span>
+        <span class="chevron">›</span>
+      </button>`;
+  }).join('');
 
   document.querySelectorAll('.game-item').forEach(button => {
     button.addEventListener('click', () => selectGame(button.dataset.game));
@@ -78,7 +82,6 @@ function selectGame(id) {
   state.selectedGame = state.games.find(game => game.id === id) || null;
   renderGames();
   if (!state.selectedGame) return;
-
   $('#selectedTitle').textContent = state.selectedGame.title;
   $('#emptyPreview').classList.add('hidden');
   $('#gameFrame').src = `${state.selectedGame.url}?factory=${Date.now()}`;
@@ -89,14 +92,7 @@ function selectGame(id) {
 }
 
 function badgeFor(status) {
-  const labels = {
-    queued: 'Queued',
-    running: 'Building',
-    passed: 'Passed',
-    'needs-review': 'Review',
-    failed: 'Failed'
-  };
-  return labels[status] || 'Idle';
+  return ({ queued: 'Queued', running: 'Building', passed: 'Passed', 'needs-review': 'Review', failed: 'Failed' })[status] || 'Idle';
 }
 
 function resultLabel(view) {
@@ -142,6 +138,7 @@ function renderJob(job) {
   const terminal = ['passed', 'needs-review', 'failed'].includes(job.status);
   if (terminal && state.lastJobStatus !== job.status && state.selectedGame?.id === job.game) {
     $('#gameFrame').src = `${state.selectedGame.url}?factory=${Date.now()}`;
+    void refreshGames(false);
   }
   state.lastJobStatus = job.status;
   $('#runBuild').disabled = !state.selectedGame || !terminal;
@@ -151,10 +148,7 @@ function renderHistory(jobs) {
   $('#historyList').innerHTML = jobs.slice(0, 8).map(job => `
     <button class="history-item" data-job="${escapeHtml(job.id)}" type="button">
       <span class="history-dot ${escapeHtml(job.status)}"></span>
-      <span>
-        <strong>${escapeHtml(job.game)}</strong>
-        <small>${escapeHtml(job.stage || job.status)}</small>
-      </span>
+      <span><strong>${escapeHtml(job.game)}</strong><small>${escapeHtml(job.stage || job.status)}</small></span>
       <time>${new Date(job.createdAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}</time>
     </button>
   `).join('') || '<div class="history-empty">No factory runs yet.</div>';
@@ -165,6 +159,14 @@ function renderHistory(jobs) {
       renderJob(await api(`/api/jobs/${encodeURIComponent(state.activeJobId)}`));
     });
   });
+}
+
+async function refreshGames(preserveSelection = true) {
+  const selectedId = preserveSelection ? state.selectedGame?.id : null;
+  const data = await api('/api/games');
+  state.games = data.games || [];
+  if (selectedId) state.selectedGame = state.games.find(game => game.id === selectedId) || state.selectedGame;
+  renderGames();
 }
 
 async function refreshJobOnly() {
@@ -202,8 +204,7 @@ async function startBuild() {
   $('#commandHint').textContent = 'Dispatching to the factory…';
   try {
     const job = await api('/api/jobs', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
+      method: 'POST', headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ game: state.selectedGame.id, instruction })
     });
     state.activeJobId = job.id;
@@ -218,12 +219,187 @@ async function startBuild() {
   }
 }
 
+/* v0.3 All-in-one Game Creator */
+function optionLabel(options, id) {
+  return options?.find(item => item.id === id)?.label || id;
+}
+
+async function ensureCreatorOptions() {
+  if (state.creatorOptions) return state.creatorOptions;
+  state.creatorOptions = await api('/api/creator-options');
+  $('#engineSelect').innerHTML = state.creatorOptions.engines.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`).join('');
+  $('#artSelect').innerHTML = state.creatorOptions.artStyles.map(item => `<option value="${escapeHtml(item.id)}">${escapeHtml(item.label)}</option>`).join('');
+  return state.creatorOptions;
+}
+
+function setStudioPane(mode) {
+  const scout = mode === 'scout';
+  $('#scoutPane').classList.toggle('hidden', !scout);
+  $('#creatorPane').classList.toggle('hidden', scout);
+  $('#showScout').classList.toggle('active', scout);
+  $('#showCreator').classList.toggle('active', !scout);
+  if (!scout) updateRecommendation();
+}
+
+async function openStudio(mode = 'scout') {
+  $('#studioOverlay').classList.remove('hidden');
+  document.body.style.overflow = 'hidden';
+  try {
+    await ensureCreatorOptions();
+    setStudioPane(mode);
+  } catch (error) {
+    $('#creatorStatus').textContent = `Creator setup error: ${error.message}`;
+    setStudioPane('creator');
+  }
+}
+
+function closeStudio() {
+  $('#studioOverlay').classList.add('hidden');
+  document.body.style.overflow = '';
+}
+
+function recommendedForForm() {
+  const selectedSlug = $('#selectedOpportunity').value;
+  const opportunity = state.opportunityReport?.opportunities?.find(item => item.slug === selectedSlug);
+  let engine = opportunity?.engine || 'phaser3';
+  let art = opportunity?.art || 'vector';
+  const concept = $('#newGameConcept').value.toLowerCase();
+  if (!opportunity) {
+    if (/drive|car|truck|tow|vehicle|road|delivery/.test(concept)) { engine = 'three'; art = 'toy3d'; }
+    else if (/pixel|retro/.test(concept)) { engine = 'phaser3'; art = 'pixel'; }
+    else if (/3d|city|world/.test(concept)) { engine = 'three'; art = 'toy3d'; }
+  }
+  const selectedEngine = $('#engineSelect').value || 'auto';
+  const selectedArt = $('#artSelect').value || 'auto';
+  if (selectedEngine !== 'auto') engine = selectedEngine;
+  if (selectedArt !== 'auto') art = selectedArt;
+  return { engine, art };
+}
+
+function updateRecommendation() {
+  if (!state.creatorOptions) return;
+  const { engine, art } = recommendedForForm();
+  $('#recommendationText').textContent = `${optionLabel(state.creatorOptions.engines, engine)} + ${optionLabel(state.creatorOptions.artStyles, art)}`;
+  const selectedEngine = state.creatorOptions.engines.find(item => item.id === ($('#engineSelect').value || 'auto'));
+  $('#engineHelp').textContent = selectedEngine?.description || 'Factory can choose automatically.';
+}
+
+function renderOpportunityReport(report) {
+  state.opportunityReport = report;
+  const liveText = report.market?.live ? 'Live Poki pages checked' : 'Using fallback market snapshot';
+  $('#scoutStatus').textContent = `${liveText} · ${new Date(report.generatedAt).toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })} · ${report.methodology}`;
+  const opportunities = (report.opportunities || []).slice(0, 6);
+  $('#opportunityList').innerHTML = opportunities.map((item, index) => `
+    <article class="opportunity-card ${index === 0 ? 'top' : ''}">
+      <span class="opportunity-rank">#${index + 1}</span>
+      <div><h3>${escapeHtml(item.title)}</h3><span class="genre">${escapeHtml(item.genre)} · ${escapeHtml(item.confidence)} confidence</span></div>
+      <p>${escapeHtml(item.hook)}</p>
+      <div class="score-row">
+        <div class="score-chip"><span>Score</span><strong>${item.score}/100</strong></div>
+        <div class="score-chip"><span>Demand</span><strong>${item.demand}</strong></div>
+        <div class="score-chip"><span>Whitespace</span><strong>${item.whitespace}</strong></div>
+        <div class="score-chip"><span>Mobile</span><strong>${item.mobileFit}</strong></div>
+      </div>
+      <div class="opportunity-meta"><span>${escapeHtml(optionLabel(report.engines, item.engine))}</span><span>${escapeHtml(optionLabel(report.artStyles, item.art))}</span><span>Ad fit ${item.adFit}</span></div>
+      <ul class="opportunity-reasons">${(item.why || []).slice(0, 4).map(reason => `<li>${escapeHtml(reason)}</li>`).join('')}</ul>
+      <button class="primary-button use-opportunity" data-opportunity="${escapeHtml(item.slug)}" type="button">Build This Game</button>
+    </article>`).join('');
+
+  document.querySelectorAll('.use-opportunity').forEach(button => {
+    button.addEventListener('click', () => useOpportunity(button.dataset.opportunity));
+  });
+}
+
+async function runMarketScout() {
+  const button = $('#runScout');
+  button.disabled = true;
+  button.textContent = 'Researching Poki…';
+  $('#scoutStatus').textContent = 'Checking current Poki popular, new, and category pages…';
+  $('#opportunityList').innerHTML = '';
+  try {
+    const report = await api(`/api/opportunities?t=${Date.now()}`);
+    renderOpportunityReport(report);
+  } catch (error) {
+    $('#scoutStatus').textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Run Market Scout';
+  }
+}
+
+function useOpportunity(slug) {
+  const item = state.opportunityReport?.opportunities?.find(op => op.slug === slug);
+  if (!item) return;
+  $('#newGameTitle').value = item.title;
+  $('#newGameConcept').value = `${item.hook}\n\nCore direction: ${item.why.join('; ')}.`;
+  $('#selectedOpportunity').value = item.slug;
+  $('#engineSelect').value = 'auto';
+  $('#artSelect').value = 'auto';
+  setStudioPane('creator');
+  updateRecommendation();
+}
+
+async function createNewGame() {
+  const title = $('#newGameTitle').value.trim();
+  const concept = $('#newGameConcept').value.trim();
+  if (title.length < 2) { $('#creatorStatus').textContent = 'Give the game a title.'; $('#newGameTitle').focus(); return; }
+  if (concept.length < 12) { $('#creatorStatus').textContent = 'Describe the core game idea in a little more detail.'; $('#newGameConcept').focus(); return; }
+
+  const button = $('#createGame');
+  button.disabled = true;
+  button.textContent = 'Creating Game…';
+  $('#creatorStatus').textContent = 'Creating the next numbered game, provisioning the engine, and dispatching Standard Terra…';
+  try {
+    const result = await api('/api/new-games', {
+      method: 'POST', headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({
+        title,
+        concept,
+        engine: $('#engineSelect').value || 'auto',
+        artStyle: $('#artSelect').value || 'auto',
+        target: $('#targetSelect').value || 'Poki',
+        opportunity: $('#selectedOpportunity').value || ''
+      })
+    });
+    await refreshGames(false);
+    selectGame(result.game.id);
+    state.activeJobId = result.job.id;
+    state.lastJobStatus = null;
+    renderJob(result.job);
+    closeStudio();
+    $('#commandHint').textContent = `New Game · ${result.game.id} · Standard Terra building playable v1`;
+    setTimeout(refreshJobOnly, 250);
+    setTimeout(refreshOverview, 500);
+  } catch (error) {
+    $('#creatorStatus').textContent = error.message;
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Build Playable Prototype';
+  }
+}
+
 $('#runBuild').addEventListener('click', startBuild);
 $('#instruction').addEventListener('keydown', event => {
   if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') startBuild();
 });
 $('#reloadPreview').addEventListener('click', () => {
   if (state.selectedGame) $('#gameFrame').src = `${state.selectedGame.url}?factory=${Date.now()}`;
+});
+
+$('#scoutButton').addEventListener('click', () => openStudio('scout'));
+$('#newGameButton').addEventListener('click', () => openStudio('creator'));
+$('#closeStudio').addEventListener('click', closeStudio);
+$('#studioOverlay').addEventListener('click', event => { if (event.target === $('#studioOverlay')) closeStudio(); });
+$('#showScout').addEventListener('click', () => setStudioPane('scout'));
+$('#showCreator').addEventListener('click', () => { $('#selectedOpportunity').value = ''; setStudioPane('creator'); });
+$('#runScout').addEventListener('click', runMarketScout);
+$('#createGame').addEventListener('click', createNewGame);
+$('#newGameConcept').addEventListener('input', updateRecommendation);
+$('#engineSelect').addEventListener('change', updateRecommendation);
+$('#artSelect').addEventListener('change', updateRecommendation);
+
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !$('#studioOverlay').classList.contains('hidden')) closeStudio();
 });
 
 $('#phoneRemoteButton').addEventListener('click', () => $('#remotePanel').classList.toggle('hidden'));
@@ -264,12 +440,11 @@ if ('serviceWorker' in navigator) {
 
 try {
   await setupClientMode();
-  const data = await api('/api/games');
-  state.games = data.games || [];
-  renderGames();
+  await refreshGames(false);
   if (state.games.length) selectGame(state.games[0].id);
   await refreshOverview();
   await refreshJobOnly();
+  void ensureCreatorOptions().catch(error => console.debug('Creator options unavailable', error));
   setInterval(refreshJobOnly, 1000);
   setInterval(refreshOverview, 5000);
 } catch (error) {
