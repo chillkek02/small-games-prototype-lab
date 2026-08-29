@@ -21,7 +21,7 @@ call npm install
 if errorlevel 1 goto :fail
 
 echo.
-echo Building Windows installer and portable ZIP...
+echo Building Windows installer...
 call npm run make:win
 if errorlevel 1 goto :fail
 
@@ -32,7 +32,7 @@ echo   BUILD COMPLETE
 echo.
 echo The installer is inside:
 echo %CD%\out\make\squirrel.windows\x64
-explorer "%CD%\out\make"
+explorer "%CD%\out\make\squirrel.windows\x64"
 pause
 exit /b 0
 
