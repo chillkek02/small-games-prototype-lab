@@ -166,8 +166,11 @@ GAME DESIGN TARGET
 - The first playable loop should be understandable in under 10 seconds.
 - Build a complete short-session loop: start -> play -> success/failure -> reward/progression -> replay.
 - Aim for a 2–5 minute satisfying session with reasons to immediately replay.
-- Include score, progression, upgrades, unlocks, streaks, missions, or another retention layer appropriate to the concept.
-- Use the Production Core save helpers for persistent progression when appropriate.
+- Design at least TWO complementary one-more-run hooks that genuinely fit the concept. Examples: persistent upgrade/unlock + mission, high-score chase + randomized variation, level progression + faster retry, streak/combo mastery + escalating difficulty. Do not force every system into every game.
+- Make success/failure lead back into another run quickly. Prefer one obvious retry/continue action over multi-screen friction.
+- If the game uses upgrades/unlocks, make them noticeably change gameplay, strategy, capability, speed, reach, risk/reward, or another felt property. Do not create decorative stat labels with no meaningful effect.
+- If persistence fits, use the Production Core save/load helpers and ensure progress survives reload. Pure arcade/score-chase games may instead rely on best score, missions, variation, mastery, or escalating challenge.
+- Include a visible score/best/missions/progression/reward cue so players understand what they are improving toward.
 - Include meaningful game feel: juice, hit/collect feedback, transitions, particles, camera/screen feedback, and use the built-in burst/shake/vibrate helpers where they fit.
 - Support desktop controls AND excellent touch controls. Prefer one-thumb or simple two-thumb interaction and use the normalized input helper when appropriate.
 - Prevent text selection, long-press/callout, context menus, accidental browser gestures, and drag-selection on gameplay UI.
@@ -176,17 +179,19 @@ GAME DESIGN TARGET
 - Use responsive resize/orientation handling rather than a one-time viewport calculation. Phaser should use an appropriate responsive Scale Manager strategy; Three.js must resize renderer and update camera aspect; Canvas/SVG must respond to resize without stretching.
 ${pokiRules}
 SCOPE
-Build the actual playable v1 prototype now, not a design document or placeholder. Keep it compact enough to iterate quickly, but complete and polished enough to judge whether the core loop is fun and visually promising. You may create supporting JS/CSS/SVG/data files inside this game folder. Do not edit any other game or Factory file.
+Build the actual playable v1 prototype now, not a design document or placeholder. Keep it compact enough to iterate quickly, but complete and polished enough to judge whether the core loop is fun, visually promising, and worth replaying. You may create supporting JS/CSS/SVG/data files inside this game folder. Do not edit any other game or Factory file.
 
 SELF-CHECK BEFORE FINISHING
 - Ask whether the screen would look embarrassing in a screenshot next to modern casual web games. If yes, improve it now.
+- Ask whether a player finishing/failing one run has an obvious reason to immediately start another. If not, strengthen replayability now.
 - Remove obvious programmer-art/default-browser presentation.
 - Make sure major characters/props/environment/HUD do not read as raw primitive placeholders.
 - Make sure the first screenshot has a clear focal point, cohesive palette, deliberate spacing, depth/layering, and visible feedback potential.
+- Verify any persistent progress actually writes and reloads correctly when practical from source-level checks.
 - Keep improvements lightweight enough to preserve the Poki performance targets.
 
 QA
-The Factory will run desktop/mobile browser QA and Game Doctor can run cold-load, payload-size, request-count, frame-pacing, ad-block-resilience, SDK-event-order, AI playtesting, and strict visual-quality-floor checks. Do not launch your own browser or HTTP server unless absolutely necessary to diagnose a source error. Perform lightweight syntax/source checks and then stop.`;
+The Factory will run desktop/mobile browser QA and automatic first-prototype gates for visuals and retention/replay. Game Doctor can also run cold-load, payload-size, request-count, frame-pacing, ad-block-resilience, SDK-event-order, AI playtesting, retention/persistence/replay checks, and strict visual-quality-floor checks. Do not launch your own browser or HTTP server unless absolutely necessary to diagnose a source error. Perform lightweight syntax/source checks and then stop.`;
 }
 
 export async function createGameProject({ gamesDir, factoryDir, title, concept, engine = 'auto', artStyle = 'auto', opportunity = '', target = 'Poki' }) {
@@ -211,6 +216,7 @@ export async function createGameProject({ gamesDir, factoryDir, title, concept, 
       id, title, concept, target, engine, artStyle, opportunity: opportunity || null,
       starterKit: { name: starterKit.name, version: starterKit.version },
       visualQualityFloor: { version: '1.0.0', minimumPrototypeScore: 70 },
+      retentionFloor: { version: '1.0.0', minimumPrototypeScore: 65 },
       createdBy: 'Gutpopper Game Factory', createdAt: new Date().toISOString()
     };
     await Promise.all([
