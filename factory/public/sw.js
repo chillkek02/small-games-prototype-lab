@@ -1,5 +1,5 @@
-const CACHE = 'gutpopper-factory-shell-v0.4-device-test';
-const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/app.js', '/device-preview.js', '/manifest.webmanifest', '/factory-icon.svg'];
+const CACHE = 'gutpopper-factory-shell-v0.4-quality-lab';
+const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/app.js', '/device-preview.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
   event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting()));
@@ -12,7 +12,7 @@ self.addEventListener('activate', event => {
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
   if (event.request.method !== 'GET' || url.origin !== self.location.origin) return;
-  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/game/') || url.pathname.startsWith('/artifacts/')) return;
+  if (url.pathname.startsWith('/api/') || url.pathname.startsWith('/game/') || url.pathname.startsWith('/artifacts/') || url.pathname.startsWith('/quality-artifacts/')) return;
 
   event.respondWith(
     fetch(event.request)
