@@ -1,7 +1,12 @@
 const { spawnSync } = require('node:child_process');
 
-const npx = process.platform === 'win32' ? 'npx.cmd' : 'npx';
-const result = spawnSync(npx, ['playwright', 'install', 'chromium'], {
+const isWindows = process.platform === 'win32';
+const command = isWindows ? (process.env.ComSpec || 'cmd.exe') : 'npx';
+const args = isWindows
+  ? ['/d', '/s', '/c', 'npx playwright install chromium']
+  : ['playwright', 'install', 'chromium'];
+
+const result = spawnSync(command, args, {
   stdio: 'inherit',
   env: {
     ...process.env,
