@@ -1,4 +1,4 @@
-const CACHE = 'gutpopper-factory-shell-v0.12-visual-overhaul';
+const CACHE = 'gutpopper-factory-shell-v0.12.1-game-delete';
 const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/app.js', '/device-preview.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
