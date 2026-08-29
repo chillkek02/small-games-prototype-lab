@@ -7,6 +7,7 @@ import { JobStore } from './lib/store.js';
 import { probeCodex, runJob } from './lib/runner.js';
 import { getOpportunityReport, getCreatorOptions } from './lib/opportunity.js';
 import { createGameProject } from './lib/new-game.js';
+import { runQualityAudit } from './lib/quality.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(process.env.GAME_FACTORY_REPO_ROOT || path.resolve(__dirname, '..'));
@@ -17,6 +18,7 @@ const PORT = Number(process.env.GAME_FACTORY_PORT || 4177);
 const HOST = process.env.GAME_FACTORY_HOST || '127.0.0.1';
 const store = new JobStore(STATE_DIR);
 const activeByGame = new Map();
+const qualityBusy = new Set();
 let creatingGame = false;
 
 const MIME = {
@@ -136,8 +138,9 @@ async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/status') {
     const [codex, jobs] = await Promise.all([probeCodex(REPO_ROOT), store.list(5)]);
     return sendJson(res, 200, {
-      name: 'Gutpopper Game Factory', version: '0.3.0', repoRoot: REPO_ROOT, codex,
+      name: 'Gutpopper Game Factory', version: '0.4.0', repoRoot: REPO_ROOT, codex,
       engines: { phaser3: '3.90.0', phaser4: '4.2.1', three: '0.185.1' },
+      qualityLab: { visualDirector: true, interactionProbe: true, desktopViewport: '1440x900', phoneViewport: '390x844' },
       activeGames: [...activeByGame.keys()], recentJobs: jobs.length
     });
   }
@@ -155,6 +158,31 @@ async function handleApi(req, res, url) {
       return sendJson(res, 200, await getOpportunityReport());
     } catch (error) {
       return sendJson(res, 500, { error: `Opportunity Scout failed: ${error.message}` });
+    }
+  }
+
+  const doctorMatch = url.pathname.match(/^\/api\/games\/([^/]+)\/doctor$/);
+  if (req.method === 'POST' && doctorMatch) {
+    const game = decodeURIComponent(doctorMatch[1]);
+    if (!safeSegment(game)) return sendJson(res, 400, { error: 'Invalid game id' });
+    if (activeByGame.has(game)) return sendJson(res, 409, { error: 'Wait for the active build to finish before running Game Doctor.' });
+    if (qualityBusy.has(game)) return sendJson(res, 409, { error: 'Game Doctor is already auditing this game.' });
+    const gameDir = path.join(GAMES_DIR, game);
+    try {
+      const stat = await fsp.stat(path.join(gameDir, 'index.html'));
+      if (!stat.isFile()) throw new Error('Missing index.html');
+    } catch {
+      return sendJson(res, 404, { error: 'Game target not found' });
+    }
+    qualityBusy.add(game);
+    try {
+      const gameUrl = `http://${HOST}:${PORT}/game/${encodeURIComponent(game)}/`;
+      const audit = await runQualityAudit({ game, gameDir, url: gameUrl, stateDir: STATE_DIR });
+      return sendJson(res, 200, audit);
+    } catch (error) {
+      return sendJson(res, 500, { error: `Game Doctor failed: ${error.message}` });
+    } finally {
+      qualityBusy.delete(game);
     }
   }
 
@@ -242,6 +270,14 @@ async function handler(req, res) {
     if (handled !== false) return;
   }
 
+  const qualityArtifactMatch = url.pathname.match(/^\/quality-artifacts\/([^/]+)\/([^/]+)$/);
+  if (qualityArtifactMatch && safeSegment(qualityArtifactMatch[1]) && safeSegment(qualityArtifactMatch[2])) {
+    const auditDir = path.join(STATE_DIR, 'quality', qualityArtifactMatch[1]);
+    const filePath = safeJoin(auditDir, qualityArtifactMatch[2]);
+    if (filePath && await serveFile(res, filePath, { noCache: true })) return;
+    res.writeHead(404); res.end('Not found'); return;
+  }
+
   const artifactMatch = url.pathname.match(/^\/artifacts\/([^/]+)\/([^/]+)$/);
   if (artifactMatch && safeSegment(artifactMatch[1]) && safeSegment(artifactMatch[2])) {
     const filePath = safeJoin(store.jobDir(artifactMatch[1]), artifactMatch[2]);
@@ -285,7 +321,7 @@ export async function startFactoryServer() {
   });
 
   const localUrl = `http://${HOST}:${PORT}`;
-  console.log(`\nGutpopper Game Factory v0.3.0`);
+  console.log(`\nGutpopper Game Factory v0.4.0`);
   console.log(localUrl);
   console.log(`Repo: ${REPO_ROOT}\n`);
   return { server, url: localUrl, repoRoot: REPO_ROOT, stateDir: STATE_DIR, port: PORT, host: HOST };
