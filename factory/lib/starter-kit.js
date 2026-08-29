@@ -1,7 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 
-const CORE_VERSION = '1.0.0';
+const CORE_VERSION = '1.1.0';
 
 function coreCss() {
   return `:root{
@@ -16,6 +16,8 @@ body{position:fixed;inset:0}
 button,input,select,textarea{font:inherit}
 canvas,svg,#game,#game-root,.game-surface{display:block;touch-action:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none}
 .gp-shell{position:fixed;inset:0;overflow:hidden;padding:var(--gp-safe-top) var(--gp-safe-right) var(--gp-safe-bottom) var(--gp-safe-left)}
+.gp-stage{position:absolute;inset:0;width:100%;height:100%;overflow:hidden}
+.gp-stage>canvas,.gp-stage>svg{display:block;width:100%;height:100%;max-width:none;max-height:none}
 .gp-hud{position:absolute;z-index:20;top:calc(10px + var(--gp-safe-top));left:calc(10px + var(--gp-safe-left));right:calc(10px + var(--gp-safe-right));display:flex;align-items:flex-start;justify-content:space-between;gap:10px;pointer-events:none}
 .gp-hud>*{pointer-events:auto}
 .gp-pill{min-height:34px;display:inline-flex;align-items:center;gap:7px;padding:7px 11px;border-radius:999px;background:var(--gp-panel);backdrop-filter:blur(10px);box-shadow:0 8px 24px rgba(0,0,0,.18);font-size:12px;font-weight:800}
@@ -28,6 +30,7 @@ canvas,svg,#game,#game-root,.game-surface{display:block;touch-action:none;user-s
 .gp-feedback-layer{position:fixed;z-index:999;inset:0;overflow:hidden;pointer-events:none}
 .gp-particle{position:absolute;width:10px;height:10px;border-radius:50%;background:currentColor;will-change:transform,opacity}
 @media(max-width:600px){:root{--gp-touch:56px}.gp-pill{font-size:11px}.gp-card{padding:20px 17px;border-radius:22px}}
+@media(min-width:900px) and (orientation:landscape){.gp-card{width:min(680px,calc(100vw - 80px));padding:28px}.gp-hud{top:18px;left:18px;right:18px}}
 `;
 }
 
@@ -47,6 +50,8 @@ function clamp(v,min,max){return Math.max(min,Math.min(max,v))}
 function lerp(a,b,t){return a+(b-a)*t}
 function vibrate(pattern=18){try{if(navigator.vibrate)navigator.vibrate(pattern)}catch{}}
 function preventBrowserGestures(root=document){root.addEventListener('contextmenu',e=>e.preventDefault());root.addEventListener('dragstart',e=>e.preventDefault());root.addEventListener('selectstart',e=>e.preventDefault());}
+function viewport(){const width=Math.max(1,window.innerWidth||document.documentElement.clientWidth||1);const height=Math.max(1,window.innerHeight||document.documentElement.clientHeight||1);return{width,height,aspect:width/height,desktopLandscape:width>=900&&width>height,phone:width<=600,portrait:height>width}}
+function watchViewport(callback){if(typeof callback!=='function')return()=>{};let raf=0;const emit=()=>{cancelAnimationFrame(raf);raf=requestAnimationFrame(()=>callback(viewport()))};window.addEventListener('resize',emit);window.addEventListener('orientationchange',emit);emit();return()=>{cancelAnimationFrame(raf);window.removeEventListener('resize',emit);window.removeEventListener('orientationchange',emit)}}
 
 function createInput(target=document){
   const state={keys:new Set(),pointer:{x:0,y:0,down:false,id:null},lastType:'none'};
@@ -80,7 +85,7 @@ const poki={
 const session={startedAt:performance.now(),events:[],mark(name,data={}){this.events.push({name,t:Math.round(performance.now()-this.startedAt),...data});if(this.events.length>200)this.events.shift()},summary(){return {durationMs:Math.round(performance.now()-this.startedAt),events:[...this.events]}}};
 
 preventBrowserGestures();
-window.GutpopperCore={version:VERSION,load,save,clearSave,clamp,lerp,vibrate,preventBrowserGestures,createInput,burst,shake,poki,session};
+window.GutpopperCore={version:VERSION,load,save,clearSave,clamp,lerp,vibrate,preventBrowserGestures,viewport,watchViewport,createInput,burst,shake,poki,session};
 window.dispatchEvent(new CustomEvent('gutpopper-core-ready',{detail:{version:VERSION,pokiTarget:POKI_TARGET}}));
 })();
 `;
@@ -95,6 +100,7 @@ function manifest({ engine, target }) {
     features: [
       'mobile browser gesture suppression',
       'safe-area responsive CSS primitives',
+      'desktop/phone viewport detection and resize observer helper',
       'keyboard + normalized pointer/touch input helper',
       'local save/load helpers',
       'Poki lifecycle/ad wrappers with safe local fallback',
@@ -119,8 +125,13 @@ export async function writeProductionStarterKit({ gameDir, engine, target }) {
 export function starterKitInstruction() {
   return `PRODUCTION STARTER KIT — ALREADY INSTALLED
 - Keep and use ./starter/production-core.css and ./starter/production-core.js instead of rebuilding generic browser plumbing.
-- window.GutpopperCore provides: load/save/clearSave, clamp/lerp, createInput(), Poki lifecycle/ad wrappers, burst(), shake(), vibrate(), and local session markers.
-- Use the starter CSS safe-area variables and touch-sized UI primitives where useful, but adapt the visual styling to this game's chosen art direction.
+- window.GutpopperCore provides: load/save/clearSave, clamp/lerp, viewport(), watchViewport(), createInput(), Poki lifecycle/ad wrappers, burst(), shake(), vibrate(), and local session markers.
+- Use .gp-shell/.gp-stage and the starter CSS safe-area/touch primitives where useful, but adapt the visual styling to this game's chosen art direction.
+- RESPONSIVE REQUIREMENT: phone and desktop are two layouts of the same game, not one portrait layout scaled into a larger window.
+- At 390x844, use a touch-first portrait/mobile composition when appropriate.
+- At 1440x900, actively recompose for landscape and use the available width for the playfield, camera/world view, HUD, menus, or supporting scenery. Never leave the playable game as a narrow 390px-style portrait column centered between large empty/decorative side gutters.
+- Canvas/WebGL games must resize the renderer/canvas with the viewport. Phaser games should use a responsive scale strategy such as RESIZE when the design supports it and reposition cameras/UI on resize. Three.js must update renderer size and camera aspect on resize.
+- Use GutpopperCore.viewport()/watchViewport() or equivalent resize logic so orientation/window changes update the game without reload.
 - Do not remove the starter kit unless the game's architecture genuinely replaces every capability it provides.
 - The starter kit is infrastructure, not the game. Build an original mechanic, level structure, progression, visuals, and game feel on top of it.`;
 }
