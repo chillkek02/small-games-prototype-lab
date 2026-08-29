@@ -2,8 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover" />
+  <meta name="theme-color" content="#0b0e14" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Gutpopper Game Factory</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" href="/factory-icon.svg" type="image/svg+xml" />
   <link rel="stylesheet" href="/styles.css" />
 </head>
 <body>
@@ -16,11 +21,33 @@
           <div class="brand-subtitle">AI production line for Small Games</div>
         </div>
       </div>
-      <div class="topbar-status">
-        <span id="codexDot" class="status-dot"></span>
-        <span id="codexStatus">Checking Codex…</span>
+      <div class="topbar-actions">
+        <span id="clientMode" class="client-mode">PC Factory</span>
+        <button id="phoneRemoteButton" class="ghost-button hidden" type="button">Phone Remote</button>
+        <div class="topbar-status">
+          <span id="codexDot" class="status-dot"></span>
+          <span id="codexStatus">Checking Codex…</span>
+        </div>
       </div>
     </header>
+
+    <section id="remotePanel" class="remote-panel hidden" aria-live="polite">
+      <div>
+        <span class="eyebrow">PHONE REMOTE</span>
+        <strong>Control this PC factory from your phone</strong>
+        <p id="remoteMessage">Use a private Tailscale connection so the factory never needs to be exposed to the public internet.</p>
+      </div>
+      <div id="remoteUrlWrap" class="remote-url-wrap hidden">
+        <span>Private phone address</span>
+        <a id="remoteUrl" href="#" target="_blank" rel="noreferrer"></a>
+        <small>Open this on a phone signed into the same Tailscale network, then use Add to Home Screen.</small>
+      </div>
+      <div class="remote-actions">
+        <button id="enableRemote" class="primary-button" type="button">Enable Phone Remote</button>
+        <button id="installTailscale" class="ghost-button hidden" type="button">Install Tailscale</button>
+        <button id="closeRemote" class="ghost-button" type="button">Close</button>
+      </div>
+    </section>
 
     <main class="workspace">
       <aside class="projects-panel panel">
