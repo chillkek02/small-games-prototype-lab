@@ -12,7 +12,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: game-factory-windows-${{ github.ref }}
@@ -40,10 +40,28 @@ jobs:
       - name: Build Windows installer
         run: npm run make:win
 
-      - name: Upload installer
+      - name: Upload Actions artifact
         uses: actions/upload-artifact@v4
         with:
           name: Gutpopper-Game-Factory-Windows
           path: factory/out/make/squirrel.windows/x64/**
           if-no-files-found: error
           retention-days: 14
+
+      - name: Publish easy-download GitHub Release
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $tag = 'game-factory-v0.2.0'
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git tag -f $tag $env:GITHUB_SHA
+          git push origin "refs/tags/$tag" --force
+
+          gh release view $tag *> $null
+          if ($LASTEXITCODE -ne 0) {
+            gh release create $tag --target $env:GITHUB_SHA --title 'Gutpopper Game Factory v0.2' --notes 'Windows desktop build with Codex game editing, desktop/mobile QA, and private phone-remote support.' --prerelease
+          }
+
+          gh release upload $tag 'out/make/squirrel.windows/x64/Gutpopper-Game-Factory-Setup.exe' --clobber
