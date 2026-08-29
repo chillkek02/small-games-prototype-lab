@@ -166,7 +166,7 @@
     <div class="studio-modal">
       <header class="studio-modal-head">
         <div>
-          <span class="eyebrow">GAME CREATOR · v0.4</span>
+          <span class="eyebrow">GAME CREATOR · v0.6</span>
           <h2 id="studioTitle">Create the next Gutpopper game</h2>
           <p>Scout Poki opportunities or start with your own idea. The PC builds and QA-tests it while you control the process here.</p>
         </div>
@@ -216,7 +216,7 @@
         <div>
           <span class="eyebrow">QUALITY LAB · GAME DOCTOR</span>
           <h2 id="qualityTitle">Game Doctor</h2>
-          <p>Automated desktop + phone QA, interaction probing, and screenshot-based Visual Director review. This audit does not edit the game.</p>
+          <p>Desktop + phone QA, play probes, screenshot review, fast-load/frame-pacing tests, and Poki readiness checks. This audit does not edit the game.</p>
         </div>
         <button id="closeQuality" class="ghost-button" type="button">Close</button>
       </header>
@@ -227,9 +227,11 @@
           <div class="quality-score"><span>Technical</span><strong id="qualityTechnical">—</strong></div>
           <div class="quality-score"><span>Interaction</span><strong id="qualityInteraction">—</strong></div>
           <div class="quality-score"><span>Visual</span><strong id="qualityVisual">—</strong></div>
+          <div class="quality-score"><span>Performance</span><strong id="qualityPerformance">—</strong></div>
+          <div class="quality-score"><span>Poki Ready</span><strong id="qualityPoki">—</strong></div>
         </div>
         <div class="quality-grid">
-          <section class="quality-section">
+          <section class="quality-section quality-visual-section">
             <h3>Visual Director report</h3>
             <pre id="qualityReport">Visual Director is waiting for screenshots…</pre>
           </section>
@@ -237,6 +239,10 @@
             <h3>Technical / interaction notes</h3>
             <pre id="qualityTechnicalNotes">Run Game Doctor to inspect the selected game.</pre>
             <div id="qualityGallery" class="quality-gallery"></div>
+          </section>
+          <section class="quality-section quality-readiness-section">
+            <h3>Poki / performance gate</h3>
+            <pre id="qualityReadinessNotes">Cold load, payload size, requests, frame pacing, SDK events, ad-block resilience, and onboarding will be checked here.</pre>
           </section>
         </div>
       </div>
