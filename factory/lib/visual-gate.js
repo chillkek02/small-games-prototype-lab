@@ -83,18 +83,26 @@ async function runVisualAudit({ gameDir, artifactDir }) {
   }
 }
 
+function combinedGateScore(visual, retention) {
+  // Pass-state bonuses make the score monotonic across gates: losing a gate that
+  // previously passed is intentionally expensive, so runner rollback prefers the
+  // safer version instead of trading visual quality for retention or vice versa.
+  const score =
+    (visual.passed ? 35 : 0) +
+    (retention.passed ? 25 : 0) +
+    (visual.score || 0) * .25 +
+    (retention.score || 0) * .15;
+  return Math.max(0, Math.min(100, Math.round(score)));
+}
+
 export async function runVisualFloorGate({ gameDir, artifactDir }) {
   const visual = await runVisualAudit({ gameDir, artifactDir });
   if (!visual.audited) return visual;
 
   const retention = await runRetentionAudit({ gameDir, url: `http://127.0.0.1:${process.env.GAME_FACTORY_PORT || 4177}/game/${encodeURIComponent(path.basename(gameDir))}/` });
-  const combinedScore = Math.round((visual.score || 0) * .72 + (retention.score || 0) * .28);
+  const combinedScore = combinedGateScore(visual, retention);
   const passed = Boolean(visual.passed && retention.passed);
-  const status = passed
-    ? 'PASS'
-    : !visual.passed
-      ? visual.status
-      : 'RETENTION_NEEDS_WORK';
+  const status = passed ? 'PASS' : !visual.passed ? visual.status : 'RETENTION_NEEDS_WORK';
   const retentionLines = [
     `Retention score: ${retention.score}/100 (minimum ${retention.minimumPrototypeScore}/100)`,
     `Quick replay: ${retention.restartAvailable || retention.secondRunStarted ? 'verified' : 'not verified'}`,
