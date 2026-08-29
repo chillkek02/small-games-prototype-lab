@@ -32,31 +32,23 @@ async function nextGameNumber(gamesDir) {
 }
 
 function engineLabel(engine) {
-  return ({
-    vanilla: 'Vanilla Canvas / SVG / JavaScript',
-    phaser3: 'Phaser 3.90',
-    phaser4: 'Phaser 4.2.1',
-    three: 'Three.js 0.185.1',
-    dom: 'HTML / CSS / SVG'
-  })[engine] || engine;
+  return ({ vanilla:'Vanilla Canvas / SVG / JavaScript', phaser3:'Phaser 3.90', phaser4:'Phaser 4.2.1', three:'Three.js 0.185.1', dom:'HTML / CSS / SVG' })[engine] || engine;
 }
 
 function artLabel(art) {
   return ({
-    toy3d: 'Toy Town 3D', pixel: 'Pixel Arcade', vector: 'Bright Vector Casual', voxel: 'Blocky / Voxel',
-    paper: 'Paper Cutout', outline: 'Cartoon Outline', retro: 'Retro 16-bit', pastel: 'Soft Pastel Casual',
-    neon: 'Neon Arcade', isometric: 'Isometric 2.5D', minimal: 'Minimal Clean', industrial: 'Industrial / Mechanical'
+    toy3d:'Toy Town 3D', pixel:'Pixel Arcade', vector:'Bright Vector Casual', voxel:'Blocky / Voxel',
+    paper:'Paper Cutout', outline:'Cartoon Outline', retro:'Retro 16-bit', pastel:'Soft Pastel Casual',
+    neon:'Neon Arcade', isometric:'Isometric 2.5D', minimal:'Minimal Clean', industrial:'Industrial / Mechanical'
   })[art] || art;
 }
 
 async function copyIfExists(from, to) {
   try {
-    await fsp.mkdir(path.dirname(to), { recursive: true });
+    await fsp.mkdir(path.dirname(to), { recursive:true });
     await fsp.copyFile(from, to);
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 async function provisionEngine({ engine, factoryDir, gameDir }) {
@@ -65,19 +57,19 @@ async function provisionEngine({ engine, factoryDir, gameDir }) {
     const source = path.join(factoryDir, 'node_modules', 'phaser', 'dist', 'phaser.min.js');
     const target = path.join(vendorDir, 'phaser-3.90.0.min.js');
     if (!await copyIfExists(source, target)) throw new Error('Phaser 3.90 is not installed in the Factory yet. Restart the Factory once so npm can install the new engine dependencies.');
-    return { script: './vendor/phaser-3.90.0.min.js', kind: 'script' };
+    return { script:'./vendor/phaser-3.90.0.min.js', kind:'script' };
   }
   if (engine === 'phaser4') {
     const source = path.join(factoryDir, 'node_modules', 'phaser4', 'dist', 'phaser.min.js');
     const target = path.join(vendorDir, 'phaser-4.2.1.min.js');
     if (!await copyIfExists(source, target)) throw new Error('Phaser 4.2.1 is not installed in the Factory yet. Restart the Factory once so npm can install the new engine dependencies.');
-    return { script: './vendor/phaser-4.2.1.min.js', kind: 'script' };
+    return { script:'./vendor/phaser-4.2.1.min.js', kind:'script' };
   }
   if (engine === 'three') {
     const source = path.join(factoryDir, 'node_modules', 'three', 'build', 'three.module.min.js');
     const target = path.join(vendorDir, 'three-0.185.1.module.min.js');
     if (!await copyIfExists(source, target)) throw new Error('Three.js is not installed in the Factory yet. Restart the Factory once so npm can install the new engine dependencies.');
-    return { script: './vendor/three-0.185.1.module.min.js', kind: 'module' };
+    return { script:'./vendor/three-0.185.1.module.min.js', kind:'module' };
   }
   return null;
 }
@@ -88,9 +80,7 @@ function scaffoldHtml({ title, engine, engineAsset, target }) {
   const moduleHint = engineAsset?.kind === 'module' ? `<script type="module">import * as THREE from '${engineAsset.script}'; window.THREE = THREE;</script>` : '';
   const poki = target === 'Poki';
   const pokiTag = poki ? `<script src="${POKI_SDK}"></script>` : '';
-  const pokiBoot = poki
-    ? `window.__POKI_READY__=false;if(window.GutpopperCore){GutpopperCore.poki.init().then(ok=>{window.__POKI_READY__=ok}).catch(()=>{});}`
-    : '';
+  const pokiBoot = poki ? `window.__POKI_READY__=false;if(window.GutpopperCore){GutpopperCore.poki.init().then(ok=>{window.__POKI_READY__=ok}).catch(()=>{});}` : '';
   return `<!doctype html>
 <html lang="en">
 <head>
@@ -118,13 +108,17 @@ ${pokiBoot}
 
 export function buildNewGameInstruction({ title, concept, engine, artStyle, opportunityTitle = '', target = 'Poki' }) {
   const pokiRules = target === 'Poki' ? `
-POKI PRODUCTION + PERFORMANCE RULES
+POKI PRODUCTION + PERFORMANCE + AD READINESS RULES
 - Poki SDK and GutpopperCore.poki are already scaffolded. Keep them.
 - Call GutpopperCore.poki.loadingFinished() exactly when the actually playable initial content is ready.
 - gameplayStart() must not fire on page load. Fire it on the player's first gameplay input and when returning to active gameplay.
 - gameplayStop() must fire for interruptions such as pause/menu, level end, death/game over, or cutscene where active play stops. Never fire gameplayStart twice in succession or gameplayStop twice in succession.
-- Create natural commercial-break opportunities between runs/levels, never during active play.
-- Create at least one optional rewarded-ad opportunity that is useful but not required for progression (retry, bonus reward, temporary boost, etc.).
+- NEVER request a commercial or rewarded ad on initial page load or before the player expresses gameplay/ad intent.
+- Create natural commercialBreak() opportunities between runs/levels or before resume/continue moments, never in the middle of active gameplay. A normal death->retry or next-level flow should be gameplayStop() -> commercialBreak() -> gameplayStart().
+- Create at least one genuinely optional rewardedBreak() opportunity that fits the game (revive, bonus reward, temporary boost, double reward, convenience, etc.). Normal progression must work without watching it.
+- The rewarded-ad control must clearly tell the player an ad will be watched BEFORE they choose it (for example “Watch Ad · Revive” or “Watch Ad · x2 Reward”). Do not disguise it as a normal button.
+- Grant the rewarded benefit ONLY when rewardedBreak() resolves successfully. If it returns false/cancelled/unavailable, do not grant the reward and continue safely.
+- Pause/disable gameplay input and audio while an ad is active and restore both cleanly afterward. Keep gameplayStart() after the ad/resume point, not during the ad.
 - Use GutpopperCore.poki.commercialBreak() / rewardedBreak() so local testing safely falls back without pretending an ad reward succeeded.
 - The game MUST remain playable if the Poki SDK script is blocked/unavailable. Do not gate loading, input, audio, progression, or startup on successful SDK initialization.
 - Do not add another advertising SDK, ad-block prevention, outbound promotional links, or third-party splash screens.
@@ -179,11 +173,12 @@ GAME DESIGN TARGET
 - Use responsive resize/orientation handling rather than a one-time viewport calculation. Phaser should use an appropriate responsive Scale Manager strategy; Three.js must resize renderer and update camera aspect; Canvas/SVG must respond to resize without stretching.
 ${pokiRules}
 SCOPE
-Build the actual playable v1 prototype now, not a design document or placeholder. Keep it compact enough to iterate quickly, but complete and polished enough to judge whether the core loop is fun, visually promising, and worth replaying. You may create supporting JS/CSS/SVG/data files inside this game folder. Do not edit any other game or Factory file.
+Build the actual playable v1 prototype now, not a design document or placeholder. Keep it compact enough to iterate quickly, but complete and polished enough to judge whether the core loop is fun, visually promising, worth replaying, and monetization-ready. You may create supporting JS/CSS/SVG/data files inside this game folder. Do not edit any other game or Factory file.
 
 SELF-CHECK BEFORE FINISHING
 - Ask whether the screen would look embarrassing in a screenshot next to modern casual web games. If yes, improve it now.
 - Ask whether a player finishing/failing one run has an obvious reason to immediately start another. If not, strengthen replayability now.
+- For Poki, verify there is a natural commercial-break moment and at least one clearly optional rewarded-ad choice with success-gated reward delivery.
 - Remove obvious programmer-art/default-browser presentation.
 - Make sure major characters/props/environment/HUD do not read as raw primitive placeholders.
 - Make sure the first screenshot has a clear focal point, cohesive palette, deliberate spacing, depth/layering, and visible feedback potential.
@@ -191,7 +186,7 @@ SELF-CHECK BEFORE FINISHING
 - Keep improvements lightweight enough to preserve the Poki performance targets.
 
 QA
-The Factory will run desktop/mobile browser QA and automatic first-prototype gates for visuals and retention/replay. Game Doctor can also run cold-load, payload-size, request-count, frame-pacing, ad-block-resilience, SDK-event-order, AI playtesting, retention/persistence/replay checks, and strict visual-quality-floor checks. Do not launch your own browser or HTTP server unless absolutely necessary to diagnose a source error. Perform lightweight syntax/source checks and then stop.`;
+The Factory will run desktop/mobile browser QA and automatic first-prototype gates for visuals, retention/replay, and Poki ad readiness. Game Doctor can also run cold-load, payload-size, request-count, frame-pacing, ad-block-resilience, SDK-event-order, AI playtesting, retention/persistence/replay checks, ad-opportunity checks, and strict visual-quality-floor checks. Do not launch your own browser or HTTP server unless absolutely necessary to diagnose a source error. Perform lightweight syntax/source checks and then stop.`;
 }
 
 export async function createGameProject({ gamesDir, factoryDir, title, concept, engine = 'auto', artStyle = 'auto', opportunity = '', target = 'Poki' }) {
@@ -209,32 +204,24 @@ export async function createGameProject({ gamesDir, factoryDir, title, concept, 
   const id = `${String(number).padStart(2, '0')}-${slugify(title)}`;
   const gameDir = path.join(gamesDir, id);
   try {
-    await fsp.mkdir(gameDir, { recursive: false });
+    await fsp.mkdir(gameDir, { recursive:false });
     const engineAsset = await provisionEngine({ engine, factoryDir, gameDir });
     const starterKit = await writeProductionStarterKit({ gameDir, engine, target });
     const metadata = {
-      id, title, concept, target, engine, artStyle, opportunity: opportunity || null,
-      starterKit: { name: starterKit.name, version: starterKit.version },
-      visualQualityFloor: { version: '1.0.0', minimumPrototypeScore: 70 },
-      retentionFloor: { version: '1.0.0', minimumPrototypeScore: 65 },
-      createdBy: 'Gutpopper Game Factory', createdAt: new Date().toISOString()
+      id, title, concept, target, engine, artStyle, opportunity:opportunity || null,
+      starterKit:{ name:starterKit.name, version:starterKit.version },
+      visualQualityFloor:{ version:'1.0.0', minimumPrototypeScore:70 },
+      retentionFloor:{ version:'1.0.0', minimumPrototypeScore:65 },
+      adReadinessFloor: target === 'Poki' ? { version:'1.0.0', minimumPrototypeScore:70 } : null,
+      createdBy:'Gutpopper Game Factory', createdAt:new Date().toISOString()
     };
     await Promise.all([
       fsp.writeFile(path.join(gameDir, 'index.html'), scaffoldHtml({ title, engine, engineAsset, target }), 'utf8'),
       fsp.writeFile(path.join(gameDir, 'factory-game.json'), JSON.stringify(metadata, null, 2), 'utf8')
     ]);
-    return {
-      id,
-      title,
-      gameDir,
-      engine,
-      artStyle,
-      starterKit,
-      instruction: buildNewGameInstruction({ title, concept, engine, artStyle, opportunityTitle: opportunity, target }),
-      metadata
-    };
+    return { id, title, gameDir, engine, artStyle, starterKit, instruction:buildNewGameInstruction({ title, concept, engine, artStyle, opportunityTitle:opportunity, target }), metadata };
   } catch (error) {
-    await fsp.rm(gameDir, { recursive: true, force: true }).catch(() => {});
+    await fsp.rm(gameDir, { recursive:true, force:true }).catch(() => {});
     throw error;
   }
 }
