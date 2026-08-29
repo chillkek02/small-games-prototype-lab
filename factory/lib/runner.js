@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 
 const MAX_REPAIR_PASSES = Math.max(0, Math.min(3, Number(process.env.GAME_FACTORY_REPAIR_PASSES || 1)));
+const MAX_VISUAL_POLISH_PASSES = Math.max(0, Math.min(2, Number(process.env.GAME_FACTORY_VISUAL_POLISH_PASSES || 1)));
 const CODEX_COMMAND = process.env.GAME_FACTORY_CODEX_COMMAND || 'codex';
 const QUICK_ACTION = /\b(change|set|rename|replace|update|increase|decrease|remove|delete|hide|show|move|adjust|fix|correct|add)\b/i;
 const QUICK_TARGET = /\b(comment|text|label|title|copy|typo|number|value|speed|size|color|colour|font|spacing|margin|padding|position|opacity|volume|name|word|button text)\b/i;
@@ -374,6 +375,97 @@ async function runCodex({ cwd, prompt, onLine, mode = 'standard' }) {
   return result;
 }
 
+async function runNewGameVisualAutomation({ job, store, gameDir, gameUrl, artifactDir, qa, log }) {
+  if (job.kind !== 'new-game' || !qa?.passed) return { qa, visualFloor: null, visualPolishApplied: false };
+
+  const { runVisualFloorGate, buildAutomaticVisualPolishPrompt } = await import('./visual-gate.js');
+  const { runQa } = await import('./qa.js');
+  const { createSnapshot, restoreSnapshot } = await import('./snapshots.js');
+
+  await store.patch(job.id, { stage: 'Visual quality floor' });
+  await log('Technical QA passed; running strict first-prototype visual quality floor');
+  let gate = await runVisualFloorGate({ gameDir, artifactDir });
+  await store.patch(job.id, { visualFloor: gate });
+
+  if (!gate.audited) {
+    await log(`Visual quality audit could not be verified: ${gate.error || 'unknown audit error'}`);
+    return { qa, visualFloor: gate, visualPolishApplied: false };
+  }
+
+  await log(`Visual floor: ${gate.status} · ${gate.score}/100${gate.hardFails?.length ? ` · hard fails: ${gate.hardFails.join(', ')}` : ''}`);
+  if (gate.passed || MAX_VISUAL_POLISH_PASSES === 0) {
+    return { qa, visualFloor: gate, visualPolishApplied: false };
+  }
+
+  let visualPolishApplied = false;
+  for (let pass = 1; pass <= MAX_VISUAL_POLISH_PASSES && !gate.passed; pass += 1) {
+    const beforeGate = gate;
+    const beforeQa = qa;
+    const safety = await createSnapshot({
+      stateDir: store.stateDir,
+      game: job.game,
+      gameDir,
+      label: `Before automatic visual polish ${pass} (${beforeGate.score}/100)`,
+      kind: 'pre-visual-polish',
+      jobId: job.id
+    });
+
+    await store.patch(job.id, {
+      stage: `Automatic visual polish ${pass}`,
+      attempt: Math.max(Number((await store.get(job.id))?.attempt || 1) + 1, 2),
+      mode: 'standard',
+      tokensUsed: null,
+      visualPolishPass: pass,
+      visualPolishSnapshotId: safety.id
+    });
+    await log(`Visual floor is below 70; starting automatic presentation polish ${pass}/${MAX_VISUAL_POLISH_PASSES}`);
+    await runCodex({
+      cwd: gameDir,
+      prompt: buildAutomaticVisualPolishPrompt({ game: job.game, gate: beforeGate }),
+      mode: 'standard',
+      onLine: line => void log(line)
+    });
+    visualPolishApplied = true;
+
+    await store.patch(job.id, { stage: `QA after visual polish ${pass}` });
+    await log('Re-running desktop/phone technical QA after visual polish');
+    const candidateQa = await runQa({ url: gameUrl, artifactDir });
+
+    if (!candidateQa.passed) {
+      await log(`Automatic visual polish introduced ${candidateQa.issues.length} technical QA issue(s); restoring the safer pre-polish version`);
+      await restoreSnapshot({ stateDir: store.stateDir, game: job.game, gameDir, snapshotId: safety.id });
+      qa = await runQa({ url: gameUrl, artifactDir });
+      gate = beforeGate;
+      break;
+    }
+
+    await store.patch(job.id, { stage: `Visual recheck ${pass}` });
+    const candidateGate = await runVisualFloorGate({ gameDir, artifactDir });
+    if (!candidateGate.audited) {
+      await log('Post-polish visual audit could not be verified; restoring the known pre-polish version');
+      await restoreSnapshot({ stateDir: store.stateDir, game: job.game, gameDir, snapshotId: safety.id });
+      qa = await runQa({ url: gameUrl, artifactDir });
+      gate = beforeGate;
+      break;
+    }
+
+    if ((candidateGate.score ?? 0) < (beforeGate.score ?? 0)) {
+      await log(`Visual polish regressed the floor from ${beforeGate.score}/100 to ${candidateGate.score}/100; restoring the better pre-polish version`);
+      await restoreSnapshot({ stateDir: store.stateDir, game: job.game, gameDir, snapshotId: safety.id });
+      qa = await runQa({ url: gameUrl, artifactDir });
+      gate = beforeGate;
+      break;
+    }
+
+    qa = candidateQa;
+    gate = candidateGate;
+    await log(`Visual polish recheck: ${gate.status} · ${gate.score}/100${gate.hardFails?.length ? ` · hard fails: ${gate.hardFails.join(', ')}` : ''}`);
+  }
+
+  await store.patch(job.id, { qa, visualFloor: gate, visualPolishApplied });
+  return { qa, visualFloor: gate, visualPolishApplied };
+}
+
 export async function probeCodex(repoRoot) {
   try {
     const result = await runProcess(CODEX_COMMAND, ['--version'], { cwd: repoRoot, timeoutMs: 5000 });
@@ -436,24 +528,37 @@ export async function runJob({ job, store, repoRoot, gameDir, gameRelativePath, 
       mode = repairMode;
     }
 
+    const visualResult = await runNewGameVisualAutomation({ job, store, gameDir, gameUrl, artifactDir, qa, log });
+    qa = visualResult.qa;
+    const visualFloor = visualResult.visualFloor;
+
     const diffStat = await runScopedDiffStat({ before, gameDir, gameRelativePath });
-    if (qa?.passed) {
-      await log('Build passed automated QA');
+    const visualAccepted = job.kind !== 'new-game' || Boolean(visualFloor?.passed);
+    if (qa?.passed && visualAccepted) {
+      await log(job.kind === 'new-game' ? 'Build passed technical QA and the visual quality floor' : 'Build passed automated QA');
       await store.patch(job.id, {
         status: 'passed',
         stage: 'Passed',
         finishedAt: new Date().toISOString(),
         diffStat,
-        qa
+        qa,
+        visualFloor,
+        visualPolishApplied: visualResult.visualPolishApplied
       });
     } else {
-      await log('Build completed but automated QA still reports failures');
+      if (qa?.passed && job.kind === 'new-game') {
+        await log(`Technical QA passed, but the visual quality floor is still ${visualFloor?.status || 'unverified'}${visualFloor?.score != null ? ` at ${visualFloor.score}/100` : ''}; marking Needs Review instead of Passed`);
+      } else {
+        await log('Build completed but automated QA still reports failures');
+      }
       await store.patch(job.id, {
         status: 'needs-review',
-        stage: 'Needs review',
+        stage: qa?.passed && job.kind === 'new-game' ? 'Visual needs polish' : 'Needs review',
         finishedAt: new Date().toISOString(),
         diffStat,
-        qa
+        qa,
+        visualFloor,
+        visualPolishApplied: visualResult.visualPolishApplied
       });
     }
   } catch (error) {
