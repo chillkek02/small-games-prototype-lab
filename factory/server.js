@@ -157,28 +157,29 @@ async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/status') {
     const [codex, jobs] = await Promise.all([probeCodex(REPO_ROOT), store.list(5)]);
     return sendJson(res, 200, {
-      name: 'Gutpopper Game Factory', version: '0.5.0', repoRoot: REPO_ROOT, codex,
+      name: 'Gutpopper Game Factory', version: '0.10.0', repoRoot: REPO_ROOT, codex,
       engines: { phaser3: '3.90.0', phaser4: '4.2.1', three: '0.185.1' },
-      qualityLab: { visualDirector: true, interactionProbe: true, desktopViewport: '1440x900', phoneViewport: '390x844' },
+      qualityLab: {
+        visualDirector: true,
+        aiPlaytester: true,
+        retentionReplay: true,
+        performanceGate: true,
+        pokiReadiness: true,
+        visualQualityFloor: true,
+        automatedFirstPrototypePolish: true,
+        desktopViewport: '1440x900',
+        phoneViewport: '390x844'
+      },
       snapshots: { automatic: true, maxPerGame: 12, undo: true },
       activeGames: [...activeByGame.keys()], recentJobs: jobs.length
     });
   }
 
-  if (req.method === 'GET' && url.pathname === '/api/games') {
-    return sendJson(res, 200, { games: await listGames() });
-  }
-
-  if (req.method === 'GET' && url.pathname === '/api/creator-options') {
-    return sendJson(res, 200, getCreatorOptions());
-  }
-
+  if (req.method === 'GET' && url.pathname === '/api/games') return sendJson(res, 200, { games: await listGames() });
+  if (req.method === 'GET' && url.pathname === '/api/creator-options') return sendJson(res, 200, getCreatorOptions());
   if (req.method === 'GET' && url.pathname === '/api/opportunities') {
-    try {
-      return sendJson(res, 200, await getOpportunityReport());
-    } catch (error) {
-      return sendJson(res, 500, { error: `Opportunity Scout failed: ${error.message}` });
-    }
+    try { return sendJson(res, 200, await getOpportunityReport()); }
+    catch (error) { return sendJson(res, 500, { error: `Opportunity Scout failed: ${error.message}` }); }
   }
 
   const snapshotListMatch = url.pathname.match(/^\/api\/games\/([^/]+)\/snapshots$/);
@@ -187,21 +188,12 @@ async function handleApi(req, res, url) {
     if (!safeSegment(game)) return sendJson(res, 400, { error: 'Invalid game id' });
     const gameDir = gameDirFor(game);
     if (!await validateGameDir(gameDir)) return sendJson(res, 404, { error: 'Game target not found' });
-
-    if (req.method === 'GET') {
-      return sendJson(res, 200, { snapshots: await listSnapshots({ stateDir: STATE_DIR, game }) });
-    }
+    if (req.method === 'GET') return sendJson(res, 200, { snapshots: await listSnapshots({ stateDir: STATE_DIR, game }) });
     if (req.method === 'POST') {
       if (gameIsBusy(game)) return sendJson(res, 409, { error: 'Wait for the active Factory operation to finish before saving a restore point.' });
       try {
         const body = await readBody(req);
-        const snapshot = await createSnapshot({
-          stateDir: STATE_DIR,
-          game,
-          gameDir,
-          label: String(body.label || 'Manual restore point').slice(0, 120),
-          kind: 'manual'
-        });
+        const snapshot = await createSnapshot({ stateDir: STATE_DIR, game, gameDir, label: String(body.label || 'Manual restore point').slice(0, 120), kind: 'manual' });
         return sendJson(res, 201, { snapshot });
       } catch (error) {
         return sendJson(res, 500, { error: `Could not create restore point: ${error.message}` });
@@ -221,20 +213,12 @@ async function handleApi(req, res, url) {
       const available = await listSnapshots({ stateDir: STATE_DIR, game });
       const target = available[0];
       if (!target) return sendJson(res, 404, { error: 'No restore point exists for this game yet.' });
-      const safety = await createSnapshot({
-        stateDir: STATE_DIR,
-        game,
-        gameDir,
-        label: `Before restoring ${target.label || target.id}`,
-        kind: 'pre-restore'
-      });
+      const safety = await createSnapshot({ stateDir: STATE_DIR, game, gameDir, label: `Before restoring ${target.label || target.id}`, kind: 'pre-restore' });
       const restored = await restoreSnapshot({ stateDir: STATE_DIR, game, gameDir, snapshotId: target.id });
       return sendJson(res, 200, { restored, safetySnapshot: safety, snapshots: await listSnapshots({ stateDir: STATE_DIR, game }) });
     } catch (error) {
       return sendJson(res, 500, { error: `Restore failed: ${error.message}` });
-    } finally {
-      restoreBusy.delete(game);
-    }
+    } finally { restoreBusy.delete(game); }
   }
 
   const restoreMatch = url.pathname.match(/^\/api\/games\/([^/]+)\/restore\/([^/]+)$/);
@@ -252,9 +236,7 @@ async function handleApi(req, res, url) {
       return sendJson(res, 200, { restored, safetySnapshot: safety });
     } catch (error) {
       return sendJson(res, 500, { error: `Restore failed: ${error.message}` });
-    } finally {
-      restoreBusy.delete(game);
-    }
+    } finally { restoreBusy.delete(game); }
   }
 
   const doctorMatch = url.pathname.match(/^\/api\/games\/([^/]+)\/doctor$/);
@@ -267,19 +249,13 @@ async function handleApi(req, res, url) {
     qualityBusy.add(game);
     try {
       const gameUrl = `http://${HOST}:${PORT}/game/${encodeURIComponent(game)}/`;
-      const audit = await runQualityAudit({ game, gameDir, url: gameUrl, stateDir: STATE_DIR });
-      return sendJson(res, 200, audit);
+      return sendJson(res, 200, await runQualityAudit({ game, gameDir, url: gameUrl, stateDir: STATE_DIR }));
     } catch (error) {
       return sendJson(res, 500, { error: `Game Doctor failed: ${error.message}` });
-    } finally {
-      qualityBusy.delete(game);
-    }
+    } finally { qualityBusy.delete(game); }
   }
 
-  if (req.method === 'GET' && url.pathname === '/api/jobs') {
-    return sendJson(res, 200, { jobs: await store.list(40) });
-  }
-
+  if (req.method === 'GET' && url.pathname === '/api/jobs') return sendJson(res, 200, { jobs: await store.list(40) });
   const jobMatch = url.pathname.match(/^\/api\/jobs\/([^/]+)$/);
   if (req.method === 'GET' && jobMatch && safeSegment(jobMatch[1])) {
     const job = await store.get(jobMatch[1]);
@@ -292,34 +268,10 @@ async function handleApi(req, res, url) {
     try { body = await readBody(req); } catch (error) { return sendJson(res, 400, { error: error.message }); }
     creatingGame = true;
     try {
-      const project = await createGameProject({
-        gamesDir: GAMES_DIR,
-        factoryDir: __dirname,
-        title: body.title,
-        concept: body.concept,
-        engine: body.engine || 'auto',
-        artStyle: body.artStyle || 'auto',
-        opportunity: body.opportunity || '',
-        target: body.target || 'Poki'
-      });
-
+      const project = await createGameProject({ gamesDir: GAMES_DIR, factoryDir: __dirname, title: body.title, concept: body.concept, engine: body.engine || 'auto', artStyle: body.artStyle || 'auto', opportunity: body.opportunity || '', target: body.target || 'Poki' });
       const created = await store.create({ game: project.id, instruction: project.instruction });
-      const baseline = await snapshotBeforeBuild({
-        game: project.id,
-        gameDir: project.gameDir,
-        label: 'Initial Production Starter Kit before first AI build',
-        kind: 'new-game-baseline',
-        jobId: created.id
-      });
-      const job = await store.patch(created.id, {
-        status: 'running',
-        stage: 'New game build',
-        attempt: 1,
-        kind: 'new-game',
-        creator: project.metadata,
-        snapshotId: baseline.id,
-        error: null
-      });
+      const baseline = await snapshotBeforeBuild({ game: project.id, gameDir: project.gameDir, label: 'Initial Production Starter Kit before first AI build', kind: 'new-game-baseline', jobId: created.id });
+      const job = await store.patch(created.id, { status: 'running', stage: 'New game build', attempt: 1, kind: 'new-game', creator: project.metadata, snapshotId: baseline.id, error: null });
       await store.appendLog(job.id, `New Game Creator scaffolded ${project.id} · ${project.engine} · ${project.artStyle}`);
       await store.appendLog(job.id, `Safety snapshot saved · ${baseline.id}`);
       await store.appendLog(job.id, 'Dispatching Auto Model Router to build the first playable prototype.');
@@ -327,9 +279,7 @@ async function handleApi(req, res, url) {
       return sendJson(res, 202, { game: { id: project.id, title: project.title, url: `/game/${encodeURIComponent(project.id)}/`, metadata: project.metadata }, job: await store.get(job.id) });
     } catch (error) {
       return sendJson(res, 400, { error: error.message });
-    } finally {
-      creatingGame = false;
-    }
+    } finally { creatingGame = false; }
   }
 
   if (req.method === 'POST' && url.pathname === '/api/jobs') {
@@ -340,28 +290,19 @@ async function handleApi(req, res, url) {
     if (!safeSegment(game)) return sendJson(res, 400, { error: 'Invalid game id' });
     if (instruction.length < 4) return sendJson(res, 400, { error: 'Describe the change you want the Factory to make.' });
     if (gameIsBusy(game)) return sendJson(res, 409, { error: `${game} already has an active Factory operation.` });
-
     const gameDir = gameDirFor(game);
     if (!await validateGameDir(gameDir)) return sendJson(res, 404, { error: 'Game target not found' });
 
     const created = await store.create({ game, instruction });
     let safety;
     try {
-      safety = await snapshotBeforeBuild({
-        game,
-        gameDir,
-        label: `Before: ${instruction.replace(/\s+/g, ' ').slice(0, 90)}`,
-        kind: 'pre-build',
-        jobId: created.id
-      });
+      safety = await snapshotBeforeBuild({ game, gameDir, label: `Before: ${instruction.replace(/\s+/g, ' ').slice(0, 90)}`, kind: 'pre-build', jobId: created.id });
     } catch (error) {
       await store.patch(created.id, { status: 'failed', stage: 'Snapshot failed', finishedAt: new Date().toISOString(), error: error.message });
       return sendJson(res, 500, { error: `Factory refused to edit without a safety snapshot: ${error.message}` });
     }
 
-    const job = await store.patch(created.id, {
-      status: 'running', stage: 'Dispatching Factory', attempt: 1, snapshotId: safety.id, error: null
-    });
+    const job = await store.patch(created.id, { status: 'running', stage: 'Dispatching Factory', attempt: 1, snapshotId: safety.id, error: null });
     await store.appendLog(job.id, `Safety snapshot saved · ${safety.id}`);
     await store.appendLog(job.id, `Dispatcher accepted ${game}; starting worker.`);
     dispatchWorker({ job, game, gameDir });
@@ -373,7 +314,6 @@ async function handleApi(req, res, url) {
 
 async function handler(req, res) {
   const url = new URL(req.url, `http://${req.headers.host || `${HOST}:${PORT}`}`);
-
   if (url.pathname.startsWith('/api/')) {
     const handled = await handleApi(req, res, url);
     if (handled !== false) return;
@@ -423,19 +363,15 @@ export async function startFactoryServer() {
       else res.end();
     });
   });
-
   await new Promise((resolve, reject) => {
     server.once('error', reject);
     server.listen(PORT, HOST, () => { server.off('error', reject); resolve(); });
   });
-
   const localUrl = `http://${HOST}:${PORT}`;
-  console.log(`\nGutpopper Game Factory v0.5.0`);
+  console.log(`\nGutpopper Game Factory v0.10.0`);
   console.log(localUrl);
   console.log(`Repo: ${REPO_ROOT}\n`);
   return { server, url: localUrl, repoRoot: REPO_ROOT, stateDir: STATE_DIR, port: PORT, host: HOST };
 }
 
-if (process.env.GAME_FACTORY_EMBEDDED !== '1') {
-  await startFactoryServer();
-}
+if (process.env.GAME_FACTORY_EMBEDDED !== '1') await startFactoryServer();
