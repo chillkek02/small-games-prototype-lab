@@ -1,0 +1,18 @@
+{
+  "name": "Gutpopper Game Factory Remote",
+  "short_name": "Game Factory",
+  "description": "Private phone remote for the Gutpopper Game Factory running on your PC.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0b0e14",
+  "theme_color": "#0b0e14",
+  "icons": [
+    {
+      "src": "/factory-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
