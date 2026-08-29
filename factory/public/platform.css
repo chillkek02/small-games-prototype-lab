@@ -1,0 +1,203 @@
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  min-width: 0;
+}
+.client-mode {
+  display: inline-flex;
+  min-height: 31px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  color: #aab4c6;
+  background: rgba(255,255,255,.025);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+}
+.client-mode.remote {
+  color: #baffc1;
+  background: rgba(139,255,154,.08);
+  border-color: rgba(139,255,154,.16);
+}
+.remote-panel {
+  margin: 10px 12px 0;
+  padding: 14px 16px;
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) minmax(280px, 1.2fr) auto;
+  align-items: center;
+  gap: 16px;
+  border: 1px solid rgba(120,169,255,.22);
+  border-radius: 15px;
+  background: linear-gradient(90deg, rgba(120,169,255,.1), rgba(139,255,154,.045));
+}
+.remote-panel strong {
+  display: block;
+  font-size: 13px;
+}
+.remote-panel p {
+  margin: 5px 0 0;
+  max-width: 620px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.5;
+}
+.remote-url-wrap {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+  padding: 9px 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: rgba(0,0,0,.18);
+}
+.remote-url-wrap > span,
+.remote-url-wrap small {
+  color: var(--muted);
+  font-size: 8.5px;
+}
+.remote-url-wrap a {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: #cfe0ff;
+  font-size: 11px;
+  font-weight: 800;
+}
+.remote-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 7px;
+}
+.remote-client .brand-subtitle::after {
+  content: " · Phone Remote";
+  color: var(--accent);
+}
+
+@media (max-width: 900px) {
+  .remote-panel {
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+  .remote-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 760px) {
+  body {
+    overflow: auto;
+    overscroll-behavior-y: contain;
+  }
+  .app-shell {
+    min-height: 100vh;
+  }
+  .topbar {
+    height: auto;
+    min-height: 66px;
+    padding: 9px 10px;
+    gap: 8px;
+  }
+  .brand {
+    min-width: 0;
+  }
+  .brand-mark {
+    width: 38px;
+    height: 38px;
+    flex: 0 0 auto;
+  }
+  .brand-title {
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .topbar-actions {
+    gap: 5px;
+  }
+  .client-mode {
+    min-height: 38px;
+    padding: 0 9px;
+  }
+  #phoneRemoteButton {
+    min-height: 38px;
+  }
+  .topbar-status {
+    min-height: 38px;
+    max-width: 118px;
+    padding: 8px 9px;
+  }
+  #codexStatus {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .remote-panel {
+    margin: 8px;
+    padding: 13px;
+  }
+  .remote-actions > button {
+    min-height: 44px;
+    flex: 1 1 130px;
+  }
+  .workspace {
+    min-height: auto;
+  }
+  .projects-panel {
+    max-height: 310px;
+  }
+  .game-item {
+    min-height: 52px;
+  }
+  .center-column {
+    grid-template-rows: 480px auto;
+  }
+  .preview-toolbar,
+  .command-head,
+  .command-footer {
+    align-items: flex-start;
+    flex-wrap: wrap;
+  }
+  .preview-actions {
+    width: 100%;
+  }
+  .preview-actions > * {
+    min-height: 44px;
+    flex: 1;
+  }
+  .command-panel textarea {
+    min-height: 124px;
+    font-size: 16px;
+  }
+  .command-footer .primary-button {
+    width: 100%;
+    min-height: 48px;
+  }
+  #commandHint {
+    width: 100%;
+  }
+  .history-item {
+    min-height: 48px;
+  }
+}
+
+@media (max-width: 430px) {
+  .topbar-status {
+    display: none;
+  }
+  .client-mode {
+    font-size: 8px;
+  }
+  .center-column {
+    grid-template-rows: 420px auto;
+  }
+  .screen-frame {
+    margin: 8px;
+  }
+}
