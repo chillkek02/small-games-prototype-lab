@@ -35,11 +35,7 @@ const MIME = {
 
 function sendJson(res, status, data) {
   const body = JSON.stringify(data);
-  res.writeHead(status, {
-    'content-type': 'application/json; charset=utf-8',
-    'content-length': Buffer.byteLength(body),
-    'cache-control': 'no-store'
-  });
+  res.writeHead(status, { 'content-type': 'application/json; charset=utf-8', 'content-length': Buffer.byteLength(body), 'cache-control': 'no-store' });
   res.end(body);
 }
 
@@ -54,9 +50,7 @@ function safeJoin(base, relative) {
   return target;
 }
 
-function gameDirFor(game) {
-  return path.join(GAMES_DIR, game);
-}
+function gameDirFor(game) { return path.join(GAMES_DIR, game); }
 
 async function validateGameDir(gameDir) {
   const stat = await fsp.stat(path.join(gameDir, 'index.html')).catch(() => null);
@@ -84,9 +78,7 @@ async function listGames() {
       let metadata = null;
       try { metadata = JSON.parse(await fsp.readFile(path.join(GAMES_DIR, entry.name, 'factory-game.json'), 'utf8')); } catch {}
       games.push({ id: entry.name, title, url: `/game/${encodeURIComponent(entry.name)}/`, metadata });
-    } catch {
-      // Only folders with an index.html are factory targets.
-    }
+    } catch {}
   }
   return games.sort((a, b) => a.id.localeCompare(b.id, undefined, { numeric: true }));
 }
@@ -103,20 +95,14 @@ async function serveFile(res, filePath, { noCache = false } = {}) {
     });
     fs.createReadStream(filePath).pipe(res);
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 async function markDispatchFailure(jobId, error) {
   try {
     await store.appendLog(jobId, `DISPATCH ERROR: ${error.message}`);
-    await store.patch(jobId, {
-      status: 'failed', stage: 'Dispatch failed', finishedAt: new Date().toISOString(), error: error.message
-    });
-  } catch (storeError) {
-    console.error('Failed to record factory dispatch error', storeError);
-  }
+    await store.patch(jobId, { status: 'failed', stage: 'Dispatch failed', finishedAt: new Date().toISOString(), error: error.message });
+  } catch (storeError) { console.error('Failed to record factory dispatch error', storeError); }
 }
 
 async function recoverInterruptedJobs() {
@@ -124,10 +110,7 @@ async function recoverInterruptedJobs() {
   const interrupted = jobs.filter(job => job.status === 'queued' || job.status === 'running');
   for (const job of interrupted) {
     await store.appendLog(job.id, 'Factory restarted before this job reached a terminal state.');
-    await store.patch(job.id, {
-      status: 'failed', stage: 'Interrupted by restart', finishedAt: new Date().toISOString(),
-      error: 'Factory restarted while this job was active. Start a new run to retry it.'
-    });
+    await store.patch(job.id, { status: 'failed', stage: 'Interrupted by restart', finishedAt: new Date().toISOString(), error: 'Factory restarted while this job was active. Start a new run to retry it.' });
   }
   if (interrupted.length) console.log(`Recovered ${interrupted.length} interrupted factory job(s).`);
 }
@@ -137,17 +120,12 @@ function dispatchWorker({ job, game, gameDir }) {
   const gameUrl = `http://${HOST}:${PORT}/game/${encodeURIComponent(game)}/`;
   const worker = new Promise(resolve => setImmediate(resolve))
     .then(() => runJob({ job, store, repoRoot: REPO_ROOT, gameDir, gameRelativePath, gameUrl }))
-    .catch(async error => {
-      console.error(`Factory worker failed for ${game}`, error);
-      await markDispatchFailure(job.id, error);
-    })
+    .catch(async error => { console.error(`Factory worker failed for ${game}`, error); await markDispatchFailure(job.id, error); })
     .finally(() => activeByGame.delete(game));
   activeByGame.set(game, { jobId: job.id, worker });
 }
 
-function gameIsBusy(game) {
-  return activeByGame.has(game) || qualityBusy.has(game) || restoreBusy.has(game);
-}
+function gameIsBusy(game) { return activeByGame.has(game) || qualityBusy.has(game) || restoreBusy.has(game); }
 
 async function snapshotBeforeBuild({ game, gameDir, label, kind, jobId = null }) {
   return createSnapshot({ stateDir: STATE_DIR, game, gameDir, label, kind, jobId });
@@ -157,12 +135,13 @@ async function handleApi(req, res, url) {
   if (req.method === 'GET' && url.pathname === '/api/status') {
     const [codex, jobs] = await Promise.all([probeCodex(REPO_ROOT), store.list(5)]);
     return sendJson(res, 200, {
-      name: 'Gutpopper Game Factory', version: '0.10.0', repoRoot: REPO_ROOT, codex,
+      name: 'Gutpopper Game Factory', version: '0.11.0', repoRoot: REPO_ROOT, codex,
       engines: { phaser3: '3.90.0', phaser4: '4.2.1', three: '0.185.1' },
       qualityLab: {
         visualDirector: true,
         aiPlaytester: true,
         retentionReplay: true,
+        adReadiness: true,
         performanceGate: true,
         pokiReadiness: true,
         visualQualityFloor: true,
@@ -195,9 +174,7 @@ async function handleApi(req, res, url) {
         const body = await readBody(req);
         const snapshot = await createSnapshot({ stateDir: STATE_DIR, game, gameDir, label: String(body.label || 'Manual restore point').slice(0, 120), kind: 'manual' });
         return sendJson(res, 201, { snapshot });
-      } catch (error) {
-        return sendJson(res, 500, { error: `Could not create restore point: ${error.message}` });
-      }
+      } catch (error) { return sendJson(res, 500, { error: `Could not create restore point: ${error.message}` }); }
     }
   }
 
@@ -216,9 +193,8 @@ async function handleApi(req, res, url) {
       const safety = await createSnapshot({ stateDir: STATE_DIR, game, gameDir, label: `Before restoring ${target.label || target.id}`, kind: 'pre-restore' });
       const restored = await restoreSnapshot({ stateDir: STATE_DIR, game, gameDir, snapshotId: target.id });
       return sendJson(res, 200, { restored, safetySnapshot: safety, snapshots: await listSnapshots({ stateDir: STATE_DIR, game }) });
-    } catch (error) {
-      return sendJson(res, 500, { error: `Restore failed: ${error.message}` });
-    } finally { restoreBusy.delete(game); }
+    } catch (error) { return sendJson(res, 500, { error: `Restore failed: ${error.message}` }); }
+    finally { restoreBusy.delete(game); }
   }
 
   const restoreMatch = url.pathname.match(/^\/api\/games\/([^/]+)\/restore\/([^/]+)$/);
@@ -234,9 +210,8 @@ async function handleApi(req, res, url) {
       const safety = await createSnapshot({ stateDir: STATE_DIR, game, gameDir, label: 'Before manual restore', kind: 'pre-restore' });
       const restored = await restoreSnapshot({ stateDir: STATE_DIR, game, gameDir, snapshotId });
       return sendJson(res, 200, { restored, safetySnapshot: safety });
-    } catch (error) {
-      return sendJson(res, 500, { error: `Restore failed: ${error.message}` });
-    } finally { restoreBusy.delete(game); }
+    } catch (error) { return sendJson(res, 500, { error: `Restore failed: ${error.message}` }); }
+    finally { restoreBusy.delete(game); }
   }
 
   const doctorMatch = url.pathname.match(/^\/api\/games\/([^/]+)\/doctor$/);
@@ -250,9 +225,8 @@ async function handleApi(req, res, url) {
     try {
       const gameUrl = `http://${HOST}:${PORT}/game/${encodeURIComponent(game)}/`;
       return sendJson(res, 200, await runQualityAudit({ game, gameDir, url: gameUrl, stateDir: STATE_DIR }));
-    } catch (error) {
-      return sendJson(res, 500, { error: `Game Doctor failed: ${error.message}` });
-    } finally { qualityBusy.delete(game); }
+    } catch (error) { return sendJson(res, 500, { error: `Game Doctor failed: ${error.message}` }); }
+    finally { qualityBusy.delete(game); }
   }
 
   if (req.method === 'GET' && url.pathname === '/api/jobs') return sendJson(res, 200, { jobs: await store.list(40) });
@@ -277,9 +251,8 @@ async function handleApi(req, res, url) {
       await store.appendLog(job.id, 'Dispatching Auto Model Router to build the first playable prototype.');
       dispatchWorker({ job, game: project.id, gameDir: project.gameDir });
       return sendJson(res, 202, { game: { id: project.id, title: project.title, url: `/game/${encodeURIComponent(project.id)}/`, metadata: project.metadata }, job: await store.get(job.id) });
-    } catch (error) {
-      return sendJson(res, 400, { error: error.message });
-    } finally { creatingGame = false; }
+    } catch (error) { return sendJson(res, 400, { error: error.message }); }
+    finally { creatingGame = false; }
   }
 
   if (req.method === 'POST' && url.pathname === '/api/jobs') {
@@ -301,14 +274,12 @@ async function handleApi(req, res, url) {
       await store.patch(created.id, { status: 'failed', stage: 'Snapshot failed', finishedAt: new Date().toISOString(), error: error.message });
       return sendJson(res, 500, { error: `Factory refused to edit without a safety snapshot: ${error.message}` });
     }
-
     const job = await store.patch(created.id, { status: 'running', stage: 'Dispatching Factory', attempt: 1, snapshotId: safety.id, error: null });
     await store.appendLog(job.id, `Safety snapshot saved · ${safety.id}`);
     await store.appendLog(job.id, `Dispatcher accepted ${game}; starting worker.`);
     dispatchWorker({ job, game, gameDir });
     return sendJson(res, 202, await store.get(job.id));
   }
-
   return false;
 }
 
@@ -348,7 +319,6 @@ async function handler(req, res) {
   const publicRelative = url.pathname === '/' ? 'index.html' : decodeURIComponent(url.pathname).replace(/^\/+/, '');
   const publicPath = safeJoin(PUBLIC_DIR, publicRelative);
   if (publicPath && await serveFile(res, publicPath, { noCache: true })) return;
-
   res.writeHead(404, { 'content-type': 'text/plain; charset=utf-8' });
   res.end('Not found');
 }
@@ -359,8 +329,7 @@ export async function startFactoryServer() {
   const server = http.createServer((req, res) => {
     handler(req, res).catch(error => {
       console.error(error);
-      if (!res.headersSent) sendJson(res, 500, { error: error.message });
-      else res.end();
+      if (!res.headersSent) sendJson(res, 500, { error: error.message }); else res.end();
     });
   });
   await new Promise((resolve, reject) => {
@@ -368,7 +337,7 @@ export async function startFactoryServer() {
     server.listen(PORT, HOST, () => { server.off('error', reject); resolve(); });
   });
   const localUrl = `http://${HOST}:${PORT}`;
-  console.log(`\nGutpopper Game Factory v0.10.0`);
+  console.log(`\nGutpopper Game Factory v0.11.0`);
   console.log(localUrl);
   console.log(`Repo: ${REPO_ROOT}\n`);
   return { server, url: localUrl, repoRoot: REPO_ROOT, stateDir: STATE_DIR, port: PORT, host: HOST };
