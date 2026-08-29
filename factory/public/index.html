@@ -12,6 +12,7 @@
   <link rel="stylesheet" href="/styles.css" />
   <link rel="stylesheet" href="/platform.css" />
   <link rel="stylesheet" href="/device-preview.css" />
+  <link rel="stylesheet" href="/quality-lab.css" />
 </head>
 <body>
   <div class="app-shell">
@@ -81,6 +82,7 @@
                 <button id="previewPhone" class="device-button" type="button" aria-pressed="false">Phone</button>
               </div>
               <div class="preview-actions">
+                <button id="gameDoctor" class="ghost-button" type="button" disabled>Game Doctor</button>
                 <button id="reloadPreview" class="ghost-button" type="button">Reload</button>
                 <a id="openGame" class="ghost-button disabled" href="#" target="_blank" rel="noreferrer">Play Fullscreen ↗</a>
               </div>
@@ -164,7 +166,7 @@
     <div class="studio-modal">
       <header class="studio-modal-head">
         <div>
-          <span class="eyebrow">GAME CREATOR · v0.3</span>
+          <span class="eyebrow">GAME CREATOR · v0.4</span>
           <h2 id="studioTitle">Create the next Gutpopper game</h2>
           <p>Scout Poki opportunities or start with your own idea. The PC builds and QA-tests it while you control the process here.</p>
         </div>
@@ -200,7 +202,7 @@
         </div>
         <input id="selectedOpportunity" type="hidden" />
         <div class="creator-footer">
-          <div><strong>Standard Terra build</strong><span>Creates the next numbered folder, builds a real playable v1, then runs desktop + mobile QA.</span></div>
+          <div><strong>Auto-routed build</strong><span>Creates the next numbered folder, builds a real playable v1, then runs desktop + phone QA.</span></div>
           <button id="createGame" class="primary-button build-game-button" type="button">Build Playable Prototype</button>
         </div>
         <div id="creatorStatus" class="creator-status"></div>
@@ -208,7 +210,45 @@
     </div>
   </section>
 
+  <section id="qualityOverlay" class="quality-overlay hidden" aria-modal="true" role="dialog" aria-labelledby="qualityTitle">
+    <div class="quality-modal">
+      <header class="quality-head">
+        <div>
+          <span class="eyebrow">QUALITY LAB · GAME DOCTOR</span>
+          <h2 id="qualityTitle">Game Doctor</h2>
+          <p>Automated desktop + phone QA, interaction probing, and screenshot-based Visual Director review. This audit does not edit the game.</p>
+        </div>
+        <button id="closeQuality" class="ghost-button" type="button">Close</button>
+      </header>
+      <div id="qualityStatus" class="quality-status">Ready.</div>
+      <div class="quality-body">
+        <div class="quality-scores">
+          <div class="quality-score"><span>Overall</span><strong id="qualityOverall">—</strong></div>
+          <div class="quality-score"><span>Technical</span><strong id="qualityTechnical">—</strong></div>
+          <div class="quality-score"><span>Interaction</span><strong id="qualityInteraction">—</strong></div>
+          <div class="quality-score"><span>Visual</span><strong id="qualityVisual">—</strong></div>
+        </div>
+        <div class="quality-grid">
+          <section class="quality-section">
+            <h3>Visual Director report</h3>
+            <pre id="qualityReport">Visual Director is waiting for screenshots…</pre>
+          </section>
+          <section class="quality-section">
+            <h3>Technical / interaction notes</h3>
+            <pre id="qualityTechnicalNotes">Run Game Doctor to inspect the selected game.</pre>
+            <div id="qualityGallery" class="quality-gallery"></div>
+          </section>
+        </div>
+      </div>
+      <div class="quality-actions">
+        <button id="rerunDoctor" class="ghost-button" type="button" disabled>Run Again</button>
+        <button id="applyDoctorFixes" class="primary-button" type="button" disabled>Send Fixes to Director</button>
+      </div>
+    </div>
+  </section>
+
   <script type="module" src="/app.js"></script>
   <script type="module" src="/device-preview.js"></script>
+  <script type="module" src="/quality-lab.js"></script>
 </body>
 </html>
