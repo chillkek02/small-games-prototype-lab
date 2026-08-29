@@ -1,17 +1,30 @@
 {
   "name": "gutpopper-game-factory",
-  "version": "0.1.0",
+  "productName": "Gutpopper Game Factory",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Local AI game-production dashboard for the Small Games Prototype Lab.",
+  "main": "electron/main.cjs",
+  "description": "AI game-production desktop app and private phone remote for the Small Games Prototype Lab.",
+  "author": "Gutpopper Games",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "desktop": "electron .",
+    "prepare:chromium": "node scripts/install-playwright.cjs",
+    "package:win": "npm run prepare:chromium && electron-forge package --platform=win32 --arch=x64",
+    "make:win": "npm run prepare:chromium && electron-forge make --platform=win32 --arch=x64"
   },
   "engines": {
     "node": ">=20"
   },
   "dependencies": {
-    "playwright": "latest"
+    "playwright": "1.55.0"
+  },
+  "devDependencies": {
+    "electron": "44.0.0",
+    "@electron-forge/cli": "7.11.2",
+    "@electron-forge/maker-squirrel": "7.11.2",
+    "@electron-forge/maker-zip": "7.11.2"
   }
 }
