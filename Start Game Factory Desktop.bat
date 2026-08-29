@@ -27,6 +27,10 @@ if "%NEED_INSTALL%"=="1" (
   if errorlevel 1 goto :fail
 )
 
+echo Validating Factory source...
+call npm run check
+if errorlevel 1 goto :fail
+
 echo Checking Microsoft Edge for automated QA...
 where msedge >nul 2>nul
 if errorlevel 1 (
