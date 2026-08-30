@@ -4,6 +4,7 @@ import { chromium } from 'playwright';
 const START_PATTERN = /^(?:play(?:\s+now)?|start(?:\s+(?:game|shift|job|run|level|mission|round|race|day))?|begin(?:\s+(?:game|shift|job|run|level|mission|round))?|go|launch|continue|new game)$/i;
 const GENERIC_RESOURCE_ERROR = /^Failed to load resource: the server responded with a status of \d+/i;
 const OPTIONAL_ICON_PATH = /\/(favicon\.ico|apple-touch-icon(?:-[^/]*)?\.png)$/i;
+const FACTORY_BOOT_TEXT = 'Gutpopper full reusable production library loaded';
 
 async function launchQaBrowser() {
   if (process.platform === 'win32') {
@@ -77,11 +78,12 @@ async function inspectViewport(browser, { name, width, height, url, screenshotPa
   }
 
   const clicked = loadError ? null : await exercisePage(page);
-  const metrics = loadError ? null : await page.evaluate(() => {
+  const metrics = loadError ? null : await page.evaluate(factoryBootText => {
     const root = document.documentElement;
     const body = document.body;
     const rect = body?.getBoundingClientRect();
     const interactiveCount = document.querySelectorAll('button, canvas, svg, [role="button"], input, a').length;
+    const bodyText = (body?.innerText || '').trim();
 
     const visibleRect = element => {
       const style = getComputedStyle(element);
@@ -128,7 +130,8 @@ async function inspectViewport(browser, { name, width, height, url, screenshotPa
       interactiveCount,
       hasCanvas: Boolean(document.querySelector('canvas')),
       hasSvg: Boolean(document.querySelector('svg')),
-      textLength: (body?.innerText || '').trim().length,
+      textLength: bodyText.length,
+      hasFactoryScaffoldBoot: bodyText.includes(factoryBootText),
       largestCanvas: largestCanvas ? {
         width: Math.round(largestCanvas.width),
         height: Math.round(largestCanvas.height),
@@ -137,7 +140,7 @@ async function inspectViewport(browser, { name, width, height, url, screenshotPa
       } : null,
       meaningfulBounds
     };
-  });
+  }, FACTORY_BOOT_TEXT);
 
   if (!loadError) await page.screenshot({ path: screenshotPath, fullPage: false });
 
@@ -148,6 +151,9 @@ async function inspectViewport(browser, { name, width, height, url, screenshotPa
   if (consoleErrors.length) issues.push(`${name}: ${consoleErrors.length} console error(s): ${consoleErrors.slice(0, 3).join(' | ')}`);
   if (resourceErrors.length) issues.push(`${name}: ${resourceErrors.length} missing/failed local resource(s): ${resourceErrors.slice(0, 3).join(' | ')}`);
   if (metrics) {
+    if (metrics.hasFactoryScaffoldBoot) {
+      issues.push(`${name}: Factory starter boot scaffold is still visible; prototype implementation did not replace the boot screen with a playable game`);
+    }
     if (metrics.scrollWidth - metrics.clientWidth > 3) {
       issues.push(`${name}: horizontal overflow (${metrics.scrollWidth}px content in ${metrics.clientWidth}px viewport)`);
     }
