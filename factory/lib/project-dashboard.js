@@ -1,12 +1,11 @@
 import { getHumanFunGate } from './human-fun.js';
 import { getAssetAutopilotStatus } from './asset-autopilot.js';
-import { getLatestQualityRun } from './quality-jobs.js';
+import { getLatestQualityRuns } from './quality-jobs.js';
 import { getTestFunnel } from './test-funnel.js';
 
-export const PROJECT_DASHBOARD_VERSION='1.0.0';
+export const PROJECT_DASHBOARD_VERSION='1.0.1';
 
 function doctorPass(run){const a=run?.result;if(!a)return false;const adPass=a.adReadiness?.applicable===false||a.adPassed;return Boolean(a.qa?.passed&&a.visualFloorPassed&&a.retentionPassed&&adPass&&Number(a.visualScore||0)>=85&&Number(a.performanceScore||0)>=75&&Number(a.pokiScore||0)>=75)}
-function terminal(status){return['passed','needs-review','failed'].includes(status)}
 function jobSummary(job){if(!job)return null;return{id:job.id,status:job.status,stage:job.stage||job.status,kind:job.kind||'edit',createdAt:job.createdAt||null,startedAt:job.startedAt||null,finishedAt:job.finishedAt||null,qaPassed:Boolean(job.qa?.passed),bestScore:job.studioLoopResult?.bestScore??null,iterations:job.studioLoopResult?.iterations??0,error:job.error||null}}
 function doctorSummary(run){if(!run)return null;return{id:run.id,status:run.status,percent:Number(run.percent||0),stage:run.stage||run.status,detail:run.detail||'',finishedAt:run.finishedAt||null,overallScore:run.result?.overallScore??null,visualScore:run.result?.visualScore??null,performanceScore:run.result?.performanceScore??null,pokiScore:run.result?.pokiScore??null,passed:doctorPass(run)}}
 function stageInfo({game,job,fun,autopilot,doctor,funnel}){
@@ -27,15 +26,14 @@ function stageInfo({game,job,fun,autopilot,doctor,funnel}){
 }
 
 export async function buildProjectDashboard({stateDir,store,games}){
-  const jobs=await store.list(300),latestByGame=new Map();for(const job of jobs)if(!latestByGame.has(job.game))latestByGame.set(job.game,job);
+  const[jobs,latestDoctor]=await Promise.all([store.list(300),getLatestQualityRuns({stateDir})]),latestByGame=new Map();for(const job of jobs)if(!latestByGame.has(job.game))latestByGame.set(job.game,job);
   const projects=await Promise.all(games.map(async game=>{
-    const[fun,autopilot,doctor,funnel]=await Promise.all([
+    const[fun,autopilot,funnel]=await Promise.all([
       getHumanFunGate({stateDir,game:game.id,title:game.title}).catch(()=>({verdict:'pending',productionUnlocked:false})),
       getAssetAutopilotStatus({gameDir:game.gameDir}).catch(()=>({phase:'idle'})),
-      getLatestQualityRun({stateDir,game:game.id}).catch(()=>null),
       getTestFunnel({stateDir,game:game.id,title:game.title,concept:game.metadata?.concept||''}).catch(()=>({tests:[],decision:null}))
-    ]),latestJob=latestByGame.get(game.id)||null,stage=stageInfo({game,job:latestJob,fun,autopilot,doctor:doctorSummary(doctor),funnel});
-    return{id:game.id,title:game.title,url:game.url,metadata:game.metadata||null,stage,job:jobSummary(latestJob),humanFun:fun,autopilot:{phase:autopilot?.phase||'idle',jobId:autopilot?.jobId||null,lastHarvest:autopilot?.lastHarvest||null},doctor:doctorSummary(doctor),testsCount:(funnel?.tests||[]).length,decision:funnel?.decision||null};
+    ]),latestJob=latestByGame.get(game.id)||null,doctor=doctorSummary(latestDoctor[game.id]||null),stage=stageInfo({game,job:latestJob,fun,autopilot,doctor,funnel});
+    return{id:game.id,title:game.title,url:game.url,metadata:game.metadata||null,stage,job:jobSummary(latestJob),humanFun:fun,autopilot:{phase:autopilot?.phase||'idle',jobId:autopilot?.jobId||null,lastHarvest:autopilot?.lastHarvest||null},doctor,testsCount:(funnel?.tests||[]).length,decision:funnel?.decision||null};
   }));
   const counts=projects.reduce((acc,p)=>{acc.total++;acc[p.stage.group]=(acc[p.stage.group]||0)+1;return acc},{total:0,'needs-you':0,active:0,production:0,testing:0,decision:0,parked:0});
   return{version:PROJECT_DASHBOARD_VERSION,generatedAt:new Date().toISOString(),counts,projects};
