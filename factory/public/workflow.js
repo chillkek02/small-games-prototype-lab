@@ -21,31 +21,32 @@ const STEPS=[
 function stepHtml(step,state){return`<button class="flow-step ${state}" data-flow-step="${step.id}" type="button"><span class="flow-number">${state==='done'?'✓':step.n}</span><strong>${step.title}</strong><small>${step.sub}</small></button>`}
 function latestForGame(jobs,game){return(jobs||[]).find(j=>j.game===game)||null}
 function doctorPass(run){const a=run?.result;if(!a)return false;const adPass=a.adReadiness?.applicable===false||a.adPassed;return Boolean(a.qa?.passed&&a.visualFloorPassed&&a.retentionPassed&&adPass&&Number(a.visualScore||0)>=85&&Number(a.performanceScore||0)>=75&&Number(a.pokiScore||0)>=75)}
+function timeOf(value){const n=Date.parse(value||0);return Number.isFinite(n)?n:0}
 function computeFlow(d){
-  const job=d.job,auto=d.autopilot||{},doc=d.doctor?.run||null,funnel=d.funnel||{},tests=funnel.tests||[],runningJob=job&&['queued','running'].includes(job.status),autoRunning=auto.phase==='running',docRunning=doc?.status==='running';
-  const states={plan:'done',build:runningJob?'active':'done',assets:auto.phase==='completed'?'done':autoRunning?'active':'pending',doctor:doc?.status==='completed'?'done':docRunning?'active':'pending',polish:'pending',test:tests.length?'done':'pending',decision:tests.length?'active':'pending'};
+  const job=d.job,auto=d.autopilot||{},doc=d.doctor?.run||null,funnel=d.funnel||{},tests=funnel.tests||[],runningJob=job&&['queued','running'].includes(job.status),autoRunning=auto.phase==='running',docRunning=doc?.status==='running',terminalJob=job&&['passed','needs-review','failed'].includes(job.status),jobTime=timeOf(job?.finishedAt||job?.updatedAt||job?.createdAt),docTime=timeOf(doc?.finishedAt||doc?.updatedAt||doc?.startedAt),latestTest=tests.at(-1)||null,testTime=timeOf(latestTest?.createdAt),doctorStale=Boolean(doc?.status==='completed'&&terminalJob&&jobTime>docTime),testStale=Boolean(latestTest&&terminalJob&&jobTime>testTime);
+  const states={plan:'done',build:runningJob?'active':'done',assets:auto.phase==='completed'?'done':autoRunning?'active':'pending',doctor:doc?.status==='completed'&&!doctorStale?'done':docRunning?'active':'pending',polish:'pending',test:tests.length&&!testStale?'done':'pending',decision:tests.length&&!testStale?'active':'pending'};
   let current='assets';
   if(runningJob)current=job.kind==='new-game'?'build':(autoRunning?'assets':'polish');
   else if(autoRunning)current='assets';
   else if(docRunning)current='doctor';
   else if(auto.phase!=='completed')current='assets';
-  else if(doc?.status!=='completed')current='doctor';
+  else if(doc?.status!=='completed'||doctorStale)current='doctor';
   else if(!doctorPass(doc)){current='polish';states.polish='active'}
-  else if(!tests.length){current='test';states.test='active';states.polish='done'}
+  else if(!tests.length||testStale){current='test';states.test='active';states.polish='done'}
   else{current='decision';states.polish='done';states.test='done';states.decision='active'}
   if(current==='doctor')states.doctor='active';if(current==='assets')states.assets='active';if(current==='build')states.build='active';
   if(['doctor','polish','test','decision'].includes(current)&&auto.phase==='completed')states.assets='done';
-  if(['polish','test','decision'].includes(current)&&doc?.status==='completed')states.doctor='done';
+  if(['polish','test','decision'].includes(current)&&doc?.status==='completed'&&!doctorStale)states.doctor='done';
   if(current==='test'&&doctorPass(doc))states.polish='done';
-  return{current,states,job,auto,doc,funnel};
+  return{current,states,job,auto,doc,funnel,doctorStale,testStale};
 }
 function actionFor(flow){
   switch(flow.current){
     case'build':return{label:'Watch Build',title:'The Factory is building the playable game',help:'Follow the live progress panel on the right. No extra action is needed.',disabled:true};
     case'assets':return flow.auto?.phase==='running'?{label:'Assets Running',title:'Asset Autopilot is improving the game',help:'Library search → reuse/adapt → generate missing assets → integrate → QA → harvest.',disabled:true}:{label:'Run Asset Autopilot',title:'Polish the game assets automatically',help:'Search the global library first, then create only what the game is missing.',action:'assets'};
-    case'doctor':return flow.doc?.status==='running'?{label:'Watch Doctor',title:'Game Doctor is auditing the game',help:'Open the live Doctor panel to see its exact phase, percentage and elapsed time.',action:'doctor'}:{label:'Run Game Doctor',title:'Measure the game before more polishing',help:'Technical QA, AI playtest, retention, ads, performance, Poki readiness and visual review.',action:'doctor'};
+    case'doctor':return flow.doc?.status==='running'?{label:'Watch Doctor',title:'Game Doctor is auditing the game',help:'Open the live Doctor panel to see its exact phase, percentage and elapsed time.',action:'doctor'}:{label:'Run Game Doctor',title:flow.doctorStale?'The game changed — re-run Game Doctor':'Measure the game before more polishing',help:flow.doctorStale?'The previous Doctor score belongs to an older build. Re-audit this version before moving on.':'Technical QA, AI playtest, retention, ads, performance, Poki readiness and visual review.',action:'doctor'};
     case'polish':return{label:'Review + Fix',title:'Quality findings need a polish pass',help:'Review the latest Doctor report, send its fixes to Director, then run Studio Loop.',action:'polish'};
-    case'test':return{label:'Open Poki Test',title:'Internal quality is ready for real players',help:'Record the current Poki test result; real-player evidence outranks synthetic scores.',action:'test'};
+    case'test':return{label:'Open Poki Test',title:flow.testStale?'The game changed — collect fresh player data':'Internal quality is ready for real players',help:flow.testStale?'Old Poki results are preserved as history but no longer represent this build.':'Record the current Poki test result; real-player evidence outranks synthetic scores.',action:'test'};
     case'decision':return{label:'Open Winner Board',title:flow.funnel?.decision?.status?String(flow.funnel.decision.status).replaceAll('_',' '):'Review real-player decision',help:flow.funnel?.decision?.next||'Promote, iterate, or park the concept based on real-player evidence.',action:'decision'};
     default:return{label:'Open Plan',title:'Define the game hypothesis',help:'Set hook, Session 0, art direction and test hypothesis before spending build time.',action:'plan'};
   }
