@@ -1,3 +1,4 @@
+import './asset-autopilot.js';
 function staGame(){const h=document.querySelector('#openGame')?.getAttribute('href')||'';const m=h.match(/^\/game\/([^/]+)/);return m?decodeURIComponent(m[1]):null}
 async function staApi(url,options){const r=await fetch(url,options),d=await r.json().catch(()=>({}));if(!r.ok)throw new Error(d.error||('HTTP '+r.status));return d}
 async function dispatch(instruction,{loop=false}={}){const game=staGame();if(!game)throw new Error('Select a game first.');const result=await staApi('/api/jobs',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({game,instruction,studioLoop:{enabled:loop,maxIterations:loop?2:1}})});setTimeout(()=>location.reload(),450);return result}
