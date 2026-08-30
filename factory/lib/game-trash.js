@@ -1,7 +1,7 @@
 import fsp from 'node:fs/promises';
 import path from 'node:path';
 
-const TRASH_META = '.factory-trash.json';
+export const TRASH_META = '.factory-trash.json';
 const WINDOWS_LOCK_CODES = new Set(['EBUSY', 'EPERM', 'ENOTEMPTY', 'EACCES']);
 const RETRY_DELAYS_MS = [120, 250, 500, 900, 1500];
 
@@ -34,13 +34,55 @@ async function renameWithRetry(source, destination) {
   throw lastError;
 }
 
-async function moveDirectory(source, destination) {
+async function verifyTrashCopy(destination) {
+  const [indexStat, metaStat] = await Promise.all([
+    fsp.stat(path.join(destination, 'index.html')).catch(() => null),
+    fsp.stat(path.join(destination, TRASH_META)).catch(() => null)
+  ]);
+  if (!indexStat?.isFile() || !metaStat?.isFile()) {
+    throw new Error('Factory Trash safety copy could not be verified, so the original game was left untouched.');
+  }
+}
+
+async function copyThenRemove(source, destination, metadata) {
+  try {
+    await fsp.cp(source, destination, {
+      recursive: true,
+      force: false,
+      errorOnExist: true,
+      preserveTimestamps: true
+    });
+    await verifyTrashCopy(destination);
+  } catch (error) {
+    await fsp.rm(destination, { recursive: true, force: true, maxRetries: 3, retryDelay: 150 }).catch(() => {});
+    throw error;
+  }
+
+  try {
+    await fsp.rm(source, { recursive: true, force: true, maxRetries: 6, retryDelay: 250 });
+    return { mode: 'copied', pendingCleanup: false };
+  } catch (error) {
+    if (!WINDOWS_LOCK_CODES.has(error?.code)) {
+      await fsp.rm(destination, { recursive: true, force: true, maxRetries: 3, retryDelay: 150 }).catch(() => {});
+      throw error;
+    }
+
+    // Windows/OneDrive can keep a directory handle alive after all visible windows are gone.
+    // The recoverable copy is already verified, so leave a tombstone in the original folder.
+    // server.js hides tombstoned folders immediately and startup cleanup removes them later.
+    await fsp.mkdir(source, { recursive: true }).catch(() => {});
+    await fsp.writeFile(path.join(source, TRASH_META), JSON.stringify({ ...metadata, pendingCleanup: true }, null, 2), 'utf8').catch(() => {});
+    return { mode: 'copied', pendingCleanup: true, cleanupError: error.message };
+  }
+}
+
+async function moveDirectory(source, destination, metadata) {
   try {
     await renameWithRetry(source, destination);
+    return { mode: 'renamed', pendingCleanup: false };
   } catch (error) {
-    if (error?.code !== 'EXDEV') throw error;
-    await fsp.cp(source, destination, { recursive: true, force: false, errorOnExist: true });
-    await fsp.rm(source, { recursive: true, force: true });
+    if (error?.code !== 'EXDEV' && !WINDOWS_LOCK_CODES.has(error?.code)) throw error;
+    return copyThenRemove(source, destination, metadata);
   }
 }
 
@@ -70,18 +112,37 @@ export async function trashGame({ stateDir, game, gameDir, title = game }) {
   await fsp.writeFile(path.join(gameDir, TRASH_META), JSON.stringify(metadata, null, 2), 'utf8');
 
   try {
-    await moveDirectory(gameDir, destination);
+    const moved = await moveDirectory(gameDir, destination, metadata);
+    return { ...metadata, destination, ...moved };
   } catch (error) {
     await fsp.rm(path.join(gameDir, TRASH_META), { force: true }).catch(() => {});
     if (WINDOWS_LOCK_CODES.has(error?.code)) {
-      const friendly = new Error('Windows is still holding this game folder open. The Factory already closed its own game windows and retried the move; close any external editor or File Explorer window using this game and try Delete again.');
+      const friendly = new Error('Windows could not release the game folder even after the Factory closed its own game windows and retried. This can be caused by OneDrive, Defender, Search indexing, or another background Windows handle. The original game was left in place.');
       friendly.code = error.code;
       throw friendly;
     }
     throw error;
   }
+}
 
-  return { ...metadata, destination };
+export async function cleanupPendingTrash({ gamesDir }) {
+  let entries = [];
+  try { entries = await fsp.readdir(gamesDir, { withFileTypes: true }); } catch { return { removed: 0, pending: 0 }; }
+  let removed = 0;
+  let pending = 0;
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const gameDir = path.join(gamesDir, entry.name);
+    const marker = await fsp.stat(path.join(gameDir, TRASH_META)).catch(() => null);
+    if (!marker?.isFile()) continue;
+    try {
+      await fsp.rm(gameDir, { recursive: true, force: true, maxRetries: 4, retryDelay: 250 });
+      removed += 1;
+    } catch {
+      pending += 1;
+    }
+  }
+  return { removed, pending };
 }
 
 export async function listTrash({ stateDir }) {
