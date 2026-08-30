@@ -21,8 +21,8 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand"><div class="brand-mark">GF</div><div><div class="brand-title">Gutpopper Game Factory</div><div class="brand-subtitle">Poki-first game discovery studio · v0.27.1 Asset Autopilot</div></div></div>
-      <div class="topbar-actions"><button id="studioToolsButton" class="ghost-button" type="button">Studio Tools</button><span id="clientMode" class="client-mode">PC Factory</span><button id="phoneRemoteButton" class="ghost-button hidden" type="button">Phone Remote</button><div class="topbar-status"><span id="codexDot" class="status-dot"></span><span id="codexStatus">Checking Codex…</span></div></div>
+      <div class="brand"><div class="brand-mark">GF</div><div><div class="brand-title">Gutpopper Game Factory</div><div class="brand-subtitle">Gameplay-first dual-agent studio · v0.30.0 Human Fun Gate</div></div></div>
+      <div class="topbar-actions"><button id="studioToolsButton" class="ghost-button" type="button">Advanced Tools</button><span id="clientMode" class="client-mode">PC Factory</span><button id="phoneRemoteButton" class="ghost-button hidden" type="button">Phone Remote</button><div class="topbar-status"><span id="codexDot" class="status-dot"></span><span id="codexStatus">Checking Codex…</span></div></div>
     </header>
 
     <section id="remotePanel" class="remote-panel hidden" aria-live="polite">
@@ -34,7 +34,7 @@
     <main class="workspace">
       <aside class="projects-panel panel">
         <div class="panel-heading projects-heading"><div><span class="eyebrow">PROJECTS</span><h2>Prototype Lab</h2></div><span id="gameCount" class="count-badge">0</span></div>
-        <div class="studio-launchers"><button id="scoutButton" class="studio-launch scout" type="button"><span>◆</span><strong>Find Opportunity</strong><small>Scout Poki niches</small></button><button id="newGameButton" class="studio-launch create" type="button"><span>＋</span><strong>New Game</strong><small>Build from an idea</small></button></div>
+        <div class="studio-launchers"><button id="scoutButton" class="studio-launch scout" type="button"><span>◆</span><strong>Find Opportunity</strong><small>Scout Poki niches</small></button><button id="newGameButton" class="studio-launch create" type="button"><span>＋</span><strong>New Game</strong><small>Build a gameplay prototype</small></button></div>
         <div id="gameList" class="game-list"></div>
       </aside>
 
@@ -69,21 +69,21 @@
 
   <section id="studioOverlay" class="studio-overlay hidden" aria-modal="true" role="dialog" aria-labelledby="studioTitle">
     <div class="studio-modal">
-      <header class="studio-modal-head"><div><span class="eyebrow">GAME CREATOR · v0.27 ASSET AUTOPILOT</span><h2 id="studioTitle">Create the next Gutpopper game</h2><p>Trend + Theme Radar → persistent plan/references → reusable production library → Asset Autopilot → QA/Hook/Optimization → Studio Loop → real-player Poki funnel.</p></div><button id="closeStudio" class="ghost-button" type="button">Close</button></header>
+      <header class="studio-modal-head"><div><span class="eyebrow">GAME CREATOR · v0.30 GAMEPLAY FIRST</span><h2 id="studioTitle">Create a gameplay prototype</h2><p>Build the core loop cheaply → technical desktop/phone QA → stop → YOU decide if it is fun. Production assets, Game Doctor and deep polish stay locked until the Human Fun Gate passes.</p></div><button id="closeStudio" class="ghost-button" type="button">Close</button></header>
       <div class="studio-mode-tabs"><button id="showScout" class="studio-tab active" type="button">◆ Opportunity Scout</button><button id="showCreator" class="studio-tab" type="button">＋ My Own Idea</button></div>
-      <div id="scoutPane" class="studio-pane"><div class="scout-hero"><div><span class="eyebrow">POKI MARKET SCOUT</span><h3>Find the strongest buildable opportunity</h3><p>The Factory checks live Poki trend signals, theme wrappers, visual-production fit, mobile fit, monetization and production speed.</p></div><button id="runScout" class="primary-button" type="button">Run Market Scout</button></div><div id="scoutStatus" class="scout-status">Ready to research.</div><div id="opportunityList" class="opportunity-list"></div></div>
+      <div id="scoutPane" class="studio-pane"><div class="scout-hero"><div><span class="eyebrow">POKI MARKET SCOUT</span><h3>Find the strongest buildable opportunity</h3><p>The Factory checks live Poki trend signals, theme wrappers, mobile fit, monetization and production speed. The first build still stays intentionally basic so gameplay can be judged honestly.</p></div><button id="runScout" class="primary-button" type="button">Run Market Scout</button></div><div id="scoutStatus" class="scout-status">Ready to research.</div><div id="opportunityList" class="opportunity-list"></div></div>
       <div id="creatorPane" class="studio-pane hidden">
         <div class="creator-grid">
-          <label class="field wide"><span>Game title</span><input id="newGameTitle" maxlength="70" placeholder="Tow Truck Trouble" /></label>
+          <label class="field wide"><span>Game title</span><input id="newGameTitle" maxlength="70" placeholder="Magnet Mayhem" /></label>
           <label class="field wide"><span>Core concept</span><textarea id="newGameConcept" rows="5" placeholder="Describe the core loop, fantasy, and what the player actually does…"></textarea></label>
-          <label class="field"><span>Engine</span><select id="engineSelect"></select><small id="engineHelp">Factory chooses for gameplay + visual quality.</small></label>
-          <label class="field"><span>Art style</span><select id="artSelect"></select><small>Default is bright professional casual presentation; override when the concept needs another style.</small></label>
-          <label class="field"><span>Target</span><select id="targetSelect"><option value="Poki">Poki</option><option value="General Web">General Web</option></select><small>Poki includes SDK, ad-readiness and performance gates.</small></label>
-          <div class="field recommendation-card"><span>Factory recommendation</span><strong id="recommendationText">Three.js + Gutpopper Bright Toy 3D</strong><small>Updates from your concept or selected opportunity.</small></div>
-          <div class="field wide creator-loop-card"><label class="loop-toggle"><input id="creatorLoopMode" type="checkbox" checked /><span><strong>Studio Loop ON</strong><small>Recommended. Sol iterates against Doctor scores and keeps the best version.</small></span></label><label class="loop-rounds"><span>Max deep rounds</span><select id="creatorLoopRounds"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option></select></label></div>
+          <label class="field"><span>Engine</span><select id="engineSelect"></select><small id="engineHelp">Factory chooses the best engine for testing the mechanic quickly.</small></label>
+          <label class="field"><span>Future art direction</span><select id="artSelect"></select><small>Saved for production later. The gameplay prototype intentionally uses simple placeholder visuals.</small></label>
+          <label class="field"><span>Target</span><select id="targetSelect"><option value="Poki">Poki</option><option value="General Web">General Web</option></select><small>Target informs controls and technical requirements; polish waits until the fun gate.</small></label>
+          <div class="field recommendation-card"><span>Prototype recommendation</span><strong id="recommendationText">Factory Recommended Engine</strong><small>Engine is used now; art direction is saved for later production.</small></div>
+          <div class="field wide creator-loop-card"><div style="padding:14px 16px;border:1px solid rgba(139,255,154,.18);border-radius:14px;background:rgba(139,255,154,.04)"><strong style="display:block;color:#a8ffb4">GAMEPLAY PROTOTYPE MODE</strong><small style="display:block;margin-top:6px;color:#9ca8ba;line-height:1.5">Studio Loop is OFF. No Asset Autopilot. No visual-quality grind. The Factory builds one basic playable loop, runs desktop + phone technical QA, then stops for your Human Fun Gate.</small></div></div>
         </div>
         <input id="selectedOpportunity" type="hidden" />
-        <div class="creator-footer"><div><strong>Library-first production</strong><span>UI + Game Feel + Characters + Models/Vector-to-3D + Shader/VFX + Asset Catalog + Global Asset Library + Asset Autopilot + QA + Studio Loop.</span></div><button id="createGame" class="primary-button build-game-button" type="button">Build Studio Game</button></div>
+        <div class="creator-footer"><div><strong>Gameplay first</strong><span>Simple shapes and placeholder UI are intentional. If the loop is fun, production unlocks afterward.</span></div><button id="createGame" class="primary-button build-game-button" type="button">Build Gameplay Prototype</button></div>
         <div id="creatorStatus" class="creator-status"></div>
       </div>
     </div>
