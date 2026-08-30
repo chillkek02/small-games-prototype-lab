@@ -21,7 +21,7 @@
 <body>
   <div class="app-shell">
     <header class="topbar">
-      <div class="brand"><div class="brand-mark">GF</div><div><div class="brand-title">Gutpopper Game Factory</div><div class="brand-subtitle">Poki-first game discovery studio · v0.26.0 Expansion</div></div></div>
+      <div class="brand"><div class="brand-mark">GF</div><div><div class="brand-title">Gutpopper Game Factory</div><div class="brand-subtitle">Poki-first game discovery studio · v0.27.1 Asset Autopilot</div></div></div>
       <div class="topbar-actions"><button id="studioToolsButton" class="ghost-button" type="button">Studio Tools</button><span id="clientMode" class="client-mode">PC Factory</span><button id="phoneRemoteButton" class="ghost-button hidden" type="button">Phone Remote</button><div class="topbar-status"><span id="codexDot" class="status-dot"></span><span id="codexStatus">Checking Codex…</span></div></div>
     </header>
 
@@ -42,7 +42,7 @@
         <div class="preview-panel panel">
           <div class="preview-toolbar">
             <div><span class="eyebrow">DEVICE TEST CENTER</span><h1 id="selectedTitle">Select a game</h1><span id="previewViewportLabel" class="preview-viewport-label">Desktop · 1440×900</span></div>
-            <div class="preview-actions-wrap"><div class="device-switch" aria-label="Preview device"><button id="previewDesktop" class="device-button active" type="button" aria-pressed="true">Desktop</button><button id="previewPhone" class="device-button" type="button" aria-pressed="false">Phone</button></div><div class="preview-actions"><button id="assetLabButton" class="ghost-button" type="button" disabled>Asset Lab</button><button id="gameDoctor" class="ghost-button" type="button" disabled>Game Doctor</button><button id="reloadPreview" class="ghost-button" type="button">Reload</button><a id="openGame" class="ghost-button disabled" href="#" target="_blank" rel="noreferrer">Play Fullscreen ↗</a></div></div>
+            <div class="preview-actions-wrap"><div class="device-switch" aria-label="Preview device"><button id="previewDesktop" class="device-button active" type="button" aria-pressed="true">Desktop</button><button id="previewPhone" class="device-button" type="button" aria-pressed="false">Phone</button></div><div class="preview-actions"><button id="assetLabButton" class="ghost-button" type="button" disabled>Asset Lab</button><button id="assetAutopilotButton" class="ghost-button" type="button" disabled title="Search the global library, reuse/adapt assets, generate missing assets, integrate them, QA, then harvest for future games.">Asset Autopilot</button><button id="gameDoctor" class="ghost-button" type="button" disabled>Game Doctor</button><button id="reloadPreview" class="ghost-button" type="button">Reload</button><a id="openGame" class="ghost-button disabled" href="#" target="_blank" rel="noreferrer">Play Fullscreen ↗</a></div></div>
           </div>
           <div class="screen-frame" data-device-mode="desktop"><iframe id="gameFrame" title="Game preview"></iframe><div id="emptyPreview" class="empty-preview"><div class="empty-icon">▶</div><strong>Choose a prototype</strong><span>Switch Desktop / Phone, then play it here.</span></div></div>
         </div>
@@ -69,7 +69,7 @@
 
   <section id="studioOverlay" class="studio-overlay hidden" aria-modal="true" role="dialog" aria-labelledby="studioTitle">
     <div class="studio-modal">
-      <header class="studio-modal-head"><div><span class="eyebrow">GAME CREATOR · v0.26 EXPANSION</span><h2 id="studioTitle">Create the next Gutpopper game</h2><p>Trend + Theme Radar → persistent plan/references → reusable production library → QA/Hook/Optimization → Studio Loop → real-player Poki funnel.</p></div><button id="closeStudio" class="ghost-button" type="button">Close</button></header>
+      <header class="studio-modal-head"><div><span class="eyebrow">GAME CREATOR · v0.27 ASSET AUTOPILOT</span><h2 id="studioTitle">Create the next Gutpopper game</h2><p>Trend + Theme Radar → persistent plan/references → reusable production library → Asset Autopilot → QA/Hook/Optimization → Studio Loop → real-player Poki funnel.</p></div><button id="closeStudio" class="ghost-button" type="button">Close</button></header>
       <div class="studio-mode-tabs"><button id="showScout" class="studio-tab active" type="button">◆ Opportunity Scout</button><button id="showCreator" class="studio-tab" type="button">＋ My Own Idea</button></div>
       <div id="scoutPane" class="studio-pane"><div class="scout-hero"><div><span class="eyebrow">POKI MARKET SCOUT</span><h3>Find the strongest buildable opportunity</h3><p>The Factory checks live Poki trend signals, theme wrappers, visual-production fit, mobile fit, monetization and production speed.</p></div><button id="runScout" class="primary-button" type="button">Run Market Scout</button></div><div id="scoutStatus" class="scout-status">Ready to research.</div><div id="opportunityList" class="opportunity-list"></div></div>
       <div id="creatorPane" class="studio-pane hidden">
@@ -83,7 +83,7 @@
           <div class="field wide creator-loop-card"><label class="loop-toggle"><input id="creatorLoopMode" type="checkbox" checked /><span><strong>Studio Loop ON</strong><small>Recommended. Sol iterates against Doctor scores and keeps the best version.</small></span></label><label class="loop-rounds"><span>Max deep rounds</span><select id="creatorLoopRounds"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option></select></label></div>
         </div>
         <input id="selectedOpportunity" type="hidden" />
-        <div class="creator-footer"><div><strong>Full reusable production library</strong><span>UI + Game Feel + Characters + Models/Vector-to-3D + Shader/VFX + Asset Catalog + QA + Studio Loop. Use Studio Tools for plans, references, batch assets, hooks, portfolio and optimization.</span></div><button id="createGame" class="primary-button build-game-button" type="button">Build Studio Game</button></div>
+        <div class="creator-footer"><div><strong>Library-first production</strong><span>UI + Game Feel + Characters + Models/Vector-to-3D + Shader/VFX + Asset Catalog + Global Asset Library + Asset Autopilot + QA + Studio Loop.</span></div><button id="createGame" class="primary-button build-game-button" type="button">Build Studio Game</button></div>
         <div id="creatorStatus" class="creator-status"></div>
       </div>
     </div>
@@ -98,6 +98,6 @@
     </div>
   </section>
 
-  <script type="module" src="/app.js"></script><script type="module" src="/device-preview.js"></script><script type="module" src="/test-funnel.js"></script><script type="module" src="/asset-lab.js"></script><script type="module" src="/studio-tools.js"></script><script type="module" src="/studio-tools-actions.js"></script><script type="module" src="/plan-first.js"></script><script type="module" src="/quality-lab.js"></script>
+  <script type="module" src="/app.js"></script><script type="module" src="/device-preview.js"></script><script type="module" src="/test-funnel.js"></script><script type="module" src="/asset-lab.js"></script><script type="module" src="/studio-tools.js"></script><script type="module" src="/studio-tools-actions.js"></script><script type="module" src="/asset-autopilot.js"></script><script type="module" src="/plan-first.js"></script><script type="module" src="/quality-lab.js"></script>
 </body>
 </html>
