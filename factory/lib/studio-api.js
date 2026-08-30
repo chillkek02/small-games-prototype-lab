@@ -4,11 +4,13 @@ import { buildPlanPreview } from './plan-preview.js';
 import { prepareAssetAutopilot, getAssetAutopilotStatus, linkAssetAutopilotJob, finishAssetAutopilot, assetAutopilotLibraryView, ASSET_AUTOPILOT_VERSION } from './asset-autopilot.js';
 import { harvestGameAssets, assetLibraryStats } from './asset-library.js';
 import { handleQualityJobsApi } from './quality-jobs.js';
+import { handleAgentTeamJobsApi } from './agent-team-jobs.js';
 
 function safe(value){return typeof value==='string'&&/^[a-zA-Z0-9._-]+$/.test(value)&&!value.includes('..')}
 
 export async function handleStudioApi({req,res,url,stateDir,store,gameInfo,listGames,readBody,sendJson}){
   const qualityHandled=await handleQualityJobsApi({req,res,url,stateDir,gameInfo,sendJson,store});if(qualityHandled!==false)return qualityHandled;
+  const teamHandled=await handleAgentTeamJobsApi({req,res,url,stateDir,gameInfo,readBody,sendJson});if(teamHandled!==false)return teamHandled;
   if(req.method==='POST'&&url.pathname==='/api/new-game-plan'){try{return sendJson(res,200,buildPlanPreview(await readBody(req,500000)))}catch(error){return sendJson(res,400,{error:error.message})}}
   if(req.method==='GET'&&url.pathname==='/api/toolchain-status')return sendJson(res,200,{version:STUDIO_TOOLS_VERSION,godot:detectGodot(),assets:advancedAssetStatus(),assetAutopilot:{version:ASSET_AUTOPILOT_VERSION,...await assetLibraryStats({stateDir})}});
   if(req.method==='GET'&&url.pathname==='/api/asset-library'){try{return sendJson(res,200,await assetAutopilotLibraryView({stateDir,query:url.searchParams.get('q')||'',limit:Number(url.searchParams.get('limit')||60)}))}catch(error){return sendJson(res,500,{error:`Asset Library failed: ${error.message}`})}}
