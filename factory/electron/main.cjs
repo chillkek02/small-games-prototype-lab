@@ -11,6 +11,7 @@ const PORT = Number(process.env.GAME_FACTORY_PORT || 4177);
 let factoryRuntime = null;
 let mainWindow = null;
 let repoRoot = null;
+const gameWindows = new Map();
 
 function settingsPath() {
   return path.join(app.getPath('userData'), 'desktop-settings.json');
@@ -113,6 +114,51 @@ function configureWindowsCliEnvironment(factoryDir) {
     if (resolved) process.env.GAME_FACTORY_CLAUDE_COMMAND = resolved;
   }
 }
+
+function gameIdFromUrl(url) {
+  try {
+    const parsed = new URL(url);
+    const match = parsed.pathname.match(/^\/game\/([^/]+)/);
+    return match ? decodeURIComponent(match[1]) : null;
+  } catch {
+    return null;
+  }
+}
+
+function trackGameWindow(game, child) {
+  if (!game) return;
+  let set = gameWindows.get(game);
+  if (!set) {
+    set = new Set();
+    gameWindows.set(game, set);
+  }
+  set.add(child);
+  child.once('closed', () => {
+    set.delete(child);
+    if (!set.size) gameWindows.delete(game);
+  });
+}
+
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function closeGameWindows(game) {
+  const encoded = encodeURIComponent(game);
+  if (mainWindow && !mainWindow.isDestroyed()) {
+    await mainWindow.webContents.executeJavaScript(`(() => { const f=document.querySelector('#gameFrame'); if(f && String(f.src||'').includes('/game/${encoded}')) f.src='about:blank'; })()`).catch(() => {});
+  }
+
+  const windows = [...(gameWindows.get(game) || [])].filter(win => !win.isDestroyed());
+  for (const win of windows) win.close();
+
+  const deadline = Date.now() + 1800;
+  while (windows.some(win => !win.isDestroyed()) && Date.now() < deadline) await wait(60);
+  for (const win of windows) if (!win.isDestroyed()) win.destroy();
+  gameWindows.delete(game);
+  await wait(180);
+  return { closed: windows.length };
+}
+
+globalThis.__GUTPOPPER_CLOSE_GAME_WINDOWS__ = closeGameWindows;
 
 async function startFactory() {
   repoRoot = await discoverRepo();
@@ -261,6 +307,7 @@ function createWindow() {
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith(`${factoryOrigin}/game/`)) {
+      const game = gameIdFromUrl(url);
       const child = new BrowserWindow({
         width: 1440,
         height: 900,
@@ -275,6 +322,7 @@ function createWindow() {
           sandbox: true
         }
       });
+      trackGameWindow(game, child);
       child.setMenuBarVisibility(false);
       child.loadURL(url);
       child.once('ready-to-show', () => {
