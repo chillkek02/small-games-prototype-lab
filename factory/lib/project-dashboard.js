@@ -1,39 +1,53 @@
 import { getHumanFunGate } from './human-fun.js';
-import { getAssetAutopilotStatus } from './asset-autopilot.js';
+import { getAssetAutopilotStatus, finishAssetAutopilot } from './asset-autopilot.js';
 import { getLatestQualityRuns } from './quality-jobs.js';
 import { getTestFunnel } from './test-funnel.js';
 
-export const PROJECT_DASHBOARD_VERSION='1.0.1';
+export const PROJECT_DASHBOARD_VERSION='1.0.2';
 
+const TERMINAL_JOB_STATUSES=new Set(['passed','needs-review','failed']);
 function doctorPass(run){const a=run?.result;if(!a)return false;const adPass=a.adReadiness?.applicable===false||a.adPassed;return Boolean(a.qa?.passed&&a.visualFloorPassed&&a.retentionPassed&&adPass&&Number(a.visualScore||0)>=85&&Number(a.performanceScore||0)>=75&&Number(a.pokiScore||0)>=75)}
 function jobSummary(job){if(!job)return null;return{id:job.id,status:job.status,stage:job.stage||job.status,kind:job.kind||'edit',createdAt:job.createdAt||null,startedAt:job.startedAt||null,finishedAt:job.finishedAt||null,qaPassed:Boolean(job.qa?.passed),bestScore:job.studioLoopResult?.bestScore??null,iterations:job.studioLoopResult?.iterations??0,error:job.error||null}}
 function doctorSummary(run){if(!run)return null;return{id:run.id,status:run.status,percent:Number(run.percent||0),stage:run.stage||run.status,detail:run.detail||'',finishedAt:run.finishedAt||null,overallScore:run.result?.overallScore??null,visualScore:run.result?.visualScore??null,performanceScore:run.result?.performanceScore??null,pokiScore:run.result?.pokiScore??null,passed:doctorPass(run)}}
+function isAtLeastAsNew(a,b){const aa=Date.parse(a||0),bb=Date.parse(b||0);return !bb||!aa||aa>=bb}
+async function reconcileAutopilot({stateDir,store,jobsById,game,status}){
+  if(status?.phase!=='running'||!status.jobId)return status;
+  const id=String(status.jobId);let linked=jobsById.get(id)||null;
+  if(!linked)linked=await store.get(id).catch(()=>null);
+  if(!linked||linked.game!==game.id||!TERMINAL_JOB_STATUSES.has(linked.status))return status;
+  try{return await finishAssetAutopilot({stateDir,gameDir:game.gameDir,game:game.id,metadata:{id:game.id,title:game.title,...(game.metadata||{})},job:linked})}
+  catch(error){return{...status,phase:linked.status==='failed'?'failed':'completed',jobStatus:linked.status,finishedAt:linked.finishedAt||new Date().toISOString(),reconcileError:String(error?.message||error||'Asset Autopilot reconciliation failed')}}
+}
 function stageInfo({game,job,fun,autopilot,doctor,funnel}){
   const isPrototype=Boolean(game.metadata?.productionStage==='gameplay-prototype'||game.metadata?.prototypeMode),runningJob=job&&['queued','running'].includes(job.status),tests=funnel?.tests||[],decision=funnel?.decision||null;
   if(runningJob)return{key:isPrototype&&job.kind==='prototype'?'prototype-building':'working',group:'active',title:isPrototype&&job.kind==='prototype'?'Building gameplay prototype':'Factory working',description:job.stage||'The Factory is working on this game.',primary:{key:'watch',label:'Watch Progress'}};
   if(autopilot?.phase==='running')return{key:'assets-running',group:'active',title:'Building production assets',description:'Asset Autopilot is reusing, generating and integrating the visual production pass.',primary:{key:'watch-assets',label:'Watch Assets'}};
   if(doctor?.status==='running')return{key:'doctor-running',group:'active',title:'Game Doctor running',description:doctor.detail||'Quality audit is in progress.',primary:{key:'doctor',label:'Watch Doctor'}};
+  if(autopilot?.phase==='failed')return{key:'assets-failed',group:'needs-you',title:'Asset build failed',description:'Asset Autopilot hit a real technical failure. The project is not merely below a quality target.',primary:{key:'assets',label:'Retry Assets'}};
+  if(job?.status==='failed'&&isAtLeastAsNew(job.finishedAt,doctor?.finishedAt))return{key:'failed',group:'needs-you',title:'Technical build failed',description:job.error?`The last Factory operation failed: ${job.error}`:'The last Factory operation did not complete successfully. Review the failure before continuing.',primary:{key:'watch',label:'Review Failure'}};
+  if(doctor?.status==='failed'||doctor?.status==='interrupted')return{key:'doctor-failed',group:'needs-you',title:'Game Doctor failed',description:'The audit itself did not complete. This is a technical failure, not a low quality score.',primary:{key:'doctor',label:'Retry Game Doctor'}};
   if(isPrototype){
     if(fun?.verdict==='park')return{key:'parked',group:'parked',title:'Parked',description:'You decided the core loop is not worth more production time.',primary:{key:'resume',label:'Resume Prototype'}};
     if(fun?.verdict==='pivot')return{key:'pivot',group:'needs-you',title:'Gameplay pivot requested',description:'Keep it ugly. Change the core loop, then play it again.',primary:{key:'pivot',label:'Describe Gameplay Pivot'}};
     if(fun?.verdict!=='fun')return{key:'human-fun',group:'needs-you',title:'Human Fun Gate',description:'The prototype is ready. Play it now and decide whether the loop deserves production.',primary:{key:'play',label:'Play Prototype'}};
     if(autopilot?.phase!=='completed')return{key:'assets',group:'production',title:'Promoted · Build the art',description:'You approved the loop. Now let Asset Autopilot turn the proven prototype into a production-looking game.',primary:{key:'assets',label:'Build Assets'}};
   }
-  if(!doctor||doctor.status==='failed'||doctor.status==='interrupted')return{key:'doctor',group:'production',title:'Run quality audit',description:'The game has its production pass. Measure gameplay, visuals, retention, performance and Poki readiness.',primary:{key:'doctor',label:'Run Game Doctor'}};
-  if(doctor.status==='completed'&&!doctor.passed)return{key:'polish',group:'production',title:'Targeted polish needed',description:`Doctor ${doctor.overallScore??'—'}/100. Fix the measured weak points instead of blindly polishing everything.`,primary:{key:'polish',label:'Review & Fix'}};
+  if(!doctor)return{key:'doctor',group:'production',title:'Run quality audit',description:'The game has its production pass. Measure gameplay, visuals, retention, performance and Poki readiness.',primary:{key:'doctor',label:'Run Game Doctor'}};
+  if(doctor.status==='completed'&&!doctor.passed)return{key:'polish',group:'production',title:'Needs review · targeted polish',description:`Doctor ${doctor.overallScore??'—'}/100. The audit completed, but quality gates need work. Fix the measured weak points instead of treating this as a technical failure.`,primary:{key:'polish',label:'Review & Fix'}};
   if(!tests.length)return{key:'poki-test',group:'testing',title:'Ready for real-player test',description:'Internal quality is green enough. Real-player evidence is the next authority.',primary:{key:'test',label:'Open Poki Test'}};
   return{key:'decision',group:'decision',title:'Decision time',description:decision?.next||'Use the real-player result to promote, iterate or park this game.',primary:{key:'decision',label:'Review Decision'}};
 }
 
 export async function buildProjectDashboard({stateDir,store,games}){
-  const[jobs,latestDoctor]=await Promise.all([store.list(300),getLatestQualityRuns({stateDir})]),latestByGame=new Map();for(const job of jobs)if(!latestByGame.has(job.game))latestByGame.set(job.game,job);
+  const[jobs,latestDoctor]=await Promise.all([store.list(300),getLatestQualityRuns({stateDir})]),latestByGame=new Map(),jobsById=new Map();
+  for(const job of jobs){jobsById.set(String(job.id),job);if(!latestByGame.has(job.game))latestByGame.set(job.game,job)}
   const projects=await Promise.all(games.map(async game=>{
-    const[fun,autopilot,funnel]=await Promise.all([
+    const[fun,rawAutopilot,funnel]=await Promise.all([
       getHumanFunGate({stateDir,game:game.id,title:game.title}).catch(()=>({verdict:'pending',productionUnlocked:false})),
       getAssetAutopilotStatus({gameDir:game.gameDir}).catch(()=>({phase:'idle'})),
       getTestFunnel({stateDir,game:game.id,title:game.title,concept:game.metadata?.concept||''}).catch(()=>({tests:[],decision:null}))
-    ]),latestJob=latestByGame.get(game.id)||null,doctor=doctorSummary(latestDoctor[game.id]||null),stage=stageInfo({game,job:latestJob,fun,autopilot,doctor,funnel});
-    return{id:game.id,title:game.title,url:game.url,metadata:game.metadata||null,stage,job:jobSummary(latestJob),humanFun:fun,autopilot:{phase:autopilot?.phase||'idle',jobId:autopilot?.jobId||null,lastHarvest:autopilot?.lastHarvest||null},doctor,testsCount:(funnel?.tests||[]).length,decision:funnel?.decision||null};
+    ]),latestJob=latestByGame.get(game.id)||null,autopilot=await reconcileAutopilot({stateDir,store,jobsById,game,status:rawAutopilot}),doctor=doctorSummary(latestDoctor[game.id]||null),stage=stageInfo({game,job:latestJob,fun,autopilot,doctor,funnel});
+    return{id:game.id,title:game.title,url:game.url,metadata:game.metadata||null,stage,job:jobSummary(latestJob),humanFun:fun,autopilot:{phase:autopilot?.phase||'idle',jobId:autopilot?.jobId||null,jobStatus:autopilot?.jobStatus||null,finishedAt:autopilot?.finishedAt||null,lastHarvest:autopilot?.lastHarvest||null,reconcileError:autopilot?.reconcileError||null},doctor,testsCount:(funnel?.tests||[]).length,decision:funnel?.decision||null};
   }));
   const counts=projects.reduce((acc,p)=>{acc.total++;acc[p.stage.group]=(acc[p.stage.group]||0)+1;return acc},{total:0,'needs-you':0,active:0,production:0,testing:0,decision:0,parked:0});
   return{version:PROJECT_DASHBOARD_VERSION,generatedAt:new Date().toISOString(),counts,projects};
