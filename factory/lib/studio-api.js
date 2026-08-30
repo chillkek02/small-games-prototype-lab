@@ -1,9 +1,11 @@
 import { getStudioPlan, saveStudioPlan, runHookAudit, thumbnailDirections, runOptimizationAudit, detectGodot, advancedAssetStatus, portfolioRank, STUDIO_TOOLS_VERSION } from './studio-tools.js';
 import { getTestFunnel } from './test-funnel.js';
+import { buildPlanPreview } from './plan-preview.js';
 
 function safe(value){return typeof value==='string'&&/^[a-zA-Z0-9._-]+$/.test(value)&&!value.includes('..')}
 
 export async function handleStudioApi({req,res,url,stateDir,store,gameInfo,listGames,readBody,sendJson}){
+  if(req.method==='POST'&&url.pathname==='/api/new-game-plan'){try{return sendJson(res,200,buildPlanPreview(await readBody(req,500000)))}catch(error){return sendJson(res,400,{error:error.message})}}
   if(req.method==='GET'&&url.pathname==='/api/toolchain-status')return sendJson(res,200,{version:STUDIO_TOOLS_VERSION,godot:detectGodot(),assets:advancedAssetStatus()});
   if(req.method==='GET'&&url.pathname==='/api/portfolio'){
     const games=await listGames(),jobs=await store.list(250),funnels={};
