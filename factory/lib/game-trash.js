@@ -2,14 +2,34 @@ import fsp from 'node:fs/promises';
 import path from 'node:path';
 
 const TRASH_META = '.factory-trash.json';
+const WINDOWS_LOCK_CODES = new Set(['EBUSY', 'EPERM', 'ENOTEMPTY', 'EACCES']);
+const RETRY_DELAYS_MS = [120, 250, 500, 900, 1500];
 
 function safeName(value = '') {
   return String(value).replace(/[^a-zA-Z0-9._-]+/g, '-').replace(/^-+|-+$/g, '') || 'game';
 }
 
+const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+async function renameWithRetry(source, destination) {
+  let lastError = null;
+  for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt += 1) {
+    try {
+      await fsp.rename(source, destination);
+      return;
+    } catch (error) {
+      lastError = error;
+      if (error?.code === 'EXDEV') throw error;
+      if (!WINDOWS_LOCK_CODES.has(error?.code) || attempt === RETRY_DELAYS_MS.length) throw error;
+      await wait(RETRY_DELAYS_MS[attempt]);
+    }
+  }
+  throw lastError;
+}
+
 async function moveDirectory(source, destination) {
   try {
-    await fsp.rename(source, destination);
+    await renameWithRetry(source, destination);
   } catch (error) {
     if (error?.code !== 'EXDEV') throw error;
     await fsp.cp(source, destination, { recursive: true, force: false, errorOnExist: true });
@@ -39,15 +59,17 @@ export async function trashGame({ stateDir, game, gameDir, title = game }) {
     originalFolderName: path.basename(gameDir)
   };
 
-  // Metadata travels with the deleted game. Writing it before the move also
-  // guarantees the trash entry can be identified even after a cross-volume copy.
   await fsp.writeFile(path.join(gameDir, TRASH_META), JSON.stringify(metadata, null, 2), 'utf8');
 
   try {
     await moveDirectory(gameDir, destination);
   } catch (error) {
-    // Do not leave Factory-only trash metadata inside an otherwise untouched game.
     await fsp.rm(path.join(gameDir, TRASH_META), { force: true }).catch(() => {});
+    if (WINDOWS_LOCK_CODES.has(error?.code)) {
+      const friendly = new Error('Windows is still holding this game folder open. The Factory already retried the move; close any external editor/file window using this game and try Delete again.');
+      friendly.code = error.code;
+      throw friendly;
+    }
     throw error;
   }
 
