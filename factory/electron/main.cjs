@@ -77,6 +77,43 @@ async function discoverRepo() {
   return picked.filePaths[0];
 }
 
+function windowsClaudeCandidates(home) {
+  const candidates = [process.env.GAME_FACTORY_CLAUDE_COMMAND];
+  if (process.env.APPDATA) candidates.push(path.join(process.env.APPDATA, 'npm', 'claude.cmd'));
+  if (process.env.USERPROFILE) {
+    candidates.push(path.join(process.env.USERPROFILE, 'AppData', 'Roaming', 'npm', 'claude.cmd'));
+    candidates.push(path.join(process.env.USERPROFILE, '.local', 'bin', 'claude.exe'));
+  }
+  if (home) {
+    candidates.push(path.join(home, 'AppData', 'Roaming', 'npm', 'claude.cmd'));
+    candidates.push(path.join(home, '.local', 'bin', 'claude.exe'));
+  }
+  if (process.env.LOCALAPPDATA) {
+    candidates.push(path.join(process.env.LOCALAPPDATA, 'Programs', 'Claude', 'claude.exe'));
+    candidates.push(path.join(process.env.LOCALAPPDATA, 'Programs', 'claude-code', 'claude.exe'));
+  }
+  return [...new Set(candidates.filter(Boolean))];
+}
+
+function configureWindowsCliEnvironment(factoryDir) {
+  const currentPath = process.env.PATH || process.env.Path || '';
+  const home = app.getPath('home');
+  const npmBin = process.env.APPDATA
+    ? path.join(process.env.APPDATA, 'npm')
+    : path.join(home, 'AppData', 'Roaming', 'npm');
+  const localBin = path.join(home, '.local', 'bin');
+  const pathParts = [factoryDir, npmBin, localBin, currentPath].filter(Boolean);
+  process.env.PATH = pathParts.join(';');
+  process.env.Path = process.env.PATH;
+
+  if (!process.env.GAME_FACTORY_CODEX_COMMAND) process.env.GAME_FACTORY_CODEX_COMMAND = 'codex-router.cmd';
+
+  if (!process.env.GAME_FACTORY_CLAUDE_COMMAND) {
+    const resolved = windowsClaudeCandidates(home).find(candidate => fs.existsSync(candidate));
+    if (resolved) process.env.GAME_FACTORY_CLAUDE_COMMAND = resolved;
+  }
+}
+
 async function startFactory() {
   repoRoot = await discoverRepo();
   if (!repoRoot) {
@@ -85,12 +122,7 @@ async function startFactory() {
   }
 
   const factoryDir = path.resolve(__dirname, '..');
-  const currentPath = process.env.PATH || process.env.Path || '';
-  if (process.platform === 'win32') {
-    process.env.PATH = `${factoryDir};${currentPath}`;
-    process.env.Path = process.env.PATH;
-    if (!process.env.GAME_FACTORY_CODEX_COMMAND) process.env.GAME_FACTORY_CODEX_COMMAND = 'codex-router.cmd';
-  }
+  if (process.platform === 'win32') configureWindowsCliEnvironment(factoryDir);
   process.env.GAME_FACTORY_MODEL_POLICY ||= 'auto';
 
   process.env.GAME_FACTORY_EMBEDDED = '1';
