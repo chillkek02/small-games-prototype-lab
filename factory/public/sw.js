@@ -1,4 +1,4 @@
-const CACHE = 'gutpopper-factory-shell-v0.27-asset-autopilot';
+const CACHE = 'gutpopper-factory-shell-v0.27.1-asset-autopilot-toolbar';
 const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/theme-picker.css', '/asset-lab.css', '/studio-tools.css', '/plan-first.css', '/app.js', '/device-preview.js', '/test-funnel.js', '/asset-lab.js', '/studio-tools.js', '/studio-tools-actions.js', '/asset-autopilot.js', '/plan-first.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
