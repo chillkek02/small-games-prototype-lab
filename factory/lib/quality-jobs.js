@@ -3,8 +3,9 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { runQualityAudit } from './quality.js';
 
-export const QUALITY_JOB_VERSION='1.0.2';
+export const QUALITY_JOB_VERSION='1.0.3';
 const activeRuns=new Map();
+export function isQualityGameActive(game){return[...activeRuns.values()].some(x=>x.game===game)}
 
 function safe(value){return typeof value==='string'&&/^[a-zA-Z0-9._-]+$/.test(value)&&!value.includes('..')}
 function rootFor(stateDir){return path.join(stateDir,'quality-jobs')}
@@ -15,7 +16,7 @@ async function writeRun(stateDir,run){await ensure(stateDir);const temp=fileFor(
 async function patchRun(stateDir,id,patch){const current=await readJson(fileFor(stateDir,id),null);if(!current)return null;const next={...current,...patch,updatedAt:new Date().toISOString()};await writeRun(stateDir,next);return next}
 async function listRuns(stateDir){await ensure(stateDir);const entries=await fsp.readdir(rootFor(stateDir),{withFileTypes:true}).catch(()=>[]),runs=[];for(const e of entries){if(!e.isFile()||!e.name.endsWith('.json'))continue;const run=await readJson(path.join(rootFor(stateDir),e.name),null);if(run)runs.push(run)}return runs.sort((a,b)=>Date.parse(b.startedAt||b.createdAt||0)-Date.parse(a.startedAt||a.createdAt||0))}
 async function getRun(stateDir,id){const run=await readJson(fileFor(stateDir,id),null);if(!run)return null;if(run.status==='running'&&!activeRuns.has(id)){const interrupted={...run,status:'interrupted',stage:'Interrupted by Factory restart',detail:'Run Game Doctor again to restart this audit.',finishedAt:new Date().toISOString(),updatedAt:new Date().toISOString()};await writeRun(stateDir,interrupted);return interrupted}return run}
-async function gameBusy(store,game){const jobs=await store.list(80);return jobs.some(job=>job.game===game&&(job.status==='queued'||job.status==='running'))||[...activeRuns.values()].some(x=>x.game===game)}
+async function gameBusy(store,game){const jobs=await store.list(80);return jobs.some(job=>job.game===game&&(job.status==='queued'||job.status==='running'))||isQualityGameActive(game)}
 
 export async function handleQualityJobsApi({req,res,url,stateDir,gameInfo,sendJson,store}){
   const latest=url.pathname.match(/^\/api\/games\/([^/]+)\/doctor\/latest$/);
