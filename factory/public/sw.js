@@ -1,4 +1,4 @@
-const CACHE = 'gutpopper-factory-shell-v0.18-asset-import-lab';
+const CACHE = 'gutpopper-factory-shell-v0.18.1-static-asset-lab';
 const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/theme-picker.css', '/asset-lab.css', '/app.js', '/device-preview.js', '/test-funnel.js', '/asset-lab.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
