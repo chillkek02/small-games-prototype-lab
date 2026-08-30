@@ -3,7 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { runQualityAudit } from './quality.js';
 
-export const QUALITY_JOB_VERSION='1.0.3';
+export const QUALITY_JOB_VERSION='1.0.4';
 const activeRuns=new Map();
 export function isQualityGameActive(game){return[...activeRuns.values()].some(x=>x.game===game)}
 
@@ -14,13 +14,14 @@ async function ensure(stateDir){await fsp.mkdir(rootFor(stateDir),{recursive:tru
 async function readJson(file,fallback=null){try{return JSON.parse(await fsp.readFile(file,'utf8'))}catch{return fallback}}
 async function writeRun(stateDir,run){await ensure(stateDir);const temp=fileFor(stateDir,run.id)+'.tmp';await fsp.writeFile(temp,JSON.stringify(run,null,2),'utf8');await fsp.rename(temp,fileFor(stateDir,run.id));return run}
 async function patchRun(stateDir,id,patch){const current=await readJson(fileFor(stateDir,id),null);if(!current)return null;const next={...current,...patch,updatedAt:new Date().toISOString()};await writeRun(stateDir,next);return next}
-async function listRuns(stateDir){await ensure(stateDir);const entries=await fsp.readdir(rootFor(stateDir),{withFileTypes:true}).catch(()=>[]),runs=[];for(const e of entries){if(!e.isFile()||!e.name.endsWith('.json'))continue;const run=await readJson(path.join(rootFor(stateDir),e.name),null);if(run)runs.push(run)}return runs.sort((a,b)=>Date.parse(b.startedAt||b.createdAt||0)-Date.parse(a.startedAt||a.createdAt||0))}
+async function listRuns(stateDir){await ensure(stateDir);const entries=await fsp.readdir(rootFor(stateDir),{withFileTypes:true}).catch(()=>[]),runs=[];for(const e of entries){if(!e.isFile()||!e.name.endsWith('.json'))continue;const run=await readJson(path.join(rootFor(stateDir,e.name),null),null);if(run)runs.push(run)}return runs.sort((a,b)=>Date.parse(b.startedAt||b.createdAt||0)-Date.parse(a.startedAt||a.createdAt||0))}
 async function getRun(stateDir,id){const run=await readJson(fileFor(stateDir,id),null);if(!run)return null;if(run.status==='running'&&!activeRuns.has(id)){const interrupted={...run,status:'interrupted',stage:'Interrupted by Factory restart',detail:'Run Game Doctor again to restart this audit.',finishedAt:new Date().toISOString(),updatedAt:new Date().toISOString()};await writeRun(stateDir,interrupted);return interrupted}return run}
+export async function getLatestQualityRun({stateDir,game}){const runs=(await listRuns(stateDir)).filter(x=>x.game===game);return runs[0]?await getRun(stateDir,runs[0].id):null}
 async function gameBusy(store,game){const jobs=await store.list(80);return jobs.some(job=>job.game===game&&(job.status==='queued'||job.status==='running'))||isQualityGameActive(game)}
 
 export async function handleQualityJobsApi({req,res,url,stateDir,gameInfo,sendJson,store}){
   const latest=url.pathname.match(/^\/api\/games\/([^/]+)\/doctor\/latest$/);
-  if(req.method==='GET'&&latest){const game=decodeURIComponent(latest[1]);if(!safe(game))return sendJson(res,400,{error:'Invalid game id'});const runs=(await listRuns(stateDir)).filter(x=>x.game===game);const run=runs[0]?await getRun(stateDir,runs[0].id):null;return sendJson(res,200,{run})}
+  if(req.method==='GET'&&latest){const game=decodeURIComponent(latest[1]);if(!safe(game))return sendJson(res,400,{error:'Invalid game id'});return sendJson(res,200,{run:await getLatestQualityRun({stateDir,game})})}
 
   const status=url.pathname.match(/^\/api\/games\/([^/]+)\/doctor\/([^/]+)$/);
   if(req.method==='GET'&&status){const game=decodeURIComponent(status[1]),id=decodeURIComponent(status[2]);if(!safe(game)||!safe(id))return sendJson(res,400,{error:'Invalid Game Doctor run'});const run=await getRun(stateDir,id);if(!run||run.game!==game)return sendJson(res,404,{error:'Game Doctor run not found'});return sendJson(res,200,{run})}
