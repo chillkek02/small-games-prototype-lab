@@ -3,7 +3,7 @@ import path from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { runQualityAudit } from './quality.js';
 
-export const QUALITY_JOB_VERSION='1.0.1';
+export const QUALITY_JOB_VERSION='1.0.2';
 const activeRuns=new Map();
 
 function safe(value){return typeof value==='string'&&/^[a-zA-Z0-9._-]+$/.test(value)&&!value.includes('..')}
@@ -25,7 +25,7 @@ export async function handleQualityJobsApi({req,res,url,stateDir,gameInfo,sendJs
   if(req.method==='GET'&&status){const game=decodeURIComponent(status[1]),id=decodeURIComponent(status[2]);if(!safe(game)||!safe(id))return sendJson(res,400,{error:'Invalid Game Doctor run'});const run=await getRun(stateDir,id);if(!run||run.game!==game)return sendJson(res,404,{error:'Game Doctor run not found'});return sendJson(res,200,{run})}
 
   const start=url.pathname.match(/^\/api\/games\/([^/]+)\/doctor$/);
-  if(req.method==='POST'&&start){
+  if(req.method==='POST'&&start&&url.searchParams.get('async')==='1'){
     const game=decodeURIComponent(start[1]);if(!safe(game))return sendJson(res,400,{error:'Invalid game id'});if(await gameBusy(store,game))return sendJson(res,409,{error:'Wait for the active Factory operation to finish before running Game Doctor.'});const info=await gameInfo(game);if(!info)return sendJson(res,404,{error:'Game target not found'});
     const id=`doctor-${Date.now()}-${randomUUID().slice(0,8)}`,run={version:QUALITY_JOB_VERSION,id,game,status:'running',percent:1,stage:'Starting Game Doctor',detail:'Preparing the quality pipeline…',createdAt:new Date().toISOString(),startedAt:new Date().toISOString(),updatedAt:new Date().toISOString(),result:null,error:null};await writeRun(stateDir,run);
     const origin=`http://${req.headers.host||'127.0.0.1:4177'}`;
