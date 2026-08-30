@@ -11,6 +11,13 @@ function safeName(value = '') {
 
 const wait = ms => new Promise(resolve => setTimeout(resolve, ms));
 
+async function releaseFactoryGameViews(game) {
+  const close = globalThis.__GUTPOPPER_CLOSE_GAME_WINDOWS__;
+  if (typeof close !== 'function') return;
+  await close(game).catch(() => {});
+  await wait(120);
+}
+
 async function renameWithRetry(source, destination) {
   let lastError = null;
   for (let attempt = 0; attempt <= RETRY_DELAYS_MS.length; attempt += 1) {
@@ -41,6 +48,7 @@ export async function trashGame({ stateDir, game, gameDir, title = game }) {
   const deletedAt = new Date().toISOString();
   const trashRoot = path.join(stateDir, 'game-trash');
   await fsp.mkdir(trashRoot, { recursive: true });
+  await releaseFactoryGameViews(game);
 
   const stamp = deletedAt.replace(/[:.]/g, '-');
   let trashId = `${stamp}--${safeName(game)}`;
@@ -66,7 +74,7 @@ export async function trashGame({ stateDir, game, gameDir, title = game }) {
   } catch (error) {
     await fsp.rm(path.join(gameDir, TRASH_META), { force: true }).catch(() => {});
     if (WINDOWS_LOCK_CODES.has(error?.code)) {
-      const friendly = new Error('Windows is still holding this game folder open. The Factory already retried the move; close any external editor/file window using this game and try Delete again.');
+      const friendly = new Error('Windows is still holding this game folder open. The Factory already closed its own game windows and retried the move; close any external editor or File Explorer window using this game and try Delete again.');
       friendly.code = error.code;
       throw friendly;
     }
