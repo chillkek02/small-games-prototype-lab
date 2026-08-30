@@ -1,11 +1,11 @@
 {
   "name": "gutpopper-game-factory",
   "productName": "Gutpopper Game Factory",
-  "version": "0.31.0",
+  "version": "0.31.1",
   "private": true,
   "type": "module",
   "main": "electron/main.cjs",
-  "description": "Gameplay-first AI game studio with a Project Board that makes each game's stage and next action obvious, mandatory Human Fun Gate before polish, direct project-card promotion/pivot/delete/assets/Doctor/Poki actions, Claude + Codex teams and real-player validation.",
+  "description": "Gameplay-first AI game studio with a Project Board, mandatory Human Fun Gate before polish, direct project-card actions, scaffold-stuck QA detection, safe Windows game-window release before Trash, Claude + Codex teams and real-player validation.",
   "author": "Gutpopper Games",
   "scripts": {
     "start": "node server.js",
