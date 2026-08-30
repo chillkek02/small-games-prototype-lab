@@ -1,0 +1,18 @@
+import { getStudioPlan, saveStudioPlan, runHookAudit, thumbnailDirections, runOptimizationAudit, detectGodot, advancedAssetStatus, portfolioRank, STUDIO_TOOLS_VERSION } from './studio-tools.js';
+import { getTestFunnel } from './test-funnel.js';
+
+function safe(value){return typeof value==='string'&&/^[a-zA-Z0-9._-]+$/.test(value)&&!value.includes('..')}
+
+export async function handleStudioApi({req,res,url,stateDir,store,gameInfo,listGames,readBody,sendJson}){
+  if(req.method==='GET'&&url.pathname==='/api/toolchain-status')return sendJson(res,200,{version:STUDIO_TOOLS_VERSION,godot:detectGodot(),assets:advancedAssetStatus()});
+  if(req.method==='GET'&&url.pathname==='/api/portfolio'){
+    const games=await listGames(),jobs=await store.list(250),funnels={};
+    for(const game of games){try{funnels[game.id]=await getTestFunnel({stateDir,game:game.id,title:game.title,concept:game.metadata?.concept||''})}catch{funnels[game.id]=null}}
+    return sendJson(res,200,{version:STUDIO_TOOLS_VERSION,games:portfolioRank({games,jobs,funnels})});
+  }
+  const plan=url.pathname.match(/^\/api\/games\/([^/]+)\/studio-plan$/);if(plan){const game=decodeURIComponent(plan[1]);if(!safe(game))return sendJson(res,400,{error:'Invalid game id'});const info=await gameInfo(game);if(!info)return sendJson(res,404,{error:'Game target not found'});if(req.method==='GET')return sendJson(res,200,await getStudioPlan({gameDir:info.gameDir,metadata:{id:game,title:info.title,...info.metadata}}));if(req.method==='POST'){try{return sendJson(res,200,await saveStudioPlan({gameDir:info.gameDir,metadata:{id:game,title:info.title,...info.metadata},input:await readBody(req,500000)}))}catch(error){return sendJson(res,400,{error:error.message})}}}
+  const hook=url.pathname.match(/^\/api\/games\/([^/]+)\/hook-audit$/);if(req.method==='GET'&&hook){const game=decodeURIComponent(hook[1]);if(!safe(game))return sendJson(res,400,{error:'Invalid game id'});const info=await gameInfo(game);if(!info)return sendJson(res,404,{error:'Game target not found'});return sendJson(res,200,await runHookAudit({gameDir:info.gameDir,metadata:{id:game,title:info.title,...info.metadata}}))}
+  const thumb=url.pathname.match(/^\/api\/games\/([^/]+)\/thumbnail-lab$/);if(req.method==='GET'&&thumb){const game=decodeURIComponent(thumb[1]);if(!safe(game))return sendJson(res,400,{error:'Invalid game id'});const info=await gameInfo(game);if(!info)return sendJson(res,404,{error:'Game target not found'});const planData=await getStudioPlan({gameDir:info.gameDir,metadata:{id:game,title:info.title,...info.metadata}});return sendJson(res,200,{version:STUDIO_TOOLS_VERSION,directions:thumbnailDirections({metadata:{id:game,title:info.title,...info.metadata},plan:planData})})}
+  const opt=url.pathname.match(/^\/api\/games\/([^/]+)\/optimization$/);if(req.method==='GET'&&opt){const game=decodeURIComponent(opt[1]);if(!safe(game))return sendJson(res,400,{error:'Invalid game id'});const info=await gameInfo(game);if(!info)return sendJson(res,404,{error:'Game target not found'});return sendJson(res,200,await runOptimizationAudit({gameDir:info.gameDir}))}
+  return false;
+}
