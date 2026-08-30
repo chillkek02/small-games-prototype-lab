@@ -1,4 +1,4 @@
-const CACHE = 'gutpopper-factory-shell-v0.29-agent-teams';
+const CACHE = 'gutpopper-factory-shell-v0.30-gameplay-first';
 const SHELL = ['/', '/styles.css', '/platform.css', '/device-preview.css', '/quality-lab.css', '/theme-picker.css', '/asset-lab.css', '/studio-tools.css', '/plan-first.css', '/workflow.css', '/app.js', '/device-preview.js', '/test-funnel.js', '/asset-lab.js', '/studio-tools.js', '/studio-tools-actions.js', '/asset-autopilot.js', '/workflow.js', '/doctor-live.js', '/agent-teams-ui.js', '/plan-first.js', '/quality-lab.js', '/manifest.webmanifest', '/factory-icon.svg'];
 
 self.addEventListener('install', event => {
